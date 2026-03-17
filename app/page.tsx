@@ -85,8 +85,8 @@ function GadoGauchoContent() {
         });
         setCitySearch('Minha Localização');
         setShowCitySuggestions(false);
-      }, (error) => {
-        console.error('Error getting location:', error);
+      }, (error: any) => {
+        console.error('Error getting location:', error.message || error);
         alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
       });
     } else {
@@ -165,7 +165,7 @@ function GadoGauchoContent() {
         if (!listingsRes.ok || !usersRes.ok) {
           const lErr = !listingsRes.ok ? await listingsRes.json().catch(() => ({ error: 'Failed to parse listings error' })) : {};
           const uErr = !usersRes.ok ? await usersRes.json().catch(() => ({ error: 'Failed to parse users error' })) : {};
-          console.error('API Error Details:', { listings: lErr, users: uErr });
+          console.error('API Error Details:', lErr, uErr);
           throw new Error(`Failed to fetch data: ${lErr.error || uErr.error || 'Unknown error'}`);
         }
 
@@ -274,8 +274,8 @@ function GadoGauchoContent() {
           setAuthError(error.error || 'Erro ao cadastrar');
           return;
         }
-      } catch (error) {
-        console.error('Error registering:', error);
+      } catch (error: any) {
+        console.error('Error registering:', error.message || error);
         setAuthError('Erro ao conectar ao servidor');
         return;
       }
@@ -300,8 +300,8 @@ function GadoGauchoContent() {
           setAuthError(error.error || 'Erro ao fazer login');
           return;
         }
-      } catch (error) {
-        console.error('Error logging in:', error);
+      } catch (error: any) {
+        console.error('Error logging in:', error.message || error);
         setAuthError('Erro ao conectar ao servidor');
         return;
       }
@@ -312,8 +312,8 @@ function GadoGauchoContent() {
     try {
       await fetch(`/api/listings/${id}`, { method: 'DELETE' });
       setListings(listings.filter(l => l.id !== id));
-    } catch (error) {
-      console.error('Error deleting listing:', error);
+    } catch (error: any) {
+      console.error('Error deleting listing:', error.message || error);
     }
   };
 
@@ -325,13 +325,13 @@ function GadoGauchoContent() {
         setUser(null);
         localStorage.removeItem('gado_gaucho_user');
       }
-    } catch (error) {
-      console.error('Error deleting user:', error);
+    } catch (error: any) {
+      console.error('Error deleting user:', error.message || error);
     }
   };
 
   const handleShare = (id: number) => {
-    const url = `${window.location.origin}/listing/${id}`;
+    const url = `${window.location.origin}/anuncio/${id}`;
     navigator.clipboard.writeText(url);
     setShowShareToast(true);
     setTimeout(() => setShowShareToast(false), 3000);
@@ -380,8 +380,8 @@ function GadoGauchoContent() {
         images: [],
         videos: []
       });
-    } catch (error) {
-      console.error('Error creating ad:', error);
+    } catch (error: any) {
+      console.error('Error creating ad:', error.message || error);
     }
   };
 

@@ -40,8 +40,8 @@ export default function AnuncioPage() {
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      } catch (error: any) {
+        console.error('Error fetching data:', error.message || error);
       } finally {
         setLoading(false);
       }
