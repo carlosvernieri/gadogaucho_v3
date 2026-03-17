@@ -19,6 +19,7 @@ export default function VendedorPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,7 +55,8 @@ export default function VendedorPage() {
   const handleShare = (id: number) => {
     const url = `${window.location.origin}/anuncio/${id}`;
     navigator.clipboard.writeText(url);
-    // You could add a toast here if you want, similar to the ad page
+    setShowShareToast(true);
+    setTimeout(() => setShowShareToast(false), 3000);
   };
 
   return (
@@ -171,6 +173,14 @@ export default function VendedorPage() {
           )}
         </main>
       </div>
+
+      {/* Share Toast */}
+      {showShareToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <div className="w-2 h-2 bg-[#2D5A27] rounded-full" />
+          Link do anúncio copiado!
+        </div>
+      )}
     </div>
   );
 }

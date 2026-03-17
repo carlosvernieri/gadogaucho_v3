@@ -7,7 +7,15 @@ import Link from 'next/link';
 import { Heart, Share2, MapPin, Loader2 } from 'lucide-react';
 import { Badge } from './Badge';
 
-export const ListingCard = ({ listing }: { listing: any }) => {
+export const ListingCard = ({ 
+  listing, 
+  onShare,
+  onClick
+}: { 
+  listing: any, 
+  onShare?: (id: number) => void,
+  onClick?: () => void
+}) => {
   const [isNavigating, setIsNavigating] = useState(false);
 
   return (
@@ -33,7 +41,11 @@ export const ListingCard = ({ listing }: { listing: any }) => {
           <Heart size={18} />
         </button>
         <button 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onClick={(e) => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            if (onShare) onShare(listing.id);
+          }}
           className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#666] hover:bg-white transition-colors cursor-pointer"
         >
           <Share2 size={16} />
@@ -43,7 +55,10 @@ export const ListingCard = ({ listing }: { listing: any }) => {
       <Link 
         href={`/anuncio/${listing.id}`} 
         className="block"
-        onClick={() => setIsNavigating(true)}
+        onClick={() => {
+          setIsNavigating(true);
+          if (onClick) onClick();
+        }}
       >
         <div className="relative aspect-[4/3]">
           <Image 
