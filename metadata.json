@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Gado Gaúcho",
+  "description": "Plataforma de anúncios de gado para compra e venda.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
