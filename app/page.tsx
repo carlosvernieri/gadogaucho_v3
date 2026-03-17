@@ -85,8 +85,8 @@ function GadoGauchoContent() {
         });
         setCitySearch('Minha Localização');
         setShowCitySuggestions(false);
-      }, (error: any) => {
-        console.error('Error getting location:', error.message || error);
+      }, (error) => {
+        console.error('Error getting location:', error);
         alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
       });
     } else {
@@ -165,7 +165,7 @@ function GadoGauchoContent() {
         if (!listingsRes.ok || !usersRes.ok) {
           const lErr = !listingsRes.ok ? await listingsRes.json().catch(() => ({ error: 'Failed to parse listings error' })) : {};
           const uErr = !usersRes.ok ? await usersRes.json().catch(() => ({ error: 'Failed to parse users error' })) : {};
-          console.error('API Error Details:', lErr, uErr);
+          console.error('API Error Details:', { listings: lErr, users: uErr });
           throw new Error(`Failed to fetch data: ${lErr.error || uErr.error || 'Unknown error'}`);
         }
 
@@ -274,8 +274,8 @@ function GadoGauchoContent() {
           setAuthError(error.error || 'Erro ao cadastrar');
           return;
         }
-      } catch (error: any) {
-        console.error('Error registering:', error.message || error);
+      } catch (error) {
+        console.error('Error registering:', error);
         setAuthError('Erro ao conectar ao servidor');
         return;
       }
@@ -300,8 +300,8 @@ function GadoGauchoContent() {
           setAuthError(error.error || 'Erro ao fazer login');
           return;
         }
-      } catch (error: any) {
-        console.error('Error logging in:', error.message || error);
+      } catch (error) {
+        console.error('Error logging in:', error);
         setAuthError('Erro ao conectar ao servidor');
         return;
       }
@@ -312,8 +312,8 @@ function GadoGauchoContent() {
     try {
       await fetch(`/api/listings/${id}`, { method: 'DELETE' });
       setListings(listings.filter(l => l.id !== id));
-    } catch (error: any) {
-      console.error('Error deleting listing:', error.message || error);
+    } catch (error) {
+      console.error('Error deleting listing:', error);
     }
   };
 
@@ -325,13 +325,13 @@ function GadoGauchoContent() {
         setUser(null);
         localStorage.removeItem('gado_gaucho_user');
       }
-    } catch (error: any) {
-      console.error('Error deleting user:', error.message || error);
+    } catch (error) {
+      console.error('Error deleting user:', error);
     }
   };
 
   const handleShare = (id: number) => {
-    const url = `${window.location.origin}/anuncio/${id}`;
+    const url = `${window.location.origin}/listing/${id}`;
     navigator.clipboard.writeText(url);
     setShowShareToast(true);
     setTimeout(() => setShowShareToast(false), 3000);
@@ -380,8 +380,8 @@ function GadoGauchoContent() {
         images: [],
         videos: []
       });
-    } catch (error: any) {
-      console.error('Error creating ad:', error.message || error);
+    } catch (error) {
+      console.error('Error creating ad:', error);
     }
   };
 
@@ -479,6 +479,21 @@ function GadoGauchoContent() {
                       className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer"
                     >
                       Testar Conexão
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/seed-test');
+                          const data = await res.json();
+                          alert(data.message || data.error);
+                          window.location.reload();
+                        } catch (e) {
+                          alert('Erro ao gerar anúncios de teste');
+                        }
+                      }}
+                      className="px-4 py-2 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-100 transition-all cursor-pointer"
+                    >
+                      Gerar 30 Testes
                     </button>
                     <button 
                       onClick={async () => {

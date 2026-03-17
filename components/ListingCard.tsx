@@ -23,6 +23,23 @@ export const ListingCard = ({ listing }: { listing: any }) => {
           <span className="mt-3 text-[10px] font-bold text-[#2D5A27] uppercase tracking-wider">Carregando...</span>
         </div>
       )}
+      
+      {/* Action Buttons - Moved outside Link to avoid nested interactive elements */}
+      <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+        <button 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#DC3545] hover:bg-white transition-colors cursor-pointer"
+        >
+          <Heart size={18} />
+        </button>
+        <button 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#666] hover:bg-white transition-colors cursor-pointer"
+        >
+          <Share2 size={16} />
+        </button>
+      </div>
+
       <Link 
         href={`/anuncio/${listing.id}`} 
         className="block"
@@ -39,14 +56,6 @@ export const ListingCard = ({ listing }: { listing: any }) => {
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             <Badge>{listing.category} <span className="font-normal opacity-60">cod: {listing.id}</span></Badge>
             {listing.verified && <Badge variant="verified">VERIFICADO</Badge>}
-          </div>
-          <div className="absolute top-3 right-3 flex flex-col gap-2" onClick={(e) => e.preventDefault()}>
-            <button className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#DC3545] hover:bg-white transition-colors">
-              <Heart size={18} />
-            </button>
-            <button className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#666] hover:bg-white transition-colors">
-              <Share2 size={16} />
-            </button>
           </div>
         </div>
         
@@ -69,7 +78,16 @@ export const ListingCard = ({ listing }: { listing: any }) => {
               <MapPin size={12} />
               <span className="uppercase">{listing.location}</span>
             </div>
-            <span className="font-bold text-[#2D5A27]">{listing.seller}</span>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = `/vendedor/${encodeURIComponent(listing.seller)}`;
+              }}
+              className="font-bold text-[#2D5A27] hover:underline cursor-pointer"
+            >
+              {listing.seller}
+            </button>
           </div>
           
           <div className="w-full py-2.5 rounded-lg border border-[#2D5A27] text-[#2D5A27] font-bold text-sm hover:bg-[#2D5A27] hover:text-white transition-all text-center">

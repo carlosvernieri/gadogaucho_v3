@@ -3,15 +3,23 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
-    const { data: listings, error } = await (supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const seller = searchParams.get('seller');
+
+    let query = (supabaseAdmin
       .from('listings') as any)
-      .select('*')
-      .order('id', { ascending: false });
+      .select('*');
+
+    if (seller) {
+      query = query.eq('seller', seller);
+    }
+
+    const { data: listings, error } = await query.order('id', { ascending: false });
 
     if (error) throw error;
 

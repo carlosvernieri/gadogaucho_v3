@@ -125,11 +125,19 @@ export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id
           </p>
           
           <div className="bg-[#F8F9FA] rounded-2xl p-4 mb-6 flex items-center gap-4">
-            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
-              <Image src="https://picsum.photos/seed/user1/100/100" alt="" fill className="object-cover" referrerPolicy="no-referrer" />
-            </div>
+            <Link 
+              href={`/vendedor/${encodeURIComponent(listing.seller)}`}
+              className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm hover:opacity-80 transition-opacity"
+            >
+              <Image src={`https://picsum.photos/seed/${listing.seller}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
+            </Link>
             <div className="flex-1">
-              <div className="font-bold text-sm text-[#333]">{listing.seller}</div>
+              <Link 
+                href={`/vendedor/${encodeURIComponent(listing.seller)}`}
+                className="font-bold text-sm text-[#333] hover:text-[#2D5A27] transition-colors"
+              >
+                {listing.seller}
+              </Link>
               <div className="flex items-center gap-1 text-[#FFC107]">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} size={10} fill={i < Math.floor(listing.sellerRating) ? 'currentColor' : 'none'} />
