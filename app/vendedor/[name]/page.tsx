@@ -158,7 +158,6 @@ export default function VendedorPage() {
                   key={l.id} 
                   listing={l} 
                   onShare={handleShare}
-                  onClick={() => router.push(`/anuncio/${l.id}`)}
                 />
               ))}
             </div>
