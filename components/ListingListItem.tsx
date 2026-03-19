@@ -46,17 +46,19 @@ export const ListingListItem = ({
           <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none" />
         )}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          <Badge variant={listing.verified ? 'verified' : 'default'}>
-            {listing.verified ? 'VERIFICADO' : 'PENDENTE'}
-          </Badge>
+          {listing.verified && (
+            <Badge variant="verified">
+              VERIFICADO
+            </Badge>
+          )}
           {listing.verification_requested && !listing.verified && (
-            <Badge variant="default" className="bg-blue-500 text-white border-none">
-              SOLICITADO
+            <Badge variant="default" className="bg-blue-50 text-[#333] border border-blue-100 shadow-none flex items-center gap-1">
+              <Clock size={12} /> SOLICITADO
             </Badge>
           )}
           {listing.sold && (
-            <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none">
-              VENDIDO
+            <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none flex items-center gap-1">
+              <CheckCircle size={12} /> VENDIDO
             </Badge>
           )}
         </div>

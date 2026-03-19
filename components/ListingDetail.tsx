@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, Heart, Share2, Star, Video } from 'lucide-react';
+import { ChevronLeft, Heart, Share2, Star, Video, CheckCircle } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
 
@@ -53,8 +53,8 @@ export const ListingDetail = ({
 
           {listing.sold && (
             <div className="absolute top-4 right-4 z-10">
-              <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none px-3 py-1.5 text-xs">
-                VENDIDO
+              <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none px-3 py-1.5 text-xs flex items-center gap-1">
+                <CheckCircle size={12} /> VENDIDO
               </Badge>
             </div>
           )}

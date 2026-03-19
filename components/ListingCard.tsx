@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, Share2, MapPin, Loader2 } from 'lucide-react';
+import { Heart, Share2, MapPin, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const ListingCard = ({ 
@@ -98,8 +98,8 @@ export const ListingCard = ({
           <Badge>{listing.category} <span className="font-normal opacity-60">cod: {listing.id}</span></Badge>
           {listing.verified && <Badge variant="verified">VERIFICADO</Badge>}
           {listing.sold && (
-            <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none">
-              VENDIDO
+            <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none flex items-center gap-1">
+              <CheckCircle size={12} /> VENDIDO
             </Badge>
           )}
         </div>
