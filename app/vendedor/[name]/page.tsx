@@ -18,6 +18,7 @@ export default function VendedorPage() {
   const [allListings, setAllListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
@@ -41,7 +42,15 @@ export default function VendedorPage() {
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Fetch favorites
+          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (Array.isArray(data)) setFavorites(data);
+            })
+            .catch(err => console.error('Error fetching favorites:', err));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -51,6 +60,34 @@ export default function VendedorPage() {
     };
     fetchData();
   }, [sellerName]);
+
+  const handleToggleFavorite = async (listingId: number) => {
+    if (!user) {
+      router.push('/?auth=login');
+      return;
+    }
+
+    const isFavorite = favorites.includes(listingId);
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, listingId })
+      });
+
+      if (res.ok) {
+        if (isFavorite) {
+          setFavorites(favorites.filter(id => id !== listingId));
+        } else {
+          setFavorites([...favorites, listingId]);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
 
   const handleShare = (id: number) => {
     const url = `${window.location.origin}/anuncio/${id}`;
@@ -73,6 +110,7 @@ export default function VendedorPage() {
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}
+        onFavoritesClick={() => router.push('/?favorites=true')}
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
@@ -158,6 +196,8 @@ export default function VendedorPage() {
                   key={l.id} 
                   listing={l} 
                   onShare={handleShare}
+                  isFavorite={favorites.includes(l.id)}
+                  onToggleFavorite={handleToggleFavorite}
                 />
               ))}
             </div>

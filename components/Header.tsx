@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu } from 'lucide-react';
-import Image from 'next/image';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart } from 'lucide-react';
 import Link from 'next/link';
 
 interface HeaderProps {
@@ -13,6 +12,8 @@ interface HeaderProps {
   onAdminClick: () => void;
   onLogout: () => void;
   onHomeClick: () => void;
+  onFavoritesClick: () => void;
+  onMyAdsClick?: () => void;
 }
 
 export const Header = ({ 
@@ -22,7 +23,9 @@ export const Header = ({
   onAdClick, 
   onAdminClick, 
   onLogout,
-  onHomeClick
+  onHomeClick,
+  onFavoritesClick,
+  onMyAdsClick
 }: HeaderProps) => {
   return (
     <header className="z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
@@ -52,6 +55,32 @@ export const Header = ({
                 <Megaphone size={18} /> Anuncie aqui
               </button>
               <div className="hidden lg:flex items-center gap-2">
+                {user.is_admin && (
+                  <button 
+                    onClick={onAdminClick}
+                    className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                    title="Painel Administrativo"
+                  >
+                    <ShieldCheck size={20} />
+                    <span className="hidden xl:inline">Admin</span>
+                  </button>
+                )}
+                <button 
+                  onClick={onMyAdsClick}
+                  className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  title="Meus Anúncios"
+                >
+                  <Megaphone size={20} />
+                  <span className="hidden xl:inline">Meus Anúncios</span>
+                </button>
+                <button 
+                  onClick={onFavoritesClick}
+                  className="p-2 text-[#666] hover:text-[#DC3545] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  title="Meus Favoritos"
+                >
+                  <Heart size={20} />
+                  <span className="hidden xl:inline">Favoritos</span>
+                </button>
                 <button className="p-2 text-[#666] hover:text-[#333] relative cursor-pointer">
                   <Bell size={20} />
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#DC3545] rounded-full border-2 border-white" />
@@ -59,20 +88,10 @@ export const Header = ({
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
-                  <div className="text-xs font-bold text-[#333]">{user.name}</div>
-                  <div className="text-[10px] text-[#999]">{user.is_admin ? 'Administrador' : user.email}</div>
-                </div>
-                {user.is_admin && (
-                  <button 
-                    onClick={onAdminClick}
-                    className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-colors cursor-pointer"
-                    title="Painel Administrativo"
-                  >
-                    <ShieldCheck size={20} />
-                  </button>
-                )}
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#E9ECEF] cursor-pointer">
-                  <Image src="https://picsum.photos/seed/user2/100/100" alt="" fill className="object-cover" referrerPolicy="no-referrer" />
+                  <div className="text-sm font-bold text-[#333]">{user.name.split(' ')[0]}</div>
+                  <div className="text-[10px] text-[#999] uppercase tracking-wider font-bold">
+                    {user.is_admin ? 'Administrador' : 'Usuário'}
+                  </div>
                 </div>
                 <button 
                   onClick={onLogout}

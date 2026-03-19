@@ -18,6 +18,7 @@ export default function CategoriaPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   const categoryName = unslugify(slug, CATEGORIES_LIST);
 
@@ -30,7 +31,15 @@ export default function CategoriaPage() {
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Fetch favorites
+          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (Array.isArray(data)) setFavorites(data);
+            })
+            .catch(err => console.error('Error fetching favorites:', err));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -40,6 +49,34 @@ export default function CategoriaPage() {
     };
     fetchData();
   }, []);
+
+  const handleToggleFavorite = async (listingId: number) => {
+    if (!user) {
+      router.push('/?auth=login');
+      return;
+    }
+
+    const isFavorite = favorites.includes(listingId);
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, listingId })
+      });
+
+      if (res.ok) {
+        if (isFavorite) {
+          setFavorites(favorites.filter(id => id !== listingId));
+        } else {
+          setFavorites([...favorites, listingId]);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
 
   const filteredListings = useMemo(() => {
     return listings.filter(item => {
@@ -66,6 +103,7 @@ export default function CategoriaPage() {
             router.push('/');
           }}
           onHomeClick={() => router.push('/')}
+          onFavoritesClick={() => router.push('/?favorites=true')}
         />
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="relative">
@@ -95,6 +133,7 @@ export default function CategoriaPage() {
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}
+        onFavoritesClick={() => router.push('/?favorites=true')}
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
@@ -129,7 +168,12 @@ export default function CategoriaPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredListings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} />
+              <ListingCard 
+                key={listing.id} 
+                listing={listing} 
+                isFavorite={favorites.includes(listing.id)}
+                onToggleFavorite={handleToggleFavorite}
+              />
             ))}
           </div>
 

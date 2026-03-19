@@ -22,7 +22,9 @@ import {
   ChevronRight,
   Check,
   Megaphone,
-  Loader2
+  Loader2,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
@@ -99,6 +101,14 @@ function GadoGauchoContent() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showMyAds, setShowMyAds] = useState(false);
+  const [isSubmittingAd, setIsSubmittingAd] = useState(false);
+  const [editingListingId, setEditingListingId] = useState<number | null>(null);
+  const [adminTab, setAdminTab] = useState<'users' | 'listings'>('users');
+  const [favorites, setFavorites] = useState<number[]>([]);
   const [showShareToast, setShowShareToast] = useState(false);
 
   // File Upload Refs
@@ -185,7 +195,16 @@ function GadoGauchoContent() {
           const parsedUser = JSON.parse(storedUser);
           // Re-verify with allUsers to get latest data
           const found = Array.isArray(usersData) ? usersData.find((u: any) => u.email === parsedUser.email) : null;
-          if (found) setUser(found);
+          if (found) {
+            setUser(found);
+            // Fetch favorites for this user
+            fetch(`/api/favorites?email=${encodeURIComponent(found.email)}`)
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data)) setFavorites(data);
+              })
+              .catch(err => console.error('Error fetching favorites:', err));
+          }
         }
       } catch (error: any) {
         console.error('Error fetching data:', error.message || error);
@@ -201,7 +220,11 @@ function GadoGauchoContent() {
   // Handle category from query params
   useEffect(() => {
     const catParam = searchParams.get('category');
+    const favParam = searchParams.get('favorites');
     setSelectedCategory(catParam);
+    if (favParam === 'true') {
+      setShowFavorites(true);
+    }
   }, [searchParams]);
 
   // Auth Form State
@@ -268,6 +291,13 @@ function GadoGauchoContent() {
           setUser(savedUser);
           setAllUsers([...allUsers, savedUser]);
           localStorage.setItem('gado_gaucho_user', JSON.stringify(savedUser));
+          // Fetch favorites
+          fetch(`/api/favorites?email=${encodeURIComponent(savedUser.email)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (Array.isArray(data)) setFavorites(data);
+            })
+            .catch(err => console.error('Error fetching favorites:', err));
           setShowAuthModal(false);
         } else {
           const error = await res.json();
@@ -294,6 +324,13 @@ function GadoGauchoContent() {
           const foundUser = await res.json();
           setUser(foundUser);
           localStorage.setItem('gado_gaucho_user', JSON.stringify(foundUser));
+          // Fetch favorites
+          fetch(`/api/favorites?email=${encodeURIComponent(foundUser.email)}`)
+            .then(res => res.json())
+            .then(data => {
+              if (Array.isArray(data)) setFavorites(data);
+            })
+            .catch(err => console.error('Error fetching favorites:', err));
           setShowAuthModal(false);
         } else {
           const error = await res.json();
@@ -309,6 +346,7 @@ function GadoGauchoContent() {
   };
 
   const handleDeleteListing = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir este anúncio?')) return;
     try {
       await fetch(`/api/listings/${id}`, { method: 'DELETE' });
       setListings(listings.filter(l => l.id !== id));
@@ -317,7 +355,33 @@ function GadoGauchoContent() {
     }
   };
 
+  const handleUpdateListing = async (id: number, data: any) => {
+    try {
+      const res = await fetch(`/api/listings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setListings(listings.map(l => l.id === id ? updated : l));
+        return updated;
+      }
+    } catch (error) {
+      console.error('Error updating listing:', error);
+    }
+    return null;
+  };
+
+  const handleRequestVerification = async (id: number) => {
+    const updated = await handleUpdateListing(id, { verification_requested: true });
+    if (updated) {
+      alert('Solicitação de verificação enviada com sucesso!');
+    }
+  };
+
   const handleDeleteUser = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
       await fetch(`/api/users/${id}`, { method: 'DELETE' });
       setAllUsers(allUsers.filter(u => u.id !== id));
@@ -330,6 +394,72 @@ function GadoGauchoContent() {
     }
   };
 
+  const handleEditUser = (userToEdit: any) => {
+    setEditingUser(userToEdit);
+    setAuthForm({
+      name: userToEdit.name || '',
+      email: userToEdit.email || '',
+      phone: userToEdit.phone || '',
+      city: userToEdit.city || '',
+      password: ''
+    });
+    setCitySearchAuth(userToEdit.city || '');
+    setShowUserModal(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      const res = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authForm)
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setAllUsers(allUsers.map(u => u.id === updated.id ? updated : u));
+        if (user?.id === updated.id) {
+          setUser(updated);
+          localStorage.setItem('gado_gaucho_user', JSON.stringify(updated));
+        }
+        setShowUserModal(false);
+        setEditingUser(null);
+        alert('Usuário atualizado com sucesso!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Erro ao atualizar usuário');
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
+  const handleAdminCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authForm)
+      });
+
+      if (res.ok) {
+        const newUser = await res.json();
+        setAllUsers([...allUsers, newUser]);
+        setShowUserModal(false);
+        alert('Usuário cadastrado com sucesso!');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Erro ao cadastrar usuário');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
   const handleShare = (id: number) => {
     const url = `${window.location.origin}/listing/${id}`;
     navigator.clipboard.writeText(url);
@@ -337,8 +467,44 @@ function GadoGauchoContent() {
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
+  const handleToggleFavorite = async (listingId: number) => {
+    if (!user) {
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return;
+    }
+
+    const isFavorite = favorites.includes(listingId);
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, listingId })
+      });
+
+      if (res.ok) {
+        if (isFavorite) {
+          setFavorites(favorites.filter(id => id !== listingId));
+        } else {
+          setFavorites([...favorites, listingId]);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return;
+    }
+    
+    setIsSubmittingAd(true);
     
     // Find coordinates for the selected city
     const cityData = RS_CITIES.find(c => c.name.toLowerCase() === adForm.city.toLowerCase());
@@ -354,39 +520,83 @@ function GadoGauchoContent() {
       lat: cityData?.lat || null,
       lng: cityData?.lng || null,
       seller: user?.name || 'Vendedor',
+      userId: user?.id,
       image: adForm.images[0] || 'https://picsum.photos/seed/newcattle/800/600',
       description: adForm.description,
       images: adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
-      videos: adForm.videos
+      videos: adForm.videos,
+      verified: false,
+      verification_requested: false
     };
 
     try {
-      const res = await fetch('/api/listings', {
-        method: 'POST',
+      const url = editingListingId ? `/api/listings/${editingListingId}` : '/api/listings';
+      const method = editingListingId ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAd)
       });
-      const savedAd = await res.json();
-      setListings([savedAd, ...listings]);
-      setShowAdModal(false);
-      setCitySearchAd('');
-      setAdForm({
-        category: 'Touro',
-        weight: 0,
-        priceKg: 0,
-        batchSize: 1,
-        city: '',
-        description: '',
-        images: [],
-        videos: []
-      });
+
+      if (res.ok) {
+        const savedAd = await res.json();
+        if (editingListingId) {
+          setListings(listings.map(l => l.id === editingListingId ? savedAd : l));
+          alert('Anúncio atualizado com sucesso!');
+        } else {
+          setListings([savedAd, ...listings]);
+          alert('Anúncio criado com sucesso!');
+        }
+        setShowAdModal(false);
+        setEditingListingId(null);
+        setCitySearchAd('');
+        setAdForm({
+          category: 'Touro',
+          weight: 0,
+          priceKg: 0,
+          batchSize: 1,
+          city: '',
+          description: '',
+          images: [],
+          videos: []
+        });
+      } else {
+        const error = await res.json();
+        alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${error.error}`);
+      }
     } catch (error) {
-      console.error('Error creating ad:', error);
+      console.error(`Error ${editingListingId ? 'updating' : 'creating'} ad:`, error);
+      alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio. Tente novamente.`);
+    } finally {
+      setIsSubmittingAd(false);
     }
+  };
+
+  const handleEditListing = (listing: any) => {
+    setEditingListingId(listing.id);
+    setAdForm({
+      category: listing.category,
+      weight: listing.avgWeight,
+      priceKg: listing.priceKg,
+      batchSize: listing.quantity,
+      city: listing.location.split(' - ')[0],
+      description: listing.description || '',
+      images: listing.images || [listing.image],
+      videos: listing.videos || []
+    });
+    setCitySearchAd(listing.location.split(' - ')[0]);
+    setShowAdModal(true);
   };
 
   const filteredListings = useMemo(() => {
     return listings.filter(item => {
+      if (showMyAds) {
+        return item.userId === user?.id;
+      }
+      if (showFavorites) {
+        return favorites.includes(item.id);
+      }
       const matchesCategory = !selectedCategory || item.category.toLowerCase() === selectedCategory.toLowerCase();
       const matchesSearch = !searchQuery || 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -405,7 +615,7 @@ function GadoGauchoContent() {
 
       return matchesCategory && matchesSearch && matchesDistance;
     });
-  }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance]);
+  }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance, showFavorites, showMyAds, favorites, user]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -414,9 +624,11 @@ function GadoGauchoContent() {
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); setAuthError(null); }}
         onAdClick={() => setShowAdModal(true)}
-        onAdminClick={() => setShowAdminPanel(true)}
-        onLogout={() => { setUser(null); localStorage.removeItem('gado_gaucho_user'); }}
-        onHomeClick={() => { setSelectedCategory(null); }}
+        onAdminClick={() => { setShowAdminPanel(true); setShowFavorites(false); setShowMyAds(false); }}
+        onLogout={() => { setUser(null); localStorage.removeItem('gado_gaucho_user'); setFavorites([]); setShowFavorites(false); setShowMyAds(false); }}
+        onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); setShowAdminPanel(false); }}
+        onFavoritesClick={() => { setShowFavorites(true); setShowMyAds(false); setShowAdminPanel(false); setIsSidebarOpen(false); }}
+        onMyAdsClick={() => { setShowMyAds(true); setShowFavorites(false); setShowAdminPanel(false); setIsSidebarOpen(false); }}
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
@@ -459,9 +671,25 @@ function GadoGauchoContent() {
                 exit={{ opacity: 0, y: 20 }}
                 className="bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm"
               >
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-[#333]">Painel Administrativo</h2>
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#333]">Painel Administrativo</h2>
+                    <div className="flex items-center gap-4 mt-4">
+                      <button 
+                        onClick={() => setAdminTab('users')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'users' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                      >
+                        Usuários
+                      </button>
+                      <button 
+                        onClick={() => setAdminTab('listings')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'listings' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                      >
+                        Anúncios
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
                     <button 
                       onClick={async () => {
                         try {
@@ -476,7 +704,7 @@ function GadoGauchoContent() {
                           alert('❌ Erro ao tentar conectar com a API de teste.');
                         }
                       }}
-                      className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-all cursor-pointer"
                     >
                       Testar Conexão
                     </button>
@@ -491,7 +719,7 @@ function GadoGauchoContent() {
                           alert('Erro ao gerar anúncios de teste');
                         }
                       }}
-                      className="px-4 py-2 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-100 transition-all cursor-pointer"
+                      className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold hover:bg-amber-100 transition-all cursor-pointer"
                     >
                       Gerar 30 Testes
                     </button>
@@ -506,92 +734,151 @@ function GadoGauchoContent() {
                           alert('Erro ao popular banco de dados');
                         }
                       }}
-                      className="px-4 py-2 bg-[#E9F0E8] text-[#2D5A27] rounded-lg text-xs font-bold hover:bg-[#D3E1D1] transition-all cursor-pointer"
+                      className="px-3 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-lg text-[10px] font-bold hover:bg-[#D3E1D1] transition-all cursor-pointer"
                     >
-                      Popular Banco de Dados
+                      Popular Banco
                     </button>
-                    <button onClick={() => setShowAdminPanel(false)} className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer">
+                    <button onClick={() => setShowAdminPanel(false)} className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer ml-2">
                       <X size={20} /> Fechar
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-12">
-                  {/* Gerenciar Usuários */}
-                  <div>
-                    <h3 className="text-lg font-bold text-[#333] mb-4 flex items-center gap-2">
-                      <User size={20} className="text-[#2D5A27]" /> Gerenciar Usuários
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                            <th className="pb-4 px-4">Nome</th>
-                            <th className="pb-4 px-4">E-mail</th>
-                            <th className="pb-4 px-4">Cidade</th>
-                            <th className="pb-4 px-4">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#F8F9FA]">
-                          {allUsers.map(u => (
-                            <tr key={u.id} className="hover:bg-[#F8F9FA] transition-colors">
-                              <td className="py-4 px-4 font-bold text-[#333]">{u.name} {u.is_admin && <span className="ml-2 text-[9px] bg-[#E9F0E8] text-[#2D5A27] px-1.5 py-0.5 rounded">ADMIN</span>}</td>
-                              <td className="py-4 px-4 text-[#666]">{u.email}</td>
-                              <td className="py-4 px-4 text-[#666]">{u.city}</td>
-                              <td className="py-4 px-4">
-                                {!u.is_admin && (
+                <div className="space-y-8">
+                  {adminTab === 'users' ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-[#333] flex items-center gap-2">
+                          <User size={20} className="text-[#2D5A27]" /> Gerenciar Usuários
+                        </h3>
+                        <button 
+                          onClick={() => {
+                            setEditingUser(null);
+                            setAuthForm({ name: '', email: '', phone: '', city: '', password: '' });
+                            setCitySearchAuth('');
+                            setShowUserModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-[#2D5A27] text-white rounded-lg text-[10px] font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Plus size={14} /> Novo Usuário
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                              <th className="pb-4 px-4">Nome</th>
+                              <th className="pb-4 px-4">E-mail</th>
+                              <th className="pb-4 px-4">Cidade</th>
+                              <th className="pb-4 px-4">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#F8F9FA]">
+                            {allUsers.map(u => (
+                              <tr key={u.id} className="hover:bg-[#F8F9FA] transition-colors">
+                                <td className="py-4 px-4 font-bold text-[#333]">
                                   <button 
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    className="text-[#DC3545] hover:underline font-bold text-xs cursor-pointer"
+                                    onClick={() => handleEditUser(u)}
+                                    className="hover:text-[#2D5A27] hover:underline cursor-pointer text-left"
                                   >
-                                    Excluir
+                                    {u.name}
                                   </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                  {u.is_admin && <span className="ml-2 text-[9px] bg-[#E9F0E8] text-[#2D5A27] px-1.5 py-0.5 rounded">ADMIN</span>}
+                                </td>
+                                <td className="py-4 px-4 text-[#666]">{u.email}</td>
+                                <td className="py-4 px-4 text-[#666]">{u.city}</td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <button 
+                                      onClick={() => handleEditUser(u)}
+                                      className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
+                                      title="Editar Usuário"
+                                    >
+                                      <Pencil size={16} />
+                                    </button>
+                                    {!u.is_admin && (
+                                      <button 
+                                        onClick={() => handleDeleteUser(u.id)}
+                                        className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                        title="Excluir Usuário"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Gerenciar Anúncios */}
-                  <div>
-                    <h3 className="text-lg font-bold text-[#333] mb-4 flex items-center gap-2">
-                      <LayoutGrid size={20} className="text-[#2D5A27]" /> Gerenciar Anúncios
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                            <th className="pb-4 px-4">Cód</th>
-                            <th className="pb-4 px-4">Título</th>
-                            <th className="pb-4 px-4">Vendedor</th>
-                            <th className="pb-4 px-4">Preço</th>
-                            <th className="pb-4 px-4">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#F8F9FA]">
-                          {listings.map(l => (
-                            <tr key={l.id} className="hover:bg-[#F8F9FA] transition-colors">
-                              <td className="py-4 px-4 text-[#999]">#{l.id}</td>
-                              <td className="py-4 px-4 font-bold text-[#333]">{l.title}</td>
-                              <td className="py-4 px-4 text-[#666]">{l.seller}</td>
-                              <td className="py-4 px-4 text-[#2D5A27] font-bold">R$ {l.price.toLocaleString()}</td>
-                              <td className="py-4 px-4">
-                                <button 
-                                  onClick={() => handleDeleteListing(l.id)}
-                                  className="text-[#DC3545] hover:underline font-bold text-xs cursor-pointer"
-                                >
-                                  Excluir
-                                </button>
-                              </td>
+                  ) : (
+                    <div>
+                      <h3 className="text-lg font-bold text-[#333] mb-4 flex items-center gap-2">
+                        <LayoutGrid size={20} className="text-[#2D5A27]" /> Gerenciar Anúncios
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                              <th className="pb-4 px-4">Cód</th>
+                              <th className="pb-4 px-4">Título</th>
+                              <th className="pb-4 px-4">Vendedor</th>
+                              <th className="pb-4 px-4">Status</th>
+                              <th className="pb-4 px-4">Preço</th>
+                              <th className="pb-4 px-4">Ações</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-[#F8F9FA]">
+                            {listings.map(l => (
+                              <tr key={l.id} className="hover:bg-[#F8F9FA] transition-colors">
+                                <td className="py-4 px-4 text-[#999]">#{l.id}</td>
+                                <td className="py-4 px-4 font-bold text-[#333]">{l.title}</td>
+                                <td className="py-4 px-4 text-[#666]">{l.seller}</td>
+                                <td className="py-4 px-4">
+                                  {l.verified ? (
+                                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">VERIFICADO</span>
+                                  ) : l.verification_requested ? (
+                                    <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
+                                  ) : (
+                                    <span className="text-[10px] bg-gray-50 text-gray-400 px-2 py-1 rounded-full font-bold">PENDENTE</span>
+                                  )}
+                                </td>
+                                <td className="py-4 px-4 text-[#2D5A27] font-bold">R$ {l.price.toLocaleString()}</td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <button 
+                                      onClick={() => handleEditListing(l)}
+                                      className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
+                                      title="Editar Anúncio"
+                                    >
+                                      <Pencil size={16} />
+                                    </button>
+                                    {l.verification_requested && !l.verified && (
+                                      <button 
+                                        onClick={() => handleUpdateListing(l.id, { verified: true, verification_requested: false })}
+                                        className="text-[#2D5A27] hover:underline font-bold text-xs cursor-pointer"
+                                      >
+                                        Verificar
+                                      </button>
+                                    )}
+                                    <button 
+                                      onClick={() => handleDeleteListing(l.id)}
+                                      className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                      title="Excluir Anúncio"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </motion.div>
             ) : (
@@ -613,21 +900,90 @@ function GadoGauchoContent() {
                     <h3 className="mt-6 text-lg font-bold text-[#333] animate-pulse">Carregando anúncios...</h3>
                     <p className="text-sm text-[#999] mt-2">Buscando as melhores ofertas do RS</p>
                   </div>
-                ) : filteredListings.length > 0 ? (
-                  filteredListings.map(listing => (
-                    <ListingCard 
-                      key={listing.id} 
-                      listing={listing} 
-                    />
-                  ))
                 ) : (
-                  <div className="col-span-full py-20 text-center">
-                    <div className="w-20 h-20 bg-[#F8F9FA] rounded-full flex items-center justify-center mx-auto mb-4 text-[#999]">
-                      <Search size={32} />
-                    </div>
-                    <h3 className="text-lg font-bold text-[#333]">Nenhum anúncio encontrado</h3>
-                    <p className="text-sm text-[#666]">Tente ajustar seus filtros de busca.</p>
-                  </div>
+                  <>
+                    {showFavorites && (
+                      <div className="col-span-full mb-8 flex items-center justify-between">
+                        <div>
+                          <h2 className="text-2xl font-bold text-[#333]">Meus Favoritos</h2>
+                          <p className="text-sm text-[#666]">Anúncios que você marcou como interesse</p>
+                        </div>
+                        <button 
+                          onClick={() => setShowFavorites(false)}
+                          className="px-4 py-2 bg-[#F8F9FA] text-[#666] rounded-xl text-sm font-bold hover:bg-[#E9ECEF] transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          <ChevronLeft size={16} /> Voltar para o início
+                        </button>
+                      </div>
+                    )}
+                    {showMyAds && (
+                      <div className="col-span-full mb-8 flex items-center justify-between">
+                        <div>
+                          <h2 className="text-2xl font-bold text-[#333]">Meus Anúncios</h2>
+                          <p className="text-sm text-[#666]">Gerencie seus anúncios publicados</p>
+                        </div>
+                        <button 
+                          onClick={() => setShowMyAds(false)}
+                          className="px-4 py-2 bg-[#F8F9FA] text-[#666] rounded-xl text-sm font-bold hover:bg-[#E9ECEF] transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          <ChevronLeft size={16} /> Voltar para o início
+                        </button>
+                      </div>
+                    )}
+                    {filteredListings.length > 0 ? (
+                      filteredListings.map(listing => (
+                        <div key={listing.id} className="flex flex-col gap-2">
+                          <ListingCard 
+                            listing={listing} 
+                            onShare={handleShare}
+                            isFavorite={favorites.includes(listing.id)}
+                            onToggleFavorite={handleToggleFavorite}
+                          />
+                          {showMyAds && (
+                            <div className="flex items-center gap-2 px-2">
+                              <button 
+                                onClick={() => handleEditListing(listing)}
+                                className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all cursor-pointer"
+                              >
+                                Editar
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteListing(listing.id)}
+                                className="flex-1 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all cursor-pointer"
+                              >
+                                Excluir
+                              </button>
+                              {!listing.verified && !listing.verification_requested && (
+                                <button 
+                                  onClick={() => handleRequestVerification(listing.id)}
+                                  className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer"
+                                >
+                                  Verificar
+                                </button>
+                              )}
+                              {listing.verification_requested && !listing.verified && (
+                                <span className="flex-1 py-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold text-center">
+                                  Aguardando...
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-20 text-center">
+                        <div className="w-20 h-20 bg-[#F8F9FA] rounded-full flex items-center justify-center mx-auto mb-4 text-[#999]">
+                          {showFavorites ? <Heart size={32} /> : showMyAds ? <Megaphone size={32} /> : <Search size={32} />}
+                        </div>
+                        <h3 className="text-lg font-bold text-[#333]">
+                          {showFavorites ? 'Você ainda não tem favoritos' : showMyAds ? 'Você ainda não tem anúncios' : 'Nenhum anúncio encontrado'}
+                        </h3>
+                        <p className="text-sm text-[#666]">
+                          {showFavorites ? 'Explore os anúncios e clique no coração para salvar.' : showMyAds ? 'Anuncie agora mesmo para começar a vender!' : 'Tente ajustar seus filtros de busca.'}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </motion.div>
             )}
@@ -637,6 +993,136 @@ function GadoGauchoContent() {
       
       {/* --- Modals --- */}
       
+      {/* User Management Modal (Admin) */}
+      <AnimatePresence>
+        {showUserModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowUserModal(false); setEditingUser(null); }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-bold text-[#333]">
+                    {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+                  </h2>
+                  <button onClick={() => { setShowUserModal(false); setEditingUser(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
+                    <X size={24} />
+                  </button>
+                </div>
+                
+                <form onSubmit={editingUser ? handleUpdateUser : handleAdminCreateUser} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                      Nome Completo
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={authForm.name}
+                      onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
+                      placeholder="Nome do usuário" 
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                      E-mail
+                    </label>
+                    <input 
+                      type="email" 
+                      required
+                      value={authForm.email}
+                      onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+                      placeholder="email@exemplo.com" 
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                      Telefone
+                    </label>
+                    <input 
+                      type="tel" 
+                      value={authForm.phone}
+                      onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
+                      placeholder="(00) 00000-0000" 
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                      Cidade
+                    </label>
+                    <input 
+                      type="text" 
+                      value={citySearchAuth}
+                      onChange={(e) => {
+                        setCitySearchAuth(e.target.value);
+                        setAuthForm({...authForm, city: e.target.value});
+                        setShowAuthSuggestions(true);
+                      }}
+                      placeholder="Cidade no RS" 
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                    {showAuthSuggestions && citySuggestionsAuth.length > 0 && (
+                      <div className="absolute z-50 w-full mt-2 bg-white border border-[#E9ECEF] rounded-2xl shadow-xl max-h-48 overflow-y-auto">
+                        {citySuggestionsAuth.map(city => (
+                          <button
+                            key={city.name}
+                            type="button"
+                            onClick={() => {
+                              setAuthForm({...authForm, city: city.name});
+                              setCitySearchAuth(city.name);
+                              setShowAuthSuggestions(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center gap-2"
+                          >
+                            <MapPin size={14} className="text-[#999]" />
+                            {city.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!editingUser && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                        Senha
+                      </label>
+                      <input 
+                        type="password" 
+                        required
+                        value={authForm.password}
+                        onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+                        placeholder="••••••••" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                    </div>
+                  )}
+                  
+                  <button 
+                    type="submit"
+                    className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
+                  >
+                    {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Auth Modal */}
       <AnimatePresence>
         {showAuthModal && (
@@ -810,10 +1296,19 @@ function GadoGauchoContent() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
+              {isSubmittingAd && (
+                <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Processando anúncio...</h3>
+                  <p className="text-sm text-[#666] mt-2">Carregando dados e imagens, por favor aguarde.</p>
+                </div>
+              )}
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-[#333]">Novo Anúncio</h2>
-                  <button onClick={() => setShowAdModal(false)} className="text-[#999] hover:text-[#333] cursor-pointer">
+                  <h2 className="text-2xl font-bold text-[#333]">
+                    {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}
+                  </h2>
+                  <button onClick={() => { setShowAdModal(false); setEditingListingId(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
                     <X size={24} />
                   </button>
                 </div>
@@ -993,7 +1488,7 @@ function GadoGauchoContent() {
                   </div>
 
                   <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
-                    Publicar Anúncio
+                    {editingListingId ? 'Salvar Alterações' : 'Publicar Anúncio'}
                   </button>
                 </form>
               </div>

@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
       sellerRating: l.seller_rating,
+      userId: l.user_id,
     }));
 
     return NextResponse.json(mappedListings);
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   }
   try {
     const data = await request.json();
-    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, seller, image, description, images, videos } = data;
+    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, seller, userId, image, description, images, videos } = data;
 
     const { data: newListing, error } = await (supabaseAdmin
       .from('listings') as any)
@@ -59,10 +60,13 @@ export async function POST(request: Request) {
           lat, 
           lng, 
           seller, 
+          user_id: userId,
           image, 
           description, 
           images: images || [], 
-          videos: videos || [] 
+          videos: videos || [],
+          verification_requested: false,
+          verified: false
         }
       ])
       .select()

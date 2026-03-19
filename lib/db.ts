@@ -31,12 +31,16 @@ db.exec(`
     lat REAL,
     lng REAL,
     seller TEXT NOT NULL,
+    userId INTEGER,
     sellerRating REAL DEFAULT 5.0,
     verified INTEGER DEFAULT 0,
+    verification_requested INTEGER DEFAULT 0,
     image TEXT,
     description TEXT,
     images TEXT, -- JSON string array
-    videos TEXT  -- JSON string array
+    videos TEXT,  -- JSON string array
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES users(id)
   );
 `);
 

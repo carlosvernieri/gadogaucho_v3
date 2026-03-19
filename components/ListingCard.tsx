@@ -10,10 +10,14 @@ import { Badge } from './Badge';
 
 export const ListingCard = ({ 
   listing, 
-  onShare 
+  onShare,
+  isFavorite = false,
+  onToggleFavorite
 }: { 
   listing: any, 
-  onShare?: (id: number) => void 
+  onShare?: (id: number) => void,
+  isFavorite?: boolean,
+  onToggleFavorite?: (id: number) => void
 }) => {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -34,6 +38,8 @@ export const ListingCard = ({
     e.stopPropagation();
     if (action === 'share' && onShare) {
       onShare(listing.id);
+    } else if (action === 'heart' && onToggleFavorite) {
+      onToggleFavorite(listing.id);
     }
   };
 
@@ -56,9 +62,9 @@ export const ListingCard = ({
       <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
         <button 
           onClick={(e) => handleActionClick(e, 'heart')}
-          className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#DC3545] hover:bg-white transition-colors cursor-pointer"
+          className={`w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer ${isFavorite ? 'text-[#DC3545]' : 'text-[#666] hover:text-[#DC3545]'}`}
         >
-          <Heart size={18} />
+          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
         </button>
         <button 
           onClick={(e) => handleActionClick(e, 'share')}

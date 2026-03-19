@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, Heart, Share2, Star, Video } from 'lucide-react';
@@ -12,12 +11,7 @@ export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id
   const allMedia = [...(listing.images || []), ...(listing.videos || [])];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className="flex flex-col lg:flex-row gap-8"
-    >
+    <div className="flex flex-col lg:flex-row gap-8">
       {/* Left: Gallery */}
       <div className="flex-1">
         <div className="relative aspect-[16/10] rounded-3xl overflow-hidden mb-4 shadow-lg bg-[#F8F9FA]">
@@ -154,6 +148,6 @@ export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
