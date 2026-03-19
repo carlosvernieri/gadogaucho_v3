@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
 
+    const columns = 'id, category, title, price, price_kg, avg_weight, quantity, location, lat, lng, seller, seller_rating, verified, verification_requested, image, description, images, videos, created_at';
     let query = (supabaseAdmin
       .from('listings') as any)
       .select('*');
@@ -25,15 +26,16 @@ export async function GET(request: Request) {
 
     const mappedListings = listings.map((l: any) => ({
       ...l,
+      sold: l.sold || false,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
       sellerRating: l.seller_rating,
-      userId: l.user_id,
+      verification_requested: l.verification_requested,
     }));
 
     return NextResponse.json(mappedListings);
   } catch (error: any) {
-    console.error('Supabase error fetching listings:', error.message || error);
+    console.error('Supabase error fetching listings:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to fetch listings', details: error.message }, { status: 500 });
   }
 }
@@ -44,8 +46,9 @@ export async function POST(request: Request) {
   }
   try {
     const data = await request.json();
-    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, seller, userId, image, description, images, videos } = data;
+    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, seller, image, description, images, videos } = data;
 
+    const columns = 'id, category, title, price, price_kg, avg_weight, quantity, location, lat, lng, seller, seller_rating, verified, verification_requested, image, description, images, videos, created_at';
     const { data: newListing, error } = await (supabaseAdmin
       .from('listings') as any)
       .insert([
@@ -60,16 +63,15 @@ export async function POST(request: Request) {
           lat, 
           lng, 
           seller, 
-          user_id: userId,
           image, 
           description, 
           images: images || [], 
           videos: videos || [],
-          verification_requested: false,
-          verified: false
+          verified: false,
+          verification_requested: false
         }
       ])
-      .select()
+      .select('*')
       .single();
 
     if (error) throw error;
@@ -79,9 +81,10 @@ export async function POST(request: Request) {
       priceKg: newListing.price_kg,
       avgWeight: newListing.avg_weight,
       sellerRating: newListing.seller_rating,
+      verification_requested: newListing.verification_requested,
     });
   } catch (error: any) {
-    console.error('Supabase error creating listing:', error.message || error);
+    console.error('Supabase error creating listing:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to create listing', details: error.message }, { status: 500 });
   }
 }
@@ -100,7 +103,7 @@ export async function DELETE() {
 
     return NextResponse.json({ message: 'All listings deleted successfully' });
   } catch (error: any) {
-    console.error('Supabase error deleting listings:', error.message || error);
+    console.error('Supabase error deleting listings:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to delete listings', details: error.message }, { status: 500 });
   }
 }

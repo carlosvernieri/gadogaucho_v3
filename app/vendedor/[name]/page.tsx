@@ -67,21 +67,22 @@ export default function VendedorPage() {
       return;
     }
 
-    const isFavorite = favorites.includes(listingId);
+    const listingIdNum = Number(listingId);
+    const isFavorite = favorites.map(Number).includes(listingIdNum);
     const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId })
+        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
       });
 
       if (res.ok) {
         if (isFavorite) {
-          setFavorites(favorites.filter(id => id !== listingId));
+          setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
         } else {
-          setFavorites([...favorites, listingId]);
+          setFavorites([...favorites, listingIdNum]);
         }
       }
     } catch (error) {
@@ -196,7 +197,7 @@ export default function VendedorPage() {
                   key={l.id} 
                   listing={l} 
                   onShare={handleShare}
-                  isFavorite={favorites.includes(l.id)}
+                  isFavorite={favorites.map(Number).includes(Number(l.id))}
                   onToggleFavorite={handleToggleFavorite}
                 />
               ))}

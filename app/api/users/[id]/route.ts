@@ -16,7 +16,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Supabase error:', error);
+    console.error('Supabase error deleting user:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }
@@ -40,7 +40,7 @@ export async function PUT(
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Supabase error:', error);
+    console.error('Supabase error updating user:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }

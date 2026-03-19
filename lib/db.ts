@@ -34,6 +34,7 @@ db.exec(`
     userId INTEGER,
     sellerRating REAL DEFAULT 5.0,
     verified INTEGER DEFAULT 0,
+    sold INTEGER DEFAULT 0,
     verification_requested INTEGER DEFAULT 0,
     image TEXT,
     description TEXT,

@@ -17,4 +17,35 @@ export const CATEGORIES_LIST = [
   'Touro', 'Boi Castrado', 'Novilho', 'Novilha', 'Terneiro', 'Terneira', 'Vaca', 'Vaca com Cria', 'Vaca Prenha', 'Gado de Leite'
 ];
 
-export const INITIAL_LISTINGS = [];
+export const INITIAL_LISTINGS = [
+  {
+    title: 'Lote de Novilhos Angus',
+    price: 45000,
+    priceKg: 12.50,
+    avgWeight: 360,
+    quantity: 10,
+    category: 'NOVILHO',
+    seller: 'Estância do Sol',
+    sellerRating: 4.8,
+    verified: true,
+    image: 'https://picsum.photos/seed/cattle1/800/600',
+    images: ['https://picsum.photos/seed/cattle1_1/800/600'],
+    description: 'Excelente lote de novilhos Angus, prontos para engorda.',
+    location: 'URUGUAIANA - RS'
+  },
+  {
+    title: 'Vacas Nelore com Cria',
+    price: 68000,
+    priceKg: 10.80,
+    avgWeight: 450,
+    quantity: 14,
+    category: 'VACA COM CRIA',
+    seller: 'Fazenda Pampa',
+    sellerRating: 4.5,
+    verified: false,
+    image: 'https://picsum.photos/seed/cattle2/800/600',
+    images: ['https://picsum.photos/seed/cattle2_1/800/600'],
+    description: 'Vacas Nelore de ótima genética com crias ao pé.',
+    location: 'BAGÉ - RS'
+  }
+];

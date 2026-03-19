@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json((favorites || []).map((f: any) => f.listing_id));
   } catch (error) {
-    console.error('Supabase error:', error);
+    console.error('Supabase error fetching favorites:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
   }
 }
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Favorite added' });
   } catch (error) {
-    console.error('Supabase error:', error);
+    console.error('Supabase error adding favorite:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 });
   }
 }
@@ -57,7 +57,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ message: 'Favorite removed' });
   } catch (error) {
-    console.error('Supabase error:', error);
+    console.error('Supabase error removing favorite:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to remove favorite' }, { status: 500 });
   }
 }

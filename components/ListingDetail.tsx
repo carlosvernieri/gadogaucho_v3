@@ -5,8 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, Heart, Share2, Star, Video } from 'lucide-react';
 import { slugify } from '@/lib/utils';
+import { Badge } from './Badge';
 
-export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id: number) => void }) => {
+export const ListingDetail = ({ 
+  listing, 
+  onShare, 
+  onToggleFavorite, 
+  isFavorite 
+}: { 
+  listing: any, 
+  onShare: (id: number) => void,
+  onToggleFavorite: (id: number) => void,
+  isFavorite: boolean
+}) => {
   const [activeMedia, setActiveMedia] = useState(0);
   const allMedia = [...(listing.images || []), ...(listing.videos || [])];
 
@@ -30,12 +41,23 @@ export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id
               className="w-full h-full object-contain bg-black"
             />
           )}
+          {listing.sold && (
+            <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none" />
+          )}
           <Link 
             href="/"
             className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#333] hover:bg-white transition-all shadow-md z-10"
           >
             <ChevronLeft size={24} />
           </Link>
+
+          {listing.sold && (
+            <div className="absolute top-4 right-4 z-10">
+              <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none px-3 py-1.5 text-xs">
+                VENDIDO
+              </Badge>
+            </div>
+          )}
           
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {allMedia.map((_: string, idx: number) => (
@@ -80,8 +102,15 @@ export const ListingDetail = ({ listing, onShare }: { listing: any, onShare: (id
               <span className="text-[10px] text-[#999]">Cód: #{listing.id}</span>
             </div>
             <div className="flex gap-2">
-              <button className="w-10 h-10 rounded-full bg-[#F8F9FA] flex items-center justify-center text-[#DC3545] hover:bg-white border border-transparent hover:border-[#E9ECEF] transition-all">
-                <Heart size={20} />
+              <button 
+                onClick={() => onToggleFavorite(listing.id)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
+                  isFavorite 
+                    ? 'bg-[#DC3545] text-white border-[#DC3545]' 
+                    : 'bg-[#F8F9FA] text-[#DC3545] border-transparent hover:border-[#E9ECEF] hover:bg-white'
+                }`}
+              >
+                <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
               </button>
               <button 
                 onClick={() => onShare(listing.id)}

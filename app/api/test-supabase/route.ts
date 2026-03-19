@@ -26,7 +26,8 @@ export async function GET() {
         status: 'error', 
         message: 'Connected to Supabase but failed to query table.',
         details: error.message,
-        code: error.code
+        code: error.code,
+        full_error: error
       }, { status: 500 });
     }
 
@@ -39,7 +40,8 @@ export async function GET() {
     return NextResponse.json({ 
       status: 'error', 
       message: 'An unexpected error occurred while connecting to Supabase.',
-      details: error.message
+      details: error.message,
+      full_error: error
     }, { status: 500 });
   }
 }

@@ -22,6 +22,8 @@ export const ListingCard = ({
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
 
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
   const handleCardClick = () => {
     setIsNavigating(true);
     router.push(`/anuncio/${listing.id}`);
@@ -74,18 +76,32 @@ export const ListingCard = ({
         </button>
       </div>
 
-      <div className="relative aspect-[4/3]">
+      <div className="relative aspect-[4/3] bg-gray-100">
+        {!isImageLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
+          </div>
+        )}
         <Image 
           src={listing.image} 
           alt={listing.title} 
           fill 
           loading="lazy"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          onLoad={() => setIsImageLoaded(true)}
+          className={`object-cover group-hover:scale-105 transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
           referrerPolicy="no-referrer"
         />
+        {listing.sold && (
+          <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none z-[5]" />
+        )}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           <Badge>{listing.category} <span className="font-normal opacity-60">cod: {listing.id}</span></Badge>
           {listing.verified && <Badge variant="verified">VERIFICADO</Badge>}
+          {listing.sold && (
+            <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none">
+              VENDIDO
+            </Badge>
+          )}
         </div>
       </div>
       

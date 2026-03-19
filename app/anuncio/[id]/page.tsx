@@ -5,7 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { ListingDetail } from '@/components/ListingDetail';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { ShareModal } from '@/components/ShareModal';
 import { INITIAL_LISTINGS } from '@/lib/data';
+import { Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function AnuncioPage() {
   const params = useParams();
@@ -17,6 +20,9 @@ export default function AnuncioPage() {
   const [user, setUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,7 +44,14 @@ export default function AnuncioPage() {
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Fetch favorites
+          const favRes = await fetch(`/api/favorites?email=${parsedUser.email}`);
+          if (favRes.ok) {
+            const favData = await favRes.json();
+            setFavorites(favData);
+          }
         }
       } catch (error: any) {
         console.error('Error fetching data:', error.message || error);
@@ -50,10 +63,40 @@ export default function AnuncioPage() {
   }, [id]);
 
   const handleShare = (id: number) => {
-    const url = `${window.location.origin}/anuncio/${id}`;
-    navigator.clipboard.writeText(url);
-    setShowShareToast(true);
-    setTimeout(() => setShowShareToast(false), 3000);
+    setShowShareModal(true);
+  };
+
+  const handleToggleFavorite = async (listingId: number) => {
+    if (!user) {
+      router.push('/?auth=login');
+      return;
+    }
+
+    const listingIdNum = Number(listingId);
+    const isFavorite = favorites.map(Number).includes(listingIdNum);
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
+      });
+
+      if (res.ok) {
+        if (isFavorite) {
+          setFavorites(favorites.filter(id => id !== listingId));
+          setToastMessage('Removido dos favoritos');
+        } else {
+          setFavorites([...favorites, listingId]);
+          setToastMessage('Adicionado aos favoritos!');
+        }
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   if (loading) {
@@ -152,17 +195,40 @@ export default function AnuncioPage() {
         />
 
         <main className="flex-1">
-          <ListingDetail listing={listing} onShare={handleShare} />
+          <ListingDetail 
+            listing={listing} 
+            onShare={handleShare} 
+            onToggleFavorite={handleToggleFavorite}
+            isFavorite={favorites.map(Number).includes(Number(listing.id))}
+          />
         </main>
       </div>
 
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={typeof window !== 'undefined' ? `${window.location.origin}/anuncio/${listing.id}` : ''}
+        title={listing.title}
+        onCopySuccess={() => {
+          setToastMessage('Link copiado!');
+          setShowShareToast(true);
+          setTimeout(() => setShowShareToast(false), 3000);
+        }}
+      />
+
       {/* Share Toast */}
-      {showShareToast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2 animate-bounce">
-          <div className="w-2 h-2 bg-[#2D5A27] rounded-full" />
-          Link do anúncio copiado!
-        </div>
-      )}
+      <AnimatePresence>
+        {showShareToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2"
+          >
+            <Check size={18} className="text-[#28A745]" /> {toastMessage || 'Link do anúncio copiado!'}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

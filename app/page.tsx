@@ -34,8 +34,10 @@ import { RS_CITIES, CATEGORIES_LIST, INITIAL_LISTINGS } from '@/lib/data';
 import { slugify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
+import { ListingListItem } from '@/components/ListingListItem';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { ShareModal } from '@/components/ShareModal';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 // --- Main App ---
@@ -107,10 +109,14 @@ function GadoGauchoContent() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showMyAds, setShowMyAds] = useState(false);
   const [isSubmittingAd, setIsSubmittingAd] = useState(false);
+  const [isUpdatingListing, setIsUpdatingListing] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications'>('users');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedListingForShare, setSelectedListingForShare] = useState<any>(null);
+  const [favoriteToastMessage, setFavoriteToastMessage] = useState('');
 
   // File Upload Refs
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -357,6 +363,7 @@ function GadoGauchoContent() {
   };
 
   const handleUpdateListing = async (id: number, data: any) => {
+    setIsUpdatingListing(true);
     try {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
@@ -367,17 +374,50 @@ function GadoGauchoContent() {
         const updated = await res.json();
         setListings(listings.map(l => l.id === id ? updated : l));
         return updated;
+      } else {
+        const error = await res.json();
+        let message = `Erro ao atualizar anúncio: ${error.error || 'Erro desconhecido'}`;
+        if (error.code === 'PGRST204') {
+          message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS verification_requested BOOLEAN DEFAULT FALSE;`;
+        } else {
+          message += `\n\nDetalhes: ${error.details || JSON.stringify(error)}`;
+        }
+        alert(message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating listing:', error);
+      alert(`Erro de rede ao atualizar anúncio: ${error.message || error}`);
+    } finally {
+      setIsUpdatingListing(false);
     }
     return null;
+  };
+
+  const handleToggleSold = async (id: number, currentStatus: boolean) => {
+    const updated = await handleUpdateListing(id, { sold: !currentStatus });
+    if (updated) {
+      alert(`Anúncio marcado como ${!currentStatus ? 'vendido' : 'disponível'}!`);
+    }
   };
 
   const handleRequestVerification = async (id: number) => {
     const updated = await handleUpdateListing(id, { verification_requested: true });
     if (updated) {
-      alert('Solicitação de verificação enviada com sucesso!');
+      alert('Solicitação de verificação enviada com sucesso! O administrador irá analisar seu anúncio.');
+    }
+  };
+
+  const handleApproveVerification = async (id: number) => {
+    const updated = await handleUpdateListing(id, { verified: true, verification_requested: false });
+    if (updated) {
+      alert('Anúncio verificado com sucesso!');
+    }
+  };
+
+  const handleRejectVerification = async (id: number) => {
+    const updated = await handleUpdateListing(id, { verification_requested: false });
+    if (updated) {
+      alert('Solicitação de verificação removida.');
     }
   };
 
@@ -462,10 +502,11 @@ function GadoGauchoContent() {
   };
 
   const handleShare = (id: number) => {
-    const url = `${window.location.origin}/listing/${id}`;
-    navigator.clipboard.writeText(url);
-    setShowShareToast(true);
-    setTimeout(() => setShowShareToast(false), 3000);
+    const listing = listings.find(l => l.id === id);
+    if (listing) {
+      setSelectedListingForShare(listing);
+      setShowShareModal(true);
+    }
   };
 
   const handleToggleFavorite = async (listingId: number) => {
@@ -475,22 +516,27 @@ function GadoGauchoContent() {
       return;
     }
 
-    const isFavorite = favorites.includes(listingId);
+    const listingIdNum = Number(listingId);
+    const isFavorite = favorites.map(Number).includes(listingIdNum);
     const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId })
+        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
       });
 
       if (res.ok) {
         if (isFavorite) {
-          setFavorites(favorites.filter(id => id !== listingId));
+          setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
+          setFavoriteToastMessage('Removido dos favoritos');
         } else {
-          setFavorites([...favorites, listingId]);
+          setFavorites([...favorites, listingIdNum]);
+          setFavoriteToastMessage('Adicionado aos favoritos!');
         }
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -521,13 +567,11 @@ function GadoGauchoContent() {
       lat: cityData?.lat || null,
       lng: cityData?.lng || null,
       seller: user?.name || 'Vendedor',
-      userId: user?.id,
       image: adForm.images[0] || 'https://picsum.photos/seed/newcattle/800/600',
       description: adForm.description,
       images: adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
       videos: adForm.videos,
-      verified: false,
-      verification_requested: false
+      verified: false
     };
 
     try {
@@ -592,12 +636,18 @@ function GadoGauchoContent() {
 
   const filteredListings = useMemo(() => {
     return listings.filter(item => {
+      // My Ads and Favorites should show sold items
       if (showMyAds) {
-        return item.userId === user?.id;
+        return item.seller === user?.name;
       }
       if (showFavorites) {
-        return favorites.includes(item.id);
+        return favorites.map(Number).includes(Number(item.id));
       }
+
+      // Home screen search/filter logic
+      // Exclude sold items from home screen
+      if (item.sold) return false;
+
       const matchesCategory = !selectedCategory || item.category.toLowerCase() === selectedCategory.toLowerCase();
       const matchesSearch = !searchQuery || 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -619,6 +669,10 @@ function GadoGauchoContent() {
       return matchesCategory && matchesSearch && matchesDistance && matchesVerified;
     });
   }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance, showFavorites, showMyAds, favorites, user, showVerifiedOnly]);
+
+  const verificationRequests = useMemo(() => {
+    return listings.filter(l => l.verification_requested && !l.verified);
+  }, [listings]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -708,6 +762,17 @@ function GadoGauchoContent() {
                       >
                         Anúncios
                       </button>
+                      <button 
+                        onClick={() => setAdminTab('verifications')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                      >
+                        Verificações
+                        {verificationRequests.length > 0 && (
+                          <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                            {verificationRequests.length}
+                          </span>
+                        )}
+                      </button>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -758,6 +823,24 @@ function GadoGauchoContent() {
                       className="px-3 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-lg text-[10px] font-bold hover:bg-[#D3E1D1] transition-all cursor-pointer"
                     >
                       Popular Banco
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/admin/fix-db');
+                          const data = await res.json();
+                          if (res.ok) {
+                            alert('✅ ' + data.message);
+                          } else {
+                            alert('❌ ' + data.error + '\n\n' + (data.details || '') + '\n\nSQL Sugerido:\n' + (data.sql || ''));
+                          }
+                        } catch (e) {
+                          alert('❌ Erro ao tentar corrigir o banco de dados.');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer"
+                    >
+                      Corrigir Banco
                     </button>
                     <button onClick={() => setShowAdminPanel(false)} className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer ml-2">
                       <X size={20} /> Fechar
@@ -834,11 +917,60 @@ function GadoGauchoContent() {
                         </table>
                       </div>
                     </div>
+                  ) : adminTab === 'verifications' ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-6">
+                        <ShieldCheck className="text-[#2D5A27]" size={20} />
+                        <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {verificationRequests.length > 0 ? (
+                          verificationRequests.map(req => (
+                            <div key={req.id} className="p-6 bg-white rounded-3xl border border-[#E9ECEF] shadow-sm hover:shadow-md transition-all">
+                              <div className="flex gap-4 mb-6">
+                                <div className="relative w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm">
+                                  <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-[#333] text-lg truncate mb-1">{req.title}</h4>
+                                  <p className="text-sm text-[#666] mb-2 flex items-center gap-1">
+                                    <User size={14} className="text-[#999]" /> {req.seller}
+                                  </p>
+                                  <p className="text-lg font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-3">
+                                <button 
+                                  onClick={() => handleApproveVerification(req.id)}
+                                  className="flex-1 py-3 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all shadow-sm flex items-center justify-center gap-2"
+                                >
+                                  <Check size={16} /> Aprovar
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectVerification(req.id)}
+                                  className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                  <X size={16} /> Rejeitar
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
+                            <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                            <p className="text-lg font-bold text-[#333]">Nenhuma solicitação pendente</p>
+                            <p className="text-sm text-[#666]">Novas solicitações de verificação aparecerão aqui.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     <div>
-                      <h3 className="text-lg font-bold text-[#333] mb-4 flex items-center gap-2">
-                        <LayoutGrid size={20} className="text-[#2D5A27]" /> Gerenciar Anúncios
-                      </h3>
+                      <div className="flex items-center gap-2 mb-6">
+                        <LayoutGrid size={20} className="text-[#2D5A27]" />
+                        <h3 className="text-lg font-bold text-[#333]">Gerenciar Todos os Anúncios</h3>
+                      </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead>
@@ -876,9 +1008,9 @@ function GadoGauchoContent() {
                                     >
                                       <Pencil size={16} />
                                     </button>
-                                    {l.verification_requested && !l.verified && (
+                                    {!l.verified && (
                                       <button 
-                                        onClick={() => handleUpdateListing(l.id, { verified: true, verification_requested: false })}
+                                        onClick={() => handleApproveVerification(l.id)}
                                         className="text-[#2D5A27] hover:underline font-bold text-xs cursor-pointer"
                                       >
                                         Verificar
@@ -904,11 +1036,11 @@ function GadoGauchoContent() {
               </motion.div>
             ) : (
               <motion.div 
-                key="grid"
+                key={showMyAds || showFavorites ? "list" : "grid"}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                className={showMyAds || showFavorites ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"}
               >
                 {loading ? (
                   <div className="col-span-full py-32 flex flex-col items-center justify-center">
@@ -943,53 +1075,46 @@ function GadoGauchoContent() {
                           <h2 className="text-2xl font-bold text-[#333]">Meus Anúncios</h2>
                           <p className="text-sm text-[#666]">Gerencie seus anúncios publicados</p>
                         </div>
-                        <button 
-                          onClick={() => setShowMyAds(false)}
-                          className="px-4 py-2 bg-[#F8F9FA] text-[#666] rounded-xl text-sm font-bold hover:bg-[#E9ECEF] transition-all cursor-pointer flex items-center gap-2"
-                        >
-                          <ChevronLeft size={16} /> Voltar para o início
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setShowAdModal(true)}
+                            className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-2"
+                          >
+                            <Plus size={16} /> Novo Anúncio
+                          </button>
+                          <button 
+                            onClick={() => setShowMyAds(false)}
+                            className="px-4 py-2 bg-[#F8F9FA] text-[#666] rounded-xl text-sm font-bold hover:bg-[#E9ECEF] transition-all cursor-pointer flex items-center gap-2"
+                          >
+                            <ChevronLeft size={16} /> Voltar para o início
+                          </button>
+                        </div>
                       </div>
                     )}
                     {filteredListings.length > 0 ? (
                       filteredListings.map(listing => (
-                        <div key={listing.id} className="flex flex-col gap-2">
-                          <ListingCard 
-                            listing={listing} 
-                            onShare={handleShare}
-                            isFavorite={favorites.includes(listing.id)}
-                            onToggleFavorite={handleToggleFavorite}
+                        (showMyAds || showFavorites) ? (
+                          <ListingListItem 
+                            key={listing.id}
+                            listing={listing}
+                            onEdit={handleEditListing}
+                            onDelete={handleDeleteListing}
+                            onToggleSold={handleToggleSold}
+                            onVerify={handleRequestVerification}
+                            onView={(id) => router.push(`/anuncio/${id}`)}
+                            onRemoveFavorite={handleToggleFavorite}
+                            isOwner={user?.name === listing.seller}
                           />
-                          {showMyAds && (
-                            <div className="flex items-center gap-2 px-2">
-                              <button 
-                                onClick={() => handleEditListing(listing)}
-                                className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all cursor-pointer"
-                              >
-                                Editar
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteListing(listing.id)}
-                                className="flex-1 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all cursor-pointer"
-                              >
-                                Excluir
-                              </button>
-                              {!listing.verified && !listing.verification_requested && (
-                                <button 
-                                  onClick={() => handleRequestVerification(listing.id)}
-                                  className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer"
-                                >
-                                  Verificar
-                                </button>
-                              )}
-                              {listing.verification_requested && !listing.verified && (
-                                <span className="flex-1 py-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold text-center">
-                                  Aguardando...
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        ) : (
+                          <div key={listing.id} className="flex flex-col gap-2">
+                            <ListingCard 
+                              listing={listing} 
+                              onShare={handleShare}
+                              isFavorite={favorites.map(Number).includes(Number(listing.id))}
+                              onToggleFavorite={handleToggleFavorite}
+                            />
+                          </div>
+                        )
                       ))
                     ) : (
                       <div className="col-span-full py-20 text-center">
@@ -1300,6 +1425,19 @@ function GadoGauchoContent() {
         )}
       </AnimatePresence>
 
+      {/* Share Modal */}
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={selectedListingForShare ? `${window.location.origin}/anuncio/${selectedListingForShare.id}` : ''}
+        title={selectedListingForShare?.title || ''}
+        onCopySuccess={() => {
+          setFavoriteToastMessage('Link copiado!');
+          setShowShareToast(true);
+          setTimeout(() => setShowShareToast(false), 3000);
+        }}
+      />
+
       {/* Ad Creation Modal */}
       <AnimatePresence>
         {showAdModal && (
@@ -1527,7 +1665,7 @@ function GadoGauchoContent() {
             exit={{ opacity: 0, y: 50 }}
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2"
           >
-            <Check size={18} className="text-[#28A745]" /> Link copiado para a área de transferência!
+            <Check size={18} className="text-[#28A745]" /> {favoriteToastMessage || 'Link copiado para a área de transferência!'}
           </motion.div>
         )}
       </AnimatePresence>
@@ -1538,6 +1676,16 @@ function GadoGauchoContent() {
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
+      )}
+
+      {/* Loading Overlay for Updates */}
+      {isUpdatingListing && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
+            <p className="text-[#333] font-bold">Atualizando anúncio...</p>
+          </div>
+        </div>
       )}
     </div>
   );

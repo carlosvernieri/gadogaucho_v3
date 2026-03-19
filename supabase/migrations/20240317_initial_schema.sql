@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS listings (
   seller TEXT NOT NULL,
   seller_rating DECIMAL DEFAULT 5.0,
   verified BOOLEAN DEFAULT FALSE,
+  verification_requested BOOLEAN DEFAULT FALSE,
+  sold BOOLEAN DEFAULT FALSE,
   image TEXT,
   description TEXT,
   images JSONB DEFAULT '[]'::JSONB,
@@ -52,6 +54,12 @@ CREATE POLICY "Allow public read access on listings" ON listings
 
 CREATE POLICY "Allow authenticated users to create listings" ON listings
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow public update on listings" ON listings
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete on listings" ON listings
+  FOR DELETE USING (true);
 
 -- Policies for users
 CREATE POLICY "Allow public read access on users" ON users

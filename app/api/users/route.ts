@@ -16,7 +16,7 @@ export async function GET() {
 
     return NextResponse.json(users);
   } catch (error: any) {
-    console.error('Supabase error fetching users:', error.message || error);
+    console.error('Supabase error fetching users:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to fetch users', details: error.message }, { status: 500 });
   }
 }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newUser);
   } catch (error: any) {
-    console.error('Supabase error creating user:', error.message || error);
+    console.error('Supabase error creating user:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Failed to create user', details: error.message }, { status: 500 });
   }
 }
