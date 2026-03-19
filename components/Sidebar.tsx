@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Search, X, LayoutGrid } from 'lucide-react';
+import { MapPin, Search, X, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { CATEGORIES_LIST } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -12,6 +12,9 @@ interface SidebarProps {
   onSelectCategory: (category: string | null) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onSearchSubmit?: () => void;
+  showVerifiedOnly?: boolean;
+  onShowVerifiedOnlyChange?: (show: boolean) => void;
   listingsCount: number;
   getCategoryCount: (category: string) => number;
   citySearch: string;
@@ -32,6 +35,9 @@ export const Sidebar = ({
   onSelectCategory,
   searchQuery,
   onSearchChange,
+  onSearchSubmit,
+  showVerifiedOnly = false,
+  onShowVerifiedOnlyChange,
   listingsCount,
   getCategoryCount,
   citySearch,
@@ -138,9 +144,13 @@ export const Sidebar = ({
                 placeholder="Ex: 123" 
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
                 className="flex-1 bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
-              <button className="w-10 h-10 bg-[#2D5A27] text-white rounded-lg flex items-center justify-center hover:bg-[#1E3D1A] transition-all cursor-pointer">
+              <button 
+                onClick={onSearchSubmit}
+                className="w-10 h-10 bg-[#2D5A27] text-white rounded-lg flex items-center justify-center hover:bg-[#1E3D1A] transition-all cursor-pointer"
+              >
                 <Search size={18} />
               </button>
             </div>
@@ -172,6 +182,35 @@ export const Sidebar = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Filtros Adicionais */}
+          <div className="mb-7">
+            <div 
+              onClick={() => onShowVerifiedOnlyChange?.(!showVerifiedOnly)}
+              className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
+            >
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 text-[#2D5A27]">
+                    <ShieldCheck size={22} className="stroke-[2px]" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Anúncios</span>
+                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Verificados</span>
+                  </div>
+                </div>
+                
+                {/* Toggle Switch */}
+                <div className={`min-w-[44px] h-6 rounded-full relative transition-all duration-300 mt-2 ${showVerifiedOnly ? 'bg-[#2D5A27]' : 'bg-[#D1D1D1]'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${showVerifiedOnly ? 'left-6' : 'left-1'}`} />
+                </div>
+              </div>
+              
+              <p className="text-[12px] text-[#888] leading-tight font-medium">
+                Exibir apenas vendedores com identidade confirmada.
+              </p>
             </div>
           </div>
         </div>

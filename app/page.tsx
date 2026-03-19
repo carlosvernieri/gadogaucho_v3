@@ -49,6 +49,7 @@ function GadoGauchoContent() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Proximity Search State
@@ -602,6 +603,8 @@ function GadoGauchoContent() {
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
         item.id.toString().includes(searchQuery);
       
+      const matchesVerified = !showVerifiedOnly || item.verified;
+      
       let matchesDistance = true;
       if (selectedCityCoords && item.lat && item.lng) {
         const distance = calculateDistance(
@@ -613,9 +616,9 @@ function GadoGauchoContent() {
         matchesDistance = distance <= maxDistance;
       }
 
-      return matchesCategory && matchesSearch && matchesDistance;
+      return matchesCategory && matchesSearch && matchesDistance && matchesVerified;
     });
-  }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance, showFavorites, showMyAds, favorites, user]);
+  }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance, showFavorites, showMyAds, favorites, user, showVerifiedOnly]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -636,9 +639,27 @@ function GadoGauchoContent() {
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            setShowFavorites(false);
+            setShowMyAds(false);
+            setShowAdminPanel(false);
+            setIsSidebarOpen(false);
+          }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onSearchSubmit={() => {
+            const id = parseInt(searchQuery);
+            if (!isNaN(id)) {
+              const exists = listings.find(l => l.id === id);
+              if (exists) {
+                router.push(`/anuncio/${id}`);
+                return;
+              }
+            }
+          }}
+          showVerifiedOnly={showVerifiedOnly}
+          onShowVerifiedOnlyChange={setShowVerifiedOnly}
           listingsCount={listings.length}
           getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch={citySearch}
