@@ -26,9 +26,13 @@ export default function CategoriaPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/listings');
-        const data = await res.json();
-        setListings(data);
+        const res = await fetch('/api/listings').catch(err => {
+          console.error('Listings fetch failed:', err);
+          return { ok: false, json: async () => [] } as Response;
+        });
+        
+        const data = res.ok ? await res.json() : [];
+        setListings(Array.isArray(data) && data.length > 0 ? data : []);
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
         if (storedUser) {
@@ -43,7 +47,7 @@ export default function CategoriaPage() {
             .catch(err => console.error('Error fetching favorites:', err));
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
       } finally {
         setLoading(false);
       }

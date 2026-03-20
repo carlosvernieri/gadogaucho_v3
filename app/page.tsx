@@ -167,56 +167,54 @@ function GadoGauchoContent() {
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
-      if (!isSupabaseConfigured()) {
-        console.warn('Supabase is not configured. Using initial data.');
-        setListings((INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
-        setLoading(false);
-        return;
-      }
-
       try {
         const [listingsRes, usersRes] = await Promise.all([
-          fetch('/api/listings'),
-          fetch('/api/users')
+          fetch('/api/listings').catch(err => {
+            console.error('Listings fetch failed:', err);
+            return { ok: false, json: async () => ({ error: 'Network error' }) } as Response;
+          }),
+          fetch('/api/users').catch(err => {
+            console.error('Users fetch failed:', err);
+            return { ok: false, json: async () => ({ error: 'Network error' }) } as Response;
+          })
         ]);
 
         if (!listingsRes.ok || !usersRes.ok) {
-          const lErr = !listingsRes.ok ? await listingsRes.json().catch(() => ({ error: 'Failed to parse listings error' })) : {};
-          const uErr = !usersRes.ok ? await usersRes.json().catch(() => ({ error: 'Failed to parse users error' })) : {};
+          const lErr = listingsRes.ok ? {} : await listingsRes.json().catch(() => ({ error: 'Failed to parse listings error' }));
+          const uErr = usersRes.ok ? {} : await usersRes.json().catch(() => ({ error: 'Failed to parse users error' }));
           console.error('API Error Details:', { listings: lErr, users: uErr });
-          throw new Error(`Failed to fetch data: ${lErr.error || uErr.error || 'Unknown error'}`);
-        }
-
-        const listingsData = await listingsRes.json();
-        const usersData = await usersRes.json();
-        
-        if (Array.isArray(listingsData)) {
-          setListings(listingsData);
-        }
-        if (Array.isArray(usersData)) {
-          setAllUsers(usersData);
-        }
-        
-        // Check local storage for session
-        const storedUser = localStorage.getItem('gado_gaucho_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          // Re-verify with allUsers to get latest data
-          const found = Array.isArray(usersData) ? usersData.find((u: any) => u.email === parsedUser.email) : null;
-          if (found) {
-            setUser(found);
-            // Fetch favorites for this user
-            fetch(`/api/favorites?email=${encodeURIComponent(found.email)}`)
-              .then(res => res.json())
-              .then(data => {
-                if (Array.isArray(data)) setFavorites(data);
-              })
-              .catch(err => console.error('Error fetching favorites:', err));
+          
+          // Fallback to initial data if API fails
+          setListings((INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
+        } else {
+          const listingsData = await listingsRes.json();
+          const usersData = await usersRes.json();
+          
+          if (Array.isArray(listingsData)) {
+            setListings(listingsData.length > 0 ? listingsData : (INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
+          }
+          if (Array.isArray(usersData)) {
+            setAllUsers(usersData);
+          }
+          
+          // Check local storage for session
+          const storedUser = localStorage.getItem('gado_gaucho_user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            const found = Array.isArray(usersData) ? usersData.find((u: any) => u.email === parsedUser.email) : null;
+            if (found) {
+              setUser(found);
+              fetch(`/api/favorites?email=${encodeURIComponent(found.email)}`)
+                .then(res => res.json())
+                .then(data => {
+                  if (Array.isArray(data)) setFavorites(data);
+                })
+                .catch(err => console.error('Error fetching favorites:', err));
+            }
           }
         }
       } catch (error: any) {
-        console.error('Error fetching data:', error.message || error);
-        // Fallback to initial data on error
+        console.error('Error in fetchData:', error.message || error);
         setListings((INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
       } finally {
         setLoading(false);

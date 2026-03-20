@@ -27,19 +27,21 @@ export default function VendedorPage() {
     const fetchData = async () => {
       try {
         const [sellerRes, allRes] = await Promise.all([
-          fetch(`/api/listings?seller=${encodeURIComponent(sellerName)}`),
-          fetch('/api/listings')
+          fetch(`/api/listings?seller=${encodeURIComponent(sellerName)}`).catch(err => {
+            console.error('Seller listings fetch failed:', err);
+            return { ok: false, json: async () => [] } as Response;
+          }),
+          fetch('/api/listings').catch(err => {
+            console.error('All listings fetch failed:', err);
+            return { ok: false, json: async () => [] } as Response;
+          })
         ]);
         
-        if (sellerRes.ok) {
-          const data = await sellerRes.json();
-          setListings(data);
-        }
+        const sellerData = sellerRes.ok ? await sellerRes.json() : [];
+        setListings(Array.isArray(sellerData) ? sellerData : []);
         
-        if (allRes.ok) {
-          const data = await allRes.json();
-          setAllListings(data);
-        }
+        const allData = allRes.ok ? await allRes.json() : [];
+        setAllListings(Array.isArray(allData) ? allData : []);
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
         if (storedUser) {
@@ -54,7 +56,7 @@ export default function VendedorPage() {
             .catch(err => console.error('Error fetching favorites:', err));
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
       } finally {
         setLoading(false);
       }

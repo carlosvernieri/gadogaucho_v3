@@ -31,21 +31,23 @@ export default function FavoritosPage() {
 
       try {
         const [listingsRes, favRes] = await Promise.all([
-          fetch('/api/listings'),
-          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`)
+          fetch('/api/listings').catch(err => {
+            console.error('Listings fetch failed:', err);
+            return { ok: false, json: async () => [] } as Response;
+          }),
+          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`).catch(err => {
+            console.error('Favorites fetch failed:', err);
+            return { ok: false, json: async () => [] } as Response;
+          })
         ]);
 
-        if (listingsRes.ok) {
-          const data = await listingsRes.json();
-          setListings(data);
-        }
+        const listingsData = listingsRes.ok ? await listingsRes.json() : [];
+        setListings(Array.isArray(listingsData) ? listingsData : []);
 
-        if (favRes.ok) {
-          const data = await favRes.json();
-          setFavorites(data);
-        }
+        const favData = favRes.ok ? await favRes.json() : [];
+        setFavorites(Array.isArray(favData) ? favData : []);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
       } finally {
         setLoading(false);
       }
