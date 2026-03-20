@@ -7,6 +7,7 @@ import { unslugify } from '@/lib/utils';
 import { ListingCard } from '@/components/ListingCard';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { BottomNav } from '@/components/BottomNav';
 import { Search } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
@@ -127,7 +128,7 @@ export default function CategoriaPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -195,6 +196,12 @@ export default function CategoriaPage() {
           )}
         </main>
       </div>
+
+      <BottomNav 
+        user={user} 
+        onAdClick={() => router.push('/?ad=new')} 
+        onAuthClick={() => router.push('/?auth=login')} 
+      />
     </div>
   );
 }

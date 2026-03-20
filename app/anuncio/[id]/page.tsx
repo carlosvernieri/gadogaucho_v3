@@ -6,6 +6,7 @@ import { ListingDetail } from '@/components/ListingDetail';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
+import { BottomNav } from '@/components/BottomNav';
 import { INITIAL_LISTINGS } from '@/lib/data';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -157,7 +158,7 @@ export default function AnuncioPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA]">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -232,6 +233,12 @@ export default function AnuncioPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <BottomNav 
+        user={user} 
+        onAdClick={() => router.push('/?ad=new')} 
+        onAuthClick={() => router.push('/?auth=login')} 
+      />
     </div>
   );
 }

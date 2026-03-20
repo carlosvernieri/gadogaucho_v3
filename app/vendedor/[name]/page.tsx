@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ListingCard } from '@/components/ListingCard';
+import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { User, MapPin, Star, ChevronLeft } from 'lucide-react';
@@ -101,7 +102,7 @@ export default function VendedorPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA]">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -224,6 +225,12 @@ export default function VendedorPage() {
           Link do anúncio copiado!
         </div>
       )}
+
+      <BottomNav 
+        user={user} 
+        onAdClick={() => router.push('/?ad=new')} 
+        onAuthClick={() => router.push('/?auth=login')} 
+      />
     </div>
   );
 }

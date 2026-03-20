@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { BottomNav } from '@/components/BottomNav';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -81,7 +82,7 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA]">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -243,6 +244,12 @@ export default function MensagensPage() {
           )}
         </main>
       </div>
+
+      <BottomNav 
+        user={user} 
+        onAdClick={() => router.push('/?ad=new')} 
+        onAuthClick={() => router.push('/?auth=login')} 
+      />
     </div>
   );
 }

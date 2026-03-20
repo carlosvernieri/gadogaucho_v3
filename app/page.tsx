@@ -38,6 +38,7 @@ import { ListingListItem } from '@/components/ListingListItem';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
+import { BottomNav } from '@/components/BottomNav';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useUser } from '@/context/UserContext';
 
@@ -118,6 +119,24 @@ function GadoGauchoContent() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedListingForShare, setSelectedListingForShare] = useState<any>(null);
   const [favoriteToastMessage, setFavoriteToastMessage] = useState('');
+
+  // Handle URL parameters for modals
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    const adParam = searchParams.get('ad');
+
+    if (authParam === 'login') {
+      setAuthMode('login');
+      setShowAuthModal(true);
+    } else if (authParam === 'register') {
+      setAuthMode('register');
+      setShowAuthModal(true);
+    }
+
+    if (adParam === 'new') {
+      setShowAdModal(true);
+    }
+  }, [searchParams]);
 
   // File Upload Refs
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -566,6 +585,7 @@ function GadoGauchoContent() {
       lat: cityData?.lat || null,
       lng: cityData?.lng || null,
       seller: user?.name || 'Vendedor',
+      userId: user?.id,
       image: adForm.images[0] || 'https://picsum.photos/seed/newcattle/800/600',
       description: adForm.description,
       images: adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
@@ -674,7 +694,7 @@ function GadoGauchoContent() {
   }, [listings]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1641,6 +1661,12 @@ function GadoGauchoContent() {
           </div>
         </div>
       )}
+
+      <BottomNav 
+        user={user} 
+        onAdClick={() => setShowAdModal(true)} 
+        onAuthClick={() => setShowAuthModal(true)} 
+      />
     </div>
   );
 }

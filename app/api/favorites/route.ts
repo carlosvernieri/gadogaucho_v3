@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,20 +10,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (isSupabaseConfigured()) {
-      const { data: favorites, error } = await (supabaseAdmin
-        .from('favorites') as any)
-        .select('listing_id')
-        .eq('user_email', email);
+    const { data: favorites, error } = await (supabaseAdmin
+      .from('favorites') as any)
+      .select('listing_id')
+      .eq('user_email', email);
 
-      if (!error && favorites) {
-        return NextResponse.json(favorites.map((f: any) => f.listing_id));
-      }
+    if (error) {
       console.error('Supabase error fetching favorites:', error);
+      throw error;
     }
 
-    const favorites = db.prepare('SELECT listing_id FROM favorites WHERE user_email = ?').all(email) as { listing_id: number }[];
-    return NextResponse.json(favorites.map(f => f.listing_id));
+    return NextResponse.json(favorites.map((f: any) => f.listing_id));
   } catch (error: any) {
     console.error('Error fetching favorites:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -36,19 +32,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, listingId } = body;
 
-    if (isSupabaseConfigured()) {
-      const { error } = await (supabaseAdmin
-        .from('favorites') as any)
-        .upsert({ user_email: email, listing_id: listingId }, { onConflict: 'user_email,listing_id' });
+    const { error } = await (supabaseAdmin
+      .from('favorites') as any)
+      .upsert({ user_email: email, listing_id: listingId }, { onConflict: 'user_email,listing_id' });
 
-      if (!error) return NextResponse.json({ message: 'Favorite added' });
+    if (error) {
       console.error('Supabase error adding favorite:', error);
+      throw error;
     }
-
-    db.prepare(`
-      INSERT OR IGNORE INTO favorites (user_email, listing_id)
-      VALUES (?, ?)
-    `).run(email, listingId);
 
     return NextResponse.json({ message: 'Favorite added' });
   } catch (error: any) {
@@ -62,18 +53,16 @@ export async function DELETE(request: Request) {
     const body = await request.json();
     const { email, listingId } = body;
 
-    if (isSupabaseConfigured()) {
-      const { error } = await (supabaseAdmin
-        .from('favorites') as any)
-        .delete()
-        .eq('user_email', email)
-        .eq('listing_id', listingId);
+    const { error } = await (supabaseAdmin
+      .from('favorites') as any)
+      .delete()
+      .eq('user_email', email)
+      .eq('listing_id', listingId);
 
-      if (!error) return NextResponse.json({ message: 'Favorite removed' });
+    if (error) {
       console.error('Supabase error removing favorite:', error);
+      throw error;
     }
-
-    db.prepare('DELETE FROM favorites WHERE user_email = ? AND listing_id = ?').run(email, listingId);
 
     return NextResponse.json({ message: 'Favorite removed' });
   } catch (error: any) {
