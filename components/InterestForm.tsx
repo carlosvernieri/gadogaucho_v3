@@ -26,14 +26,18 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
     setIsSubmitting(true);
 
     try {
+      console.log('Sending message for listing:', listingId, formData);
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          listingId,
+          listingId: Number(listingId),
           ...formData
         })
       });
+
+      const result = await response.json();
+      console.log('Message response:', result);
 
       if (response.ok) {
         setIsSuccess(true);
@@ -47,9 +51,12 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
             message: `Olá, tenho interesse no anúncio: ${listingTitle}. Gostaria de mais informações.`
           });
         }, 3000);
+      } else {
+        alert(`Erro ao enviar mensagem: ${result.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      alert('Erro de conexão ao enviar mensagem. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }

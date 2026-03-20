@@ -39,13 +39,14 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { useUser } from '@/context/UserContext';
 
 // --- Main App ---
 
 function GadoGauchoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [user, setUser] = useState<any>(null);
+  const { user, setUser, logout } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -682,7 +683,7 @@ function GadoGauchoContent() {
         onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); setAuthError(null); }}
         onAdClick={() => setShowAdModal(true)}
         onAdminClick={() => { setShowAdminPanel(true); setShowFavorites(false); setShowMyAds(false); }}
-        onLogout={() => { setUser(null); localStorage.removeItem('gado_gaucho_user'); setFavorites([]); setShowFavorites(false); setShowMyAds(false); }}
+        onLogout={() => { logout(); setFavorites([]); setShowFavorites(false); setShowMyAds(false); }}
         onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); setShowAdminPanel(false); }}
         onFavoritesClick={() => router.push('/favoritos')}
         onMyAdsClick={() => router.push('/meus-anuncios')}
@@ -776,72 +777,6 @@ function GadoGauchoContent() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/test-supabase');
-                          const data = await res.json();
-                          if (data.status === 'success') {
-                            alert('✅ ' + data.message);
-                          } else {
-                            alert('❌ ' + data.message + '\n\nDetalhes: ' + (data.details || 'Nenhum detalhe disponível'));
-                          }
-                        } catch (e) {
-                          alert('❌ Erro ao tentar conectar com a API de teste.');
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-all cursor-pointer"
-                    >
-                      Testar Conexão
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/seed-test');
-                          const data = await res.json();
-                          alert(data.message || data.error);
-                          window.location.reload();
-                        } catch (e) {
-                          alert('Erro ao gerar anúncios de teste');
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold hover:bg-amber-100 transition-all cursor-pointer"
-                    >
-                      Gerar 30 Testes
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/seed');
-                          const data = await res.json();
-                          alert(data.message || data.error);
-                          window.location.reload();
-                        } catch (e) {
-                          alert('Erro ao popular banco de dados');
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-lg text-[10px] font-bold hover:bg-[#D3E1D1] transition-all cursor-pointer"
-                    >
-                      Popular Banco
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/admin/fix-db');
-                          const data = await res.json();
-                          if (res.ok) {
-                            alert('✅ ' + data.message);
-                          } else {
-                            alert('❌ ' + data.error + '\n\n' + (data.details || '') + '\n\nSQL Sugerido:\n' + (data.sql || ''));
-                          }
-                        } catch (e) {
-                          alert('❌ Erro ao tentar corrigir o banco de dados.');
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer"
-                    >
-                      Corrigir Banco
-                    </button>
                     <button onClick={() => setShowAdminPanel(false)} className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer ml-2">
                       <X size={20} /> Fechar
                     </button>
@@ -924,38 +859,59 @@ function GadoGauchoContent() {
                         <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação</h3>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      <div className="flex flex-col gap-4">
                         {verificationRequests.length > 0 ? (
-                          verificationRequests.map(req => (
-                            <div key={req.id} className="p-6 bg-white rounded-3xl border border-[#E9ECEF] shadow-sm hover:shadow-md transition-all">
-                              <div className="flex gap-4 mb-6">
-                                <div className="relative w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm">
-                                  <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-bold text-[#333] text-lg truncate mb-1">{req.title}</h4>
-                                  <p className="text-sm text-[#666] mb-2 flex items-center gap-1">
-                                    <User size={14} className="text-[#999]" /> {req.seller}
-                                  </p>
-                                  <p className="text-lg font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <button 
-                                  onClick={() => handleApproveVerification(req.id)}
-                                  className="flex-1 py-3 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all shadow-sm flex items-center justify-center gap-2"
-                                >
-                                  <Check size={16} /> Aprovar
-                                </button>
-                                <button 
-                                  onClick={() => handleRejectVerification(req.id)}
-                                  className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
-                                >
-                                  <X size={16} /> Rejeitar
-                                </button>
-                              </div>
-                            </div>
-                          ))
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm border-collapse">
+                              <thead>
+                                <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                                  <th className="pb-4 px-4">Anúncio</th>
+                                  <th className="pb-4 px-4">Preço</th>
+                                  <th className="pb-4 px-4">Vendedor</th>
+                                  <th className="pb-4 px-4 text-right">Ações</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {verificationRequests.map(req => (
+                                  <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
+                                    <td className="py-4 px-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-gray-100">
+                                          <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <span className="font-bold text-[#333] text-sm truncate max-w-[200px]">{req.title}</span>
+                                          <span className="text-[10px] text-[#999]">{req.location}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="py-4 px-4">
+                                      <span className="text-sm font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</span>
+                                    </td>
+                                    <td className="py-4 px-4 text-sm text-[#666]">{req.seller}</td>
+                                    <td className="py-4 px-4 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <button 
+                                          onClick={() => handleApproveVerification(req.id)}
+                                          className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
+                                          title="Aprovar"
+                                        >
+                                          <Check size={14} />
+                                        </button>
+                                        <button 
+                                          onClick={() => handleRejectVerification(req.id)}
+                                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
+                                          title="Rejeitar"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
                           <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
                             <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
@@ -1231,7 +1187,7 @@ function GadoGauchoContent() {
                               setCitySearchAuth(city.name);
                               setShowAuthSuggestions(false);
                             }}
-                            className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center gap-2 cursor-pointer"
                           >
                             <MapPin size={14} className="text-[#999]" />
                             {city.name}

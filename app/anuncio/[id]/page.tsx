@@ -9,15 +9,16 @@ import { ShareModal } from '@/components/ShareModal';
 import { INITIAL_LISTINGS } from '@/lib/data';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useUser } from '@/context/UserContext';
 
 export default function AnuncioPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id;
+  const { user, setUser, logout } = useUser();
   const [listing, setListing] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -164,8 +165,7 @@ export default function AnuncioPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}

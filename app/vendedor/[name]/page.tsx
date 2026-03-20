@@ -8,16 +8,17 @@ import { ListingCard } from '@/components/ListingCard';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { User, MapPin, Star, ChevronLeft } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
 
 export default function VendedorPage() {
   const params = useParams();
   const router = useRouter();
   const sellerName = decodeURIComponent(params.name as string);
+  const { user, setUser, logout } = useUser();
   
   const [listings, setListings] = useState<any[]>([]);
   const [allListings, setAllListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
@@ -106,8 +107,7 @@ export default function VendedorPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}

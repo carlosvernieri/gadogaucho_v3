@@ -8,14 +8,15 @@ import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
 import { Megaphone, LayoutGrid, Menu as MenuIcon, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useUser } from '@/context/UserContext';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, setUser, logout } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,8 +80,7 @@ export default function MeusAnunciosPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}
@@ -131,20 +131,6 @@ export default function MeusAnunciosPage() {
               >
                 <Plus size={18} /> Novo Anúncio
               </button>
-              <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-[#E9ECEF]">
-                <button 
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[#2D5A27] text-white shadow-lg' : 'text-[#999] hover:bg-[#F8F9FA]'}`}
-                >
-                  <LayoutGrid size={20} />
-                </button>
-                <button 
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-[#2D5A27] text-white shadow-lg' : 'text-[#999] hover:bg-[#F8F9FA]'}`}
-                >
-                  <MenuIcon size={20} />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -163,7 +149,7 @@ export default function MeusAnunciosPage() {
               </button>
             </div>
           ) : (
-            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+            <div className="flex flex-col gap-4">
               <AnimatePresence mode="popLayout">
                 {myAds.map((item) => (
                   <motion.div
@@ -174,20 +160,11 @@ export default function MeusAnunciosPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {viewMode === 'grid' ? (
-                      <ListingCard 
-                        listing={item} 
-                        isFavorite={false}
-                        onToggleFavorite={() => {}}
-                        onShare={() => {}}
-                      />
-                    ) : (
-                      <ListingListItem 
-                        listing={item} 
-                        isOwner={true}
-                        onView={(id) => router.push(`/anuncio/${id}`)}
-                      />
-                    )}
+                    <ListingListItem 
+                      listing={item} 
+                      isOwner={true}
+                      onView={(id) => router.push(`/anuncio/${id}`)}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>

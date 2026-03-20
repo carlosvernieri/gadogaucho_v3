@@ -8,16 +8,17 @@ import { ListingCard } from '@/components/ListingCard';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { Search } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
 
 export default function CategoriaPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const { user, setUser, logout } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
 
   const categoryName = unslugify(slug, CATEGORIES_LIST);
@@ -130,8 +131,7 @@ export default function CategoriaPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}

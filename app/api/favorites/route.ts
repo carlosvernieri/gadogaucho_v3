@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import db from '@/lib/db';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,17 +11,23 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: favorites, error } = await (supabaseAdmin
-      .from('favorites') as any)
-      .select('listing_id')
-      .eq('user_email', email);
+    if (isSupabaseConfigured()) {
+      const { data: favorites, error } = await (supabaseAdmin
+        .from('favorites') as any)
+        .select('listing_id')
+        .eq('user_email', email);
 
-    if (error) throw error;
+      if (!error && favorites) {
+        return NextResponse.json(favorites.map((f: any) => f.listing_id));
+      }
+      console.error('Supabase error fetching favorites:', error);
+    }
 
-    return NextResponse.json((favorites || []).map((f: any) => f.listing_id));
-  } catch (error) {
-    console.error('Supabase error fetching favorites:', JSON.stringify(error, null, 2));
-    return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
+    const favorites = db.prepare('SELECT listing_id FROM favorites WHERE user_email = ?').all(email) as { listing_id: number }[];
+    return NextResponse.json(favorites.map(f => f.listing_id));
+  } catch (error: any) {
+    console.error('Error fetching favorites:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -29,16 +36,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, listingId } = body;
 
-    const { error } = await (supabaseAdmin
-      .from('favorites') as any)
-      .upsert({ user_email: email, listing_id: listingId }, { onConflict: 'user_email,listing_id' });
+    if (isSupabaseConfigured()) {
+      const { error } = await (supabaseAdmin
+        .from('favorites') as any)
+        .upsert({ user_email: email, listing_id: listingId }, { onConflict: 'user_email,listing_id' });
 
-    if (error) throw error;
+      if (!error) return NextResponse.json({ message: 'Favorite added' });
+      console.error('Supabase error adding favorite:', error);
+    }
+
+    db.prepare(`
+      INSERT OR IGNORE INTO favorites (user_email, listing_id)
+      VALUES (?, ?)
+    `).run(email, listingId);
 
     return NextResponse.json({ message: 'Favorite added' });
-  } catch (error) {
-    console.error('Supabase error adding favorite:', JSON.stringify(error, null, 2));
-    return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error adding favorite:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -47,17 +62,22 @@ export async function DELETE(request: Request) {
     const body = await request.json();
     const { email, listingId } = body;
 
-    const { error } = await (supabaseAdmin
-      .from('favorites') as any)
-      .delete()
-      .eq('user_email', email)
-      .eq('listing_id', listingId);
+    if (isSupabaseConfigured()) {
+      const { error } = await (supabaseAdmin
+        .from('favorites') as any)
+        .delete()
+        .eq('user_email', email)
+        .eq('listing_id', listingId);
 
-    if (error) throw error;
+      if (!error) return NextResponse.json({ message: 'Favorite removed' });
+      console.error('Supabase error removing favorite:', error);
+    }
+
+    db.prepare('DELETE FROM favorites WHERE user_email = ? AND listing_id = ?').run(email, listingId);
 
     return NextResponse.json({ message: 'Favorite removed' });
-  } catch (error) {
-    console.error('Supabase error removing favorite:', JSON.stringify(error, null, 2));
-    return NextResponse.json({ error: 'Failed to remove favorite' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error removing favorite:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

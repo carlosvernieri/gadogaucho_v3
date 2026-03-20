@@ -8,10 +8,11 @@ import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
 import { Heart, LayoutGrid, Menu as MenuIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useUser } from '@/context/UserContext';
 
 export default function FavoritosPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, setUser, logout } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,8 +103,7 @@ export default function FavoritosPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}

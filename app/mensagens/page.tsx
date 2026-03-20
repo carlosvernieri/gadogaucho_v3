@@ -7,10 +7,11 @@ import { Sidebar } from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
+import { useUser } from '@/context/UserContext';
 
 export default function MensagensPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, setUser, logout } = useUser();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -88,8 +89,7 @@ export default function MensagensPage() {
         onAdClick={() => router.push('/')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
-          setUser(null);
-          localStorage.removeItem('gado_gaucho_user');
+          logout();
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}
