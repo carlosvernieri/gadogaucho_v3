@@ -684,8 +684,8 @@ function GadoGauchoContent() {
         onAdminClick={() => { setShowAdminPanel(true); setShowFavorites(false); setShowMyAds(false); }}
         onLogout={() => { setUser(null); localStorage.removeItem('gado_gaucho_user'); setFavorites([]); setShowFavorites(false); setShowMyAds(false); }}
         onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); setShowAdminPanel(false); }}
-        onFavoritesClick={() => { setShowFavorites(true); setShowMyAds(false); setShowAdminPanel(false); setIsSidebarOpen(false); }}
-        onMyAdsClick={() => { setShowMyAds(true); setShowFavorites(false); setShowAdminPanel(false); setIsSidebarOpen(false); }}
+        onFavoritesClick={() => router.push('/favoritos')}
+        onMyAdsClick={() => router.push('/meus-anuncios')}
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">

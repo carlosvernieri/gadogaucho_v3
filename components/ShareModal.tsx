@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Share2, Copy, Facebook, Instagram, MessageCircle } from 'lucide-react';
+import { X, Share2, Copy, Facebook, MessageCircle } from 'lucide-react';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -28,12 +28,6 @@ export const ShareModal = ({ isOpen, onClose, url, title, onCopySuccess }: Share
       icon: <Facebook size={24} />,
       color: 'bg-[#1877F2]',
       link: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`
-    },
-    {
-      name: 'Instagram',
-      icon: <Instagram size={24} />,
-      color: 'bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]',
-      link: `https://www.instagram.com/` // Instagram doesn't have a direct share URL for web, usually just opens the app
     },
     {
       name: 'Copiar Link',
@@ -113,10 +107,6 @@ export const ShareModal = ({ isOpen, onClose, url, title, onCopySuccess }: Share
                 Copiar
               </button>
             </div>
-            
-            <p className="mt-6 text-center text-[10px] text-[#999] uppercase tracking-widest font-bold">
-              Dica: No Instagram, cole o link na sua bio ou nos stories.
-            </p>
           </motion.div>
         </>
       )}

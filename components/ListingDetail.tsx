@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft, Heart, Share2, Star, Video, CheckCircle } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
+import { InterestForm } from './InterestForm';
 
 export const ListingDetail = ({ 
   listing, 
@@ -19,6 +20,7 @@ export const ListingDetail = ({
   isFavorite: boolean
 }) => {
   const [activeMedia, setActiveMedia] = useState(0);
+  const [showInterestForm, setShowInterestForm] = useState(false);
   const allMedia = [...(listing.images || []), ...(listing.videos || [])];
 
   return (
@@ -171,12 +173,22 @@ export const ListingDetail = ({
           </div>
           
           <div className="space-y-4">
-            <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98]">
+            <button 
+              onClick={() => setShowInterestForm(true)}
+              className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98]"
+            >
               Tenho Interesse
             </button>
           </div>
         </div>
       </div>
+
+      <InterestForm 
+        isOpen={showInterestForm}
+        onClose={() => setShowInterestForm(false)}
+        listingId={listing.id}
+        listingTitle={listing.title}
+      />
     </div>
   );
 };

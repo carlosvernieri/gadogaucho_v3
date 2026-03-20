@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
   user: any;
@@ -14,6 +15,7 @@ interface HeaderProps {
   onHomeClick: () => void;
   onFavoritesClick: () => void;
   onMyAdsClick?: () => void;
+  onMessagesClick?: () => void;
 }
 
 export const Header = ({ 
@@ -25,8 +27,10 @@ export const Header = ({
   onLogout,
   onHomeClick,
   onFavoritesClick,
-  onMyAdsClick
+  onMyAdsClick,
+  onMessagesClick
 }: HeaderProps) => {
+  const router = useRouter();
   return (
     <header className="z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
@@ -72,6 +76,14 @@ export const Header = ({
                 >
                   <Megaphone size={20} />
                   <span className="hidden xl:inline">Meus Anúncios</span>
+                </button>
+                <button 
+                  onClick={onMessagesClick || (() => router.push('/mensagens'))}
+                  className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  title="Mensagens"
+                >
+                  <MessageSquare size={20} />
+                  <span className="hidden xl:inline">Mensagens</span>
                 </button>
                 <button 
                   onClick={onFavoritesClick}

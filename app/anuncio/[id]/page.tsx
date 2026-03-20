@@ -114,7 +114,8 @@ export default function AnuncioPage() {
             router.push('/');
           }}
           onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/?favorites=true')}
+          onFavoritesClick={() => router.push('/favoritos')}
+          onMyAdsClick={() => router.push('/meus-anuncios')}
         />
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="relative">
@@ -141,7 +142,8 @@ export default function AnuncioPage() {
           onAdminClick={() => router.push('/')}
           onLogout={() => {}}
           onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/?favorites=true')}
+          onFavoritesClick={() => router.push('/favoritos')}
+          onMyAdsClick={() => router.push('/meus-anuncios')}
         />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -167,7 +169,8 @@ export default function AnuncioPage() {
           router.push('/');
         }}
         onHomeClick={() => router.push('/')}
-        onFavoritesClick={() => router.push('/?favorites=true')}
+        onFavoritesClick={() => router.push('/favoritos')}
+        onMyAdsClick={() => router.push('/meus-anuncios')}
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
