@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
 import { BottomNav } from '@/components/BottomNav';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Megaphone, LayoutGrid, Menu as MenuIcon, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
@@ -52,8 +53,8 @@ export default function MeusAnunciosPage() {
         <Header 
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={() => router.push('/')}
-          onAdClick={() => router.push('/')}
+          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
             setUser(null);
@@ -66,7 +67,7 @@ export default function MeusAnunciosPage() {
           onMessagesClick={() => router.push('/mensagens')}
         />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#2D5A27]"></div>
+          <LoadingScreen fullScreen={false} />
         </div>
       </div>
     );
@@ -77,8 +78,8 @@ export default function MeusAnunciosPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={() => router.push('/')}
-        onAdClick={() => router.push('/')}
+        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
           logout();

@@ -8,6 +8,7 @@ import { ListingCard } from '@/components/ListingCard';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { BottomNav } from '@/components/BottomNav';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Search } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
@@ -101,8 +102,8 @@ export default function CategoriaPage() {
         <Header 
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={() => router.push('/')}
-          onAdClick={() => router.push('/')}
+          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
             setUser(null);
@@ -113,15 +114,8 @@ export default function CategoriaPage() {
           onFavoritesClick={() => router.push('/favoritos')}
           onMyAdsClick={() => router.push('/meus-anuncios')}
         />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-2 h-2 bg-[#2D5A27] rounded-full animate-pulse" />
-            </div>
-          </div>
-          <h3 className="mt-6 text-lg font-bold text-[#333] animate-pulse">Carregando categoria...</h3>
-          <p className="text-sm text-[#999] mt-2">Buscando ofertas de {categoryName}</p>
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingScreen fullScreen={false} message={`Buscando ofertas de ${categoryName}`} />
         </div>
       </div>
     );
@@ -132,8 +126,8 @@ export default function CategoriaPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={() => router.push('/')}
-        onAdClick={() => router.push('/')}
+        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
           logout();

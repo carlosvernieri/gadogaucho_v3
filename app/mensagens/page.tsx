@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { BottomNav } from '@/components/BottomNav';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -86,8 +87,8 @@ export default function MensagensPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={() => router.push('/')}
-        onAdClick={() => router.push('/')}
+        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
           logout();
@@ -135,10 +136,7 @@ export default function MensagensPage() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
-              <p className="text-[#999] font-medium">Carregando mensagens...</p>
-            </div>
+            <LoadingScreen fullScreen={false} message="Carregando mensagens..." />
           ) : messages.length === 0 ? (
             <div className="bg-white rounded-[2.5rem] p-12 text-center border border-[#E9ECEF] shadow-sm">
               <div className="w-20 h-20 bg-[#F8F9FA] rounded-full flex items-center justify-center mx-auto mb-6 text-[#999]">

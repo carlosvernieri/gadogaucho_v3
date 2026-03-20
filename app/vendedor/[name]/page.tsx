@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ListingCard } from '@/components/ListingCard';
 import { BottomNav } from '@/components/BottomNav';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { User, MapPin, Star, ChevronLeft } from 'lucide-react';
@@ -101,13 +102,37 @@ export default function VendedorPage() {
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header 
+          user={user}
+          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAdClick={() => router.push('/?ad=new')}
+          onAdminClick={() => router.push('/')}
+          onLogout={() => {
+            logout();
+            router.push('/');
+          }}
+          onHomeClick={() => router.push('/')}
+          onFavoritesClick={() => router.push('/favoritos')}
+          onMyAdsClick={() => router.push('/meus-anuncios')}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingScreen fullScreen={false} message={`Carregando perfil de ${sellerName}...`} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={() => router.push('/')}
-        onAdClick={() => router.push('/')}
+        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
           logout();
