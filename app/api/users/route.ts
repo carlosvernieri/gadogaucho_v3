@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const { data: users, error } = await (supabaseAdmin
       .from('users') as any)
-      .select('id, name, email, phone, city, is_admin');
+      .select('id, name, email, phone, city, is_admin, verified');
 
     if (error) {
       console.error('Supabase error fetching users:', error);

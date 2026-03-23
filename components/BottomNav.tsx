@@ -17,7 +17,7 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
   const navItems = [
     { icon: Home, label: 'Início', path: '/', action: () => router.push('/') },
     { icon: Heart, label: 'Favoritos', path: '/favoritos', action: () => user ? router.push('/favoritos') : onAuthClick() },
-    { icon: PlusCircle, label: 'Anunciar', path: null, action: onAdClick, primary: true },
+    ...(user ? [{ icon: PlusCircle, label: 'Anunciar', path: null, action: onAdClick, primary: true }] : []),
     { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', action: () => user ? router.push('/mensagens') : onAuthClick() },
     { icon: User, label: 'Perfil', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
   ];

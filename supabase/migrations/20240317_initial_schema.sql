@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS listings (
   lat DOUBLE PRECISION,
   lng DOUBLE PRECISION,
   seller TEXT NOT NULL,
-  seller_rating DECIMAL DEFAULT 5.0,
+  user_id BIGINT REFERENCES users(id),
   verified BOOLEAN DEFAULT FALSE,
   verification_requested BOOLEAN DEFAULT FALSE,
   sold BOOLEAN DEFAULT FALSE,

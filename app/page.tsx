@@ -13,7 +13,6 @@ import {
   LogOut, 
   ShieldCheck,
   MessageSquare,
-  Star,
   Menu,
   X,
   Plus,
@@ -63,7 +62,7 @@ function GadoGauchoContent() {
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
   // Haversine formula to calculate distance between two points in km
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const calculateDistance = React.useCallback((lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of the earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -74,7 +73,7 @@ function GadoGauchoContent() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const d = R * c; // Distance in km
     return d;
-  };
+  }, []);
 
   const citySuggestions = useMemo(() => {
     if (citySearch.length > 1 && showCitySuggestions) {
@@ -105,15 +104,11 @@ function GadoGauchoContent() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authError, setAuthError] = useState<string | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [showMyAds, setShowMyAds] = useState(false);
   const [isSubmittingAd, setIsSubmittingAd] = useState(false);
   const [isUpdatingListing, setIsUpdatingListing] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications'>('users');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showShareToast, setShowShareToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -398,7 +393,7 @@ function GadoGauchoContent() {
         if (error.code === 'PGRST204') {
           message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS verification_requested BOOLEAN DEFAULT FALSE;`;
         } else {
-          message += `\n\nDetalhes: ${error.details || JSON.stringify(error)}`;
+          message += `\n\nDetalhes: ${error.details || (error.message ? error.message : String(error))}`;
         }
         alert(message);
       }
@@ -422,100 +417,6 @@ function GadoGauchoContent() {
     const updated = await handleUpdateListing(id, { verification_requested: true });
     if (updated) {
       alert('Solicitação de verificação enviada com sucesso! O administrador irá analisar seu anúncio.');
-    }
-  };
-
-  const handleApproveVerification = async (id: number) => {
-    const updated = await handleUpdateListing(id, { verified: true, verification_requested: false });
-    if (updated) {
-      alert('Anúncio verificado com sucesso!');
-    }
-  };
-
-  const handleRejectVerification = async (id: number) => {
-    const updated = await handleUpdateListing(id, { verification_requested: false });
-    if (updated) {
-      alert('Solicitação de verificação removida.');
-    }
-  };
-
-  const handleDeleteUser = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-    try {
-      await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      setAllUsers(allUsers.filter(u => u.id !== id));
-      if (user?.id === id) {
-        setUser(null);
-        localStorage.removeItem('gado_gaucho_user');
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
-  };
-
-  const handleEditUser = (userToEdit: any) => {
-    setEditingUser(userToEdit);
-    setAuthForm({
-      name: userToEdit.name || '',
-      email: userToEdit.email || '',
-      phone: userToEdit.phone || '',
-      city: userToEdit.city || '',
-      password: ''
-    });
-    setCitySearchAuth(userToEdit.city || '');
-    setShowUserModal(true);
-  };
-
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingUser) return;
-
-    try {
-      const res = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authForm)
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setAllUsers(allUsers.map(u => u.id === updated.id ? updated : u));
-        if (user?.id === updated.id) {
-          setUser(updated);
-          localStorage.setItem('gado_gaucho_user', JSON.stringify(updated));
-        }
-        setShowUserModal(false);
-        setEditingUser(null);
-        alert('Usuário atualizado com sucesso!');
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao atualizar usuário');
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
-  };
-
-  const handleAdminCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authForm)
-      });
-
-      if (res.ok) {
-        const newUser = await res.json();
-        setAllUsers([...allUsers, newUser]);
-        setShowUserModal(false);
-        alert('Usuário cadastrado com sucesso!');
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Erro ao cadastrar usuário');
-      }
-    } catch (error) {
-      console.error('Error creating user:', error);
     }
   };
 
@@ -626,12 +527,12 @@ function GadoGauchoContent() {
           videos: []
         });
       } else {
-        const error = await res.json();
-        alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${error.error}`);
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error ${editingListingId ? 'updating' : 'creating'} ad:`, error);
-      alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio. Tente novamente.`);
+      alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${error.message || 'Tente novamente.'}`);
     } finally {
       setIsSubmittingAd(false);
     }
@@ -676,22 +577,13 @@ function GadoGauchoContent() {
       
       let matchesDistance = true;
       if (selectedCityCoords && item.lat && item.lng) {
-        const distance = calculateDistance(
-          selectedCityCoords.lat, 
-          selectedCityCoords.lng, 
-          item.lat, 
-          item.lng
-        );
-        matchesDistance = distance <= maxDistance;
+        const dist = calculateDistance(selectedCityCoords.lat, selectedCityCoords.lng, item.lat, item.lng);
+        matchesDistance = dist <= maxDistance;
       }
-
-      return matchesCategory && matchesSearch && matchesDistance && matchesVerified;
+      
+      return matchesCategory && matchesSearch && matchesVerified && matchesDistance;
     });
-  }, [selectedCategory, searchQuery, listings, selectedCityCoords, maxDistance, showFavorites, showMyAds, favorites, user, showVerifiedOnly]);
-
-  const verificationRequests = useMemo(() => {
-    return listings.filter(l => l.verification_requested && !l.verified);
-  }, [listings]);
+  }, [listings, selectedCategory, searchQuery, showVerifiedOnly, showMyAds, showFavorites, user, favorites, selectedCityCoords, maxDistance, calculateDistance]);
 
   return (
     <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
@@ -700,9 +592,9 @@ function GadoGauchoContent() {
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); setAuthError(null); }}
         onAdClick={() => setShowAdModal(true)}
-        onAdminClick={() => { setShowAdminPanel(true); setShowFavorites(false); setShowMyAds(false); }}
+        onAdminClick={() => {}}
         onLogout={() => { logout(); setFavorites([]); setShowFavorites(false); setShowMyAds(false); }}
-        onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); setShowAdminPanel(false); }}
+        onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); }}
         onFavoritesClick={() => router.push('/favoritos')}
         onMyAdsClick={() => router.push('/meus-anuncios')}
       />
@@ -716,7 +608,6 @@ function GadoGauchoContent() {
             setSelectedCategory(cat);
             setShowFavorites(false);
             setShowMyAds(false);
-            setShowAdminPanel(false);
             setIsSidebarOpen(false);
           }}
           searchQuery={searchQuery}
@@ -757,265 +648,13 @@ function GadoGauchoContent() {
         {/* --- Main Content --- */}
         <main className="flex-1">
           <AnimatePresence mode="wait">
-            {showAdminPanel ? (
-              <motion.div 
-                key="admin"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#333]">Painel Administrativo</h2>
-                    <div className="flex items-center gap-4 mt-4">
-                      <button 
-                        onClick={() => setAdminTab('users')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'users' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
-                      >
-                        Usuários
-                      </button>
-                      <button 
-                        onClick={() => setAdminTab('listings')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'listings' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
-                      >
-                        Anúncios
-                      </button>
-                      <button 
-                        onClick={() => setAdminTab('verifications')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
-                      >
-                        Verificações
-                        {verificationRequests.length > 0 && (
-                          <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                            {verificationRequests.length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button onClick={() => setShowAdminPanel(false)} className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer ml-2">
-                      <X size={20} /> Fechar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  {adminTab === 'users' ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-[#333] flex items-center gap-2">
-                          <User size={20} className="text-[#2D5A27]" /> Gerenciar Usuários
-                        </h3>
-                        <button 
-                          onClick={() => {
-                            setEditingUser(null);
-                            setAuthForm({ name: '', email: '', phone: '', city: '', password: '' });
-                            setCitySearchAuth('');
-                            setShowUserModal(true);
-                          }}
-                          className="px-3 py-1.5 bg-[#2D5A27] text-white rounded-lg text-[10px] font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Plus size={14} /> Novo Usuário
-                        </button>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                              <th className="pb-4 px-4">Nome</th>
-                              <th className="pb-4 px-4">E-mail</th>
-                              <th className="pb-4 px-4">Cidade</th>
-                              <th className="pb-4 px-4">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#F8F9FA]">
-                            {allUsers.map(u => (
-                              <tr key={u.id} className="hover:bg-[#F8F9FA] transition-colors">
-                                <td className="py-4 px-4 font-bold text-[#333]">
-                                  <button 
-                                    onClick={() => handleEditUser(u)}
-                                    className="hover:text-[#2D5A27] hover:underline cursor-pointer text-left"
-                                  >
-                                    {u.name}
-                                  </button>
-                                  {u.is_admin && <span className="ml-2 text-[9px] bg-[#E9F0E8] text-[#2D5A27] px-1.5 py-0.5 rounded">ADMIN</span>}
-                                </td>
-                                <td className="py-4 px-4 text-[#666]">{u.email}</td>
-                                <td className="py-4 px-4 text-[#666]">{u.city}</td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-3">
-                                    <button 
-                                      onClick={() => handleEditUser(u)}
-                                      className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
-                                      title="Editar Usuário"
-                                    >
-                                      <Pencil size={16} />
-                                    </button>
-                                    {!u.is_admin && (
-                                      <button 
-                                        onClick={() => handleDeleteUser(u.id)}
-                                        className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                                        title="Excluir Usuário"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : adminTab === 'verifications' ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-6">
-                        <ShieldCheck className="text-[#2D5A27]" size={20} />
-                        <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação</h3>
-                      </div>
-                      
-                      <div className="flex flex-col gap-4">
-                        {verificationRequests.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm border-collapse">
-                              <thead>
-                                <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                                  <th className="pb-4 px-4">Anúncio</th>
-                                  <th className="pb-4 px-4">Preço</th>
-                                  <th className="pb-4 px-4">Vendedor</th>
-                                  <th className="pb-4 px-4 text-right">Ações</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {verificationRequests.map(req => (
-                                  <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
-                                    <td className="py-4 px-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-gray-100">
-                                          <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                          <span className="font-bold text-[#333] text-sm truncate max-w-[200px]">{req.title}</span>
-                                          <span className="text-[10px] text-[#999]">{req.location}</span>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                      <span className="text-sm font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</span>
-                                    </td>
-                                    <td className="py-4 px-4 text-sm text-[#666]">{req.seller}</td>
-                                    <td className="py-4 px-4 text-right">
-                                      <div className="flex items-center justify-end gap-2">
-                                        <button 
-                                          onClick={() => handleApproveVerification(req.id)}
-                                          className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
-                                          title="Aprovar"
-                                        >
-                                          <Check size={14} />
-                                        </button>
-                                        <button 
-                                          onClick={() => handleRejectVerification(req.id)}
-                                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
-                                          title="Rejeitar"
-                                        >
-                                          <X size={14} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
-                            <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
-                            <p className="text-lg font-bold text-[#333]">Nenhuma solicitação pendente</p>
-                            <p className="text-sm text-[#666]">Novas solicitações de verificação aparecerão aqui.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-2 mb-6">
-                        <LayoutGrid size={20} className="text-[#2D5A27]" />
-                        <h3 className="text-lg font-bold text-[#333]">Gerenciar Todos os Anúncios</h3>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                              <th className="pb-4 px-4">Cód</th>
-                              <th className="pb-4 px-4">Título</th>
-                              <th className="pb-4 px-4">Vendedor</th>
-                              <th className="pb-4 px-4">Status</th>
-                              <th className="pb-4 px-4">Preço</th>
-                              <th className="pb-4 px-4">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#F8F9FA]">
-                            {listings.map(l => (
-                              <tr key={l.id} className="hover:bg-[#F8F9FA] transition-colors">
-                                <td className="py-4 px-4 text-[#999]">#{l.id}</td>
-                                <td className="py-4 px-4 font-bold text-[#333]">{l.title}</td>
-                                <td className="py-4 px-4 text-[#666]">{l.seller}</td>
-                                <td className="py-4 px-4">
-                                  {l.verified ? (
-                                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">VERIFICADO</span>
-                                  ) : l.verification_requested ? (
-                                    <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
-                                  ) : (
-                                    <span className="text-[10px] bg-gray-50 text-gray-400 px-2 py-1 rounded-full font-bold">PENDENTE</span>
-                                  )}
-                                </td>
-                                <td className="py-4 px-4 text-[#2D5A27] font-bold">R$ {l.price.toLocaleString()}</td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-3">
-                                    <button 
-                                      onClick={() => handleEditListing(l)}
-                                      className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
-                                      title="Editar Anúncio"
-                                    >
-                                      <Pencil size={16} />
-                                    </button>
-                                    {!l.verified && (
-                                      <button 
-                                        onClick={() => handleApproveVerification(l.id)}
-                                        className="text-[#2D5A27] hover:underline font-bold text-xs cursor-pointer"
-                                      >
-                                        Verificar
-                                      </button>
-                                    )}
-                                    <button 
-                                      onClick={() => handleDeleteListing(l.id)}
-                                      className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                                      title="Excluir Anúncio"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key={showMyAds || showFavorites ? "list" : "grid"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className={showMyAds || showFavorites ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"}
-              >
+            <motion.div 
+              key={showMyAds || showFavorites ? "list" : "grid"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={showMyAds || showFavorites ? "flex flex-col gap-4 w-full" : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"}
+            >
                 {loading ? (
                   <div className="col-span-full py-32 flex flex-col items-center justify-center">
                     <div className="relative">
@@ -1106,143 +745,10 @@ function GadoGauchoContent() {
                   </>
                 )}
               </motion.div>
-            )}
           </AnimatePresence>
         </main>
       </div>
       
-      {/* --- Modals --- */}
-      
-      {/* User Management Modal (Admin) */}
-      <AnimatePresence>
-        {showUserModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setShowUserModal(false); setEditingUser(null); }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl"
-            >
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-[#333]">
-                    {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
-                  </h2>
-                  <button onClick={() => { setShowUserModal(false); setEditingUser(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
-                    <X size={24} />
-                  </button>
-                </div>
-                
-                <form onSubmit={editingUser ? handleUpdateUser : handleAdminCreateUser} className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                      Nome Completo
-                    </label>
-                    <input 
-                      type="text" 
-                      required
-                      value={authForm.name}
-                      onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
-                      placeholder="Nome do usuário" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                      E-mail
-                    </label>
-                    <input 
-                      type="email" 
-                      required
-                      value={authForm.email}
-                      onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                      placeholder="email@exemplo.com" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                      Telefone
-                    </label>
-                    <input 
-                      type="tel" 
-                      value={authForm.phone}
-                      onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                      placeholder="(00) 00000-0000" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                      Cidade
-                    </label>
-                    <input 
-                      type="text" 
-                      value={citySearchAuth}
-                      onChange={(e) => {
-                        setCitySearchAuth(e.target.value);
-                        setAuthForm({...authForm, city: e.target.value});
-                        setShowAuthSuggestions(true);
-                      }}
-                      placeholder="Cidade no RS" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
-                    {showAuthSuggestions && citySuggestionsAuth.length > 0 && (
-                      <div className="absolute z-50 w-full mt-2 bg-white border border-[#E9ECEF] rounded-2xl shadow-xl max-h-48 overflow-y-auto">
-                        {citySuggestionsAuth.map(city => (
-                          <button
-                            key={city.name}
-                            type="button"
-                            onClick={() => {
-                              setAuthForm({...authForm, city: city.name});
-                              setCitySearchAuth(city.name);
-                              setShowAuthSuggestions(false);
-                            }}
-                            className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center gap-2 cursor-pointer"
-                          >
-                            <MapPin size={14} className="text-[#999]" />
-                            {city.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {!editingUser && (
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                        Senha
-                      </label>
-                      <input 
-                        type="password" 
-                        required
-                        value={authForm.password}
-                        onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                        placeholder="••••••••" 
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                      />
-                    </div>
-                  )}
-                  
-                  <button 
-                    type="submit"
-                    className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
-                  >
-                    {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Auth Modal */}
       <AnimatePresence>
         {showAuthModal && (
@@ -1662,11 +1168,13 @@ function GadoGauchoContent() {
         </div>
       )}
 
-      <BottomNav 
-        user={user} 
-        onAdClick={() => setShowAdModal(true)} 
-        onAuthClick={() => setShowAuthModal(true)} 
-      />
+      {user && (
+        <BottomNav 
+          user={user} 
+          onAdClick={() => setShowAdModal(true)} 
+          onAuthClick={() => setShowAuthModal(true)} 
+        />
+      )}
     </div>
   );
 }

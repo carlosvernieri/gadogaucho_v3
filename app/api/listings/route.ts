@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     let query = (supabaseAdmin
       .from('listings') as any)
-      .select('*');
+      .select('*, users(verified)');
 
     if (seller) {
       query = query.eq('seller', seller);
@@ -19,8 +19,28 @@ export async function GET(request: Request) {
     const { data: listings, error } = await query.order('id', { ascending: false });
 
     if (error) {
-      console.error('Supabase error fetching listings:', error);
-      throw error;
+      console.error('Supabase error fetching listings:', JSON.stringify(error, null, 2));
+      // Fallback to fetching without join if join fails (e.g. schema mismatch)
+      const { data: fallbackListings, error: fallbackError } = await (supabaseAdmin
+        .from('listings') as any)
+        .select('*')
+        .order('id', { ascending: false });
+      
+      if (fallbackError) {
+        console.error('Supabase fallback error fetching listings:', JSON.stringify(fallbackError, null, 2));
+        throw fallbackError;
+      }
+      
+      const mappedListings = fallbackListings.map((l: any) => ({
+        ...l,
+        sold: !!l.sold,
+        verified: !!l.verified,
+        verification_requested: !!l.verification_requested,
+        priceKg: l.price_kg,
+        avgWeight: l.avg_weight,
+        sellerVerified: false, // Fallback
+      }));
+      return NextResponse.json(mappedListings);
     }
 
     const mappedListings = listings.map((l: any) => ({
@@ -30,12 +50,12 @@ export async function GET(request: Request) {
       verification_requested: !!l.verification_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
-      sellerRating: l.seller_rating,
+      sellerVerified: !!l.users?.verified,
     }));
     return NextResponse.json(mappedListings);
   } catch (error: any) {
-    console.error('Error fetching listings:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error fetching listings:', error.message || error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch listings' }, { status: 500 });
   }
 }
 
@@ -58,7 +78,7 @@ export async function POST(request: Request) {
           lat, 
           lng, 
           seller, 
-          user_id: userId,
+          user_id: userId || null,
           image, 
           description, 
           images: images || [], 
@@ -71,7 +91,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Supabase error creating listing:', error);
+      console.error('Supabase error creating listing:', JSON.stringify(error, null, 2));
       throw error;
     }
 
@@ -79,13 +99,12 @@ export async function POST(request: Request) {
       ...newListing,
       priceKg: newListing.price_kg,
       avgWeight: newListing.avg_weight,
-      sellerRating: newListing.seller_rating,
       verification_requested: newListing.verification_requested,
       userId: newListing.user_id
     });
   } catch (error: any) {
-    console.error('Error creating listing:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error creating listing:', error.message || error);
+    return NextResponse.json({ error: error.message || 'Failed to create listing' }, { status: 500 });
   }
 }
 

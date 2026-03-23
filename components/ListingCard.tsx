@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, Share2, MapPin, Loader2, CheckCircle } from 'lucide-react';
+import { Heart, Share2, MapPin, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const ListingCard = ({ 
@@ -128,9 +128,14 @@ export const ListingCard = ({
           </div>
           <button 
             onClick={handleSellerClick}
-            className="font-bold text-[#2D5A27] hover:underline cursor-pointer relative z-10"
+            className="font-bold text-[#2D5A27] hover:underline cursor-pointer relative z-10 flex items-center gap-1.5"
           >
             {listing.seller}
+            {listing.sellerVerified && (
+              <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
+                VERIFICADO
+              </Badge>
+            )}
           </button>
         </div>
         

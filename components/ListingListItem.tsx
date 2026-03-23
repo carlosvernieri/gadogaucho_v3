@@ -69,6 +69,19 @@ export const ListingListItem = ({
           <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Cód: {listing.id}</span>
           <span className="text-[#E9ECEF]">•</span>
           <span className="text-[10px] font-bold text-[#2D5A27] uppercase tracking-wider">{listing.category}</span>
+          {!isOwner && (
+            <>
+              <span className="text-[#E9ECEF]">•</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-[#666] uppercase tracking-wider">{listing.seller}</span>
+                {listing.sellerVerified && (
+                  <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
+                    VERIFICADO
+                  </Badge>
+                )}
+              </div>
+            </>
+          )}
         </div>
         <h3 className="text-lg font-bold text-[#333] mb-1 truncate">{listing.title}</h3>
         

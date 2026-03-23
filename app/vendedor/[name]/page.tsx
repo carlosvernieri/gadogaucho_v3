@@ -9,8 +9,9 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { User, MapPin, Star, ChevronLeft } from 'lucide-react';
+import { User, MapPin, ChevronLeft } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { Badge } from '@/components/Badge';
 
 export default function VendedorPage() {
   const params = useParams();
@@ -194,14 +195,11 @@ export default function VendedorPage() {
                     <MapPin size={16} className="text-[#2D5A27]" />
                     Rio Grande do Sul
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star size={16} className="text-[#FFC107] fill-[#FFC107]" />
-                    <span className="font-bold text-[#333]">4.8</span>
-                    <span className="text-[#999]">(124 avaliações)</span>
-                  </div>
-                  <div className="px-3 py-1 bg-[#E9F0E8] text-[#2D5A27] rounded-full text-[10px] font-bold uppercase">
-                    Vendedor Verificado
-                  </div>
+                  {listings.length > 0 && listings[0].sellerVerified && (
+                    <Badge variant="seller-verified" className="text-[10px] py-1 px-3 rounded-full">
+                      Vendedor Verificado
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="bg-[#F8F9FA] px-6 py-4 rounded-2xl text-center">
@@ -251,11 +249,13 @@ export default function VendedorPage() {
         </div>
       )}
 
-      <BottomNav 
-        user={user} 
-        onAdClick={() => router.push('/?ad=new')} 
-        onAuthClick={() => router.push('/?auth=login')} 
-      />
+      {user && (
+        <BottomNav 
+          user={user} 
+          onAdClick={() => router.push('/?ad=new')} 
+          onAuthClick={() => router.push('/?auth=login')} 
+        />
+      )}
     </div>
   );
 }

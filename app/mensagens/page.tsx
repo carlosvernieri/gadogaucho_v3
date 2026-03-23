@@ -243,11 +243,13 @@ export default function MensagensPage() {
         </main>
       </div>
 
-      <BottomNav 
-        user={user} 
-        onAdClick={() => router.push('/?ad=new')} 
-        onAuthClick={() => router.push('/?auth=login')} 
-      />
+      {user && (
+        <BottomNav 
+          user={user} 
+          onAdClick={() => router.push('/?ad=new')} 
+          onAuthClick={() => router.push('/?auth=login')} 
+        />
+      )}
     </div>
   );
 }

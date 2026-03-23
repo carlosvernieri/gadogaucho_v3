@@ -10,13 +10,38 @@ export async function GET(
 
     const { data: listing, error } = await (supabaseAdmin
       .from('listings') as any)
-      .select('*')
+      .select('*, users(verified)')
       .eq('id', id)
       .maybeSingle();
     
     if (error) {
-      console.error('Supabase error fetching listing:', error);
-      throw error;
+      console.error('Supabase error fetching listing:', JSON.stringify(error, null, 2));
+      // Fallback to fetching without join
+      const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
+        .from('listings') as any)
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (fallbackError) {
+        console.error('Supabase fallback error fetching listing:', JSON.stringify(fallbackError, null, 2));
+        throw fallbackError;
+      }
+      
+      if (!fallbackListing) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+      }
+
+      const l = fallbackListing as any;
+      return NextResponse.json({
+        ...l,
+        sold: !!l.sold,
+        verified: !!l.verified,
+        verification_requested: !!l.verification_requested,
+        priceKg: l.price_kg,
+        avgWeight: l.avg_weight,
+        sellerVerified: false, // Fallback
+      });
     }
 
     if (!listing) {
@@ -31,11 +56,11 @@ export async function GET(
       verification_requested: !!l.verification_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
-      sellerRating: l.seller_rating,
+      sellerVerified: !!l.users?.verified,
     });
-  } catch (error) {
-    console.error('Error fetching listing:', error);
-    return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error fetching listing:', error.message || error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch listing' }, { status: 500 });
   }
 }
 
@@ -106,7 +131,6 @@ export async function PUT(
       ...updatedListing,
       priceKg: updatedListing.price_kg,
       avgWeight: updatedListing.avg_weight,
-      sellerRating: updatedListing.seller_rating,
       verification_requested: updatedListing.verification_requested,
     });
   } catch (error: any) {

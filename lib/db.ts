@@ -16,7 +16,8 @@ db.exec(`
     phone TEXT,
     city TEXT,
     password TEXT,
-    is_admin INTEGER DEFAULT 0
+    is_admin INTEGER DEFAULT 0,
+    verified INTEGER DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS listings (
@@ -32,7 +33,6 @@ db.exec(`
     lng REAL,
     seller TEXT NOT NULL,
     userId INTEGER,
-    sellerRating REAL DEFAULT 5.0,
     verified INTEGER DEFAULT 0,
     sold INTEGER DEFAULT 0,
     verification_requested INTEGER DEFAULT 0,

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, Heart, Share2, Star, Video, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Heart, Share2, Video, CheckCircle, ShieldCheck } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
 import { InterestForm } from './InterestForm';
@@ -157,17 +157,21 @@ export const ListingDetail = ({
               <Image src={`https://picsum.photos/seed/${listing.seller}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
             </Link>
             <div className="flex-1">
-              <Link 
-                href={`/vendedor/${encodeURIComponent(listing.seller)}`}
-                className="font-bold text-sm text-[#333] hover:text-[#2D5A27] transition-colors"
-              >
-                {listing.seller}
-              </Link>
-              <div className="flex items-center gap-1 text-[#FFC107]">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={10} fill={i < Math.floor(listing.sellerRating) ? 'currentColor' : 'none'} />
-                ))}
-                <span className="text-[10px] text-[#999] ml-1">(124 avaliações)</span>
+              <div className="flex items-center gap-2">
+                <Link 
+                  href={`/vendedor/${encodeURIComponent(listing.seller)}`}
+                  className="font-bold text-sm text-[#333] hover:text-[#2D5A27] transition-colors"
+                >
+                  {listing.seller}
+                </Link>
+                {listing.sellerVerified && (
+                  <Badge variant="seller-verified">
+                    VERIFICADO
+                  </Badge>
+                )}
+              </div>
+              <div className="text-[10px] text-[#999]">
+                Membro desde 2024
               </div>
             </div>
           </div>

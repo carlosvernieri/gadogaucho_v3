@@ -39,13 +39,13 @@ export const Header = ({
             onClick={onMenuClick}
             className="lg:hidden p-2 text-[#333] cursor-pointer"
           >
-            <Menu size={24} />
+            <Menu size={22} className="sm:w-6 sm:h-6" />
           </button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={onHomeClick}>
-            <div className="w-10 h-10 bg-[#2D5A27] rounded-xl flex items-center justify-center text-white">
-              <LayoutGrid size={24} />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#2D5A27] rounded-xl flex items-center justify-center text-white">
+              <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
-            <span className="text-3xl font-normal text-[#2D5A27] tracking-tight hidden sm:block font-logo">Gado Gaúcho</span>
+            <span className="text-[22px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
           </div>
         </div>
         
@@ -61,7 +61,7 @@ export const Header = ({
               <div className="hidden lg:flex items-center gap-2">
                 {user.is_admin && (
                   <button 
-                    onClick={onAdminClick}
+                    onClick={() => router.push('/admin')}
                     className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
                     title="Painel Administrativo"
                   >
@@ -123,7 +123,7 @@ export const Header = ({
               </button>
               <button 
                 onClick={() => onAuthClick('login')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 Entrar
               </button>

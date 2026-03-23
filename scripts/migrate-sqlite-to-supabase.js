@@ -51,7 +51,6 @@ async function migrate() {
       lng: listing.lng,
       seller: listing.seller,
       user_id: listing.userId,
-      seller_rating: listing.sellerRating,
       verified: !!listing.verified,
       sold: !!listing.sold,
       verification_requested: !!listing.verification_requested,
