@@ -521,10 +521,10 @@ function GadoGauchoContent() {
       lat: cityData?.lat || null,
       lng: cityData?.lng || null,
       user_id: user?.id,
-      image: adForm.images[0] || 'https://picsum.photos/seed/newcattle/800/600',
+      image: (Array.isArray(adForm.images) && adForm.images.length > 0 ? adForm.images[0] : null) || 'https://picsum.photos/seed/newcattle/800/600',
       description: adForm.description,
-      images: adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
-      videos: adForm.videos,
+      images: Array.isArray(adForm.images) && adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
+      videos: Array.isArray(adForm.videos) ? adForm.videos : [],
       verified: false
     };
 
@@ -581,8 +581,8 @@ function GadoGauchoContent() {
       batchSize: listing.quantity,
       city: listing.location.split(' - ')[0],
       description: listing.description || '',
-      images: listing.images || [listing.image],
-      videos: listing.videos || []
+      images: Array.isArray(listing.images) ? listing.images : [listing.image],
+      videos: Array.isArray(listing.videos) ? listing.videos : []
     });
     setCitySearchAd(listing.location.split(' - ')[0]);
     setShowAdModal(true);
@@ -783,40 +783,76 @@ function GadoGauchoContent() {
         </main>
       </div>
       
-      {/* Admin Seed Button */}
+      {/* Admin Buttons */}
       {user?.is_admin && (
-        <button
-          onClick={() => {
-            setConfirmModal({
-              isOpen: true,
-              title: 'Gerar Dados Exemplo',
-              message: 'Deseja inserir 20 anúncios de exemplo no banco de dados para teste?',
-              confirmText: 'Gerar Agora',
-              onConfirm: async () => {
-                setConfirmModal(prev => ({ ...prev, loading: true }));
-                try {
-                  const res = await fetch('/api/seed');
-                  const data = await res.json();
-                  if (data.success) {
-                    showToast(data.message);
-                    setTimeout(() => window.location.reload(), 1500);
-                  } else {
-                    showToast('Erro ao inserir dados: ' + data.error);
+        <div className="fixed bottom-24 right-6 z-[60] flex flex-col gap-3 items-end">
+          <button
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Limpar Banco de Dados',
+                message: 'Deseja deletar TODOS os anúncios do banco de dados? Esta ação não pode ser desfeita.',
+                confirmText: 'Deletar Tudo',
+                type: 'danger',
+                onConfirm: async () => {
+                  setConfirmModal(prev => ({ ...prev, loading: true }));
+                  try {
+                    const res = await fetch('/api/listings', { method: 'DELETE' });
+                    const data = await res.json();
+                    if (res.ok) {
+                      showToast(data.message || 'Todos os anúncios foram deletados.');
+                      setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                      showToast('Erro ao deletar dados: ' + data.error);
+                    }
+                  } catch (error) {
+                    showToast('Erro ao conectar ao servidor');
+                  } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
                   }
-                } catch (error) {
-                  showToast('Erro ao conectar ao servidor');
-                } finally {
-                  setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
                 }
-              }
-            });
-          }}
-          className="fixed bottom-24 right-6 z-[60] bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600 transition-all flex items-center gap-2 font-bold text-sm"
-          title="Gerar 20 anúncios de exemplo"
-        >
-          <Plus size={20} />
-          <span className="hidden sm:inline">Gerar Dados Exemplo</span>
-        </button>
+              });
+            }}
+            className="bg-red-600 text-white p-4 rounded-full shadow-lg hover:bg-red-700 transition-all flex items-center gap-2 font-bold text-sm"
+            title="Deletar todos os anúncios"
+          >
+            <Trash2 size={20} />
+            <span className="hidden sm:inline">Limpar Banco</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Gerar Dados Exemplo',
+                message: 'Deseja inserir 20 anúncios de exemplo no banco de dados para teste?',
+                confirmText: 'Gerar Agora',
+                onConfirm: async () => {
+                  setConfirmModal(prev => ({ ...prev, loading: true }));
+                  try {
+                    const res = await fetch('/api/seed');
+                    const data = await res.json();
+                    if (data.success) {
+                      showToast(data.message);
+                      setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                      showToast('Erro ao inserir dados: ' + data.error);
+                    }
+                  } catch (error) {
+                    showToast('Erro ao conectar ao servidor');
+                  } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+                  }
+                }
+              });
+            }}
+            className="bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600 transition-all flex items-center gap-2 font-bold text-sm"
+            title="Gerar 20 anúncios de exemplo"
+          >
+            <Plus size={20} />
+            <span className="hidden sm:inline">Gerar Dados Exemplo</span>
+          </button>
+        </div>
       )}
 
       {/* Confirm Modal */}

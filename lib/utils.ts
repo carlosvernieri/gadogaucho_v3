@@ -19,6 +19,20 @@ export const safeJsonStringify = (obj: any, indent = 0): string => {
 };
 
 /**
+ * Parses a JSON field from the database, handling cases where it might be a string.
+ */
+export const parseJsonField = (field: any) => {
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      return [];
+    }
+  }
+  return field || [];
+};
+
+/**
  * Combines class names for Tailwind CSS.
  */
 export function cn(...inputs: any[]) {

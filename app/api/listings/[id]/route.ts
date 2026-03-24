@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { parseJsonField } from '@/lib/utils';
 
 export async function GET(
   request: Request,
@@ -13,12 +14,12 @@ export async function GET(
 
     const { data: listing, error } = await (supabaseAdmin
       .from('listings') as any)
-      .select('*, users(name, verified)')
+      .select('*, users!user_id(name, verified)')
       .eq('id', id)
       .maybeSingle();
     
     if (error) {
-      // Fallback to fetching without join
+      // If the join fails, try a simple select and then fetch the user separately
       const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)
         .select('*')
@@ -33,7 +34,14 @@ export async function GET(
       if (!fallbackListing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
- 
+
+      // Fetch the user to map the name
+      const { data: userData } = await (supabaseAdmin
+        .from('users') as any)
+        .select('name, verified')
+        .eq('id', fallbackListing.user_id)
+        .maybeSingle();
+  
       const l = fallbackListing as any;
       return NextResponse.json({
         ...l,
@@ -42,8 +50,10 @@ export async function GET(
         verification_requested: !!l.verification_requested,
         priceKg: l.price_kg || l.priceKg,
         avgWeight: l.avg_weight || l.avgWeight,
-        seller: 'Desconhecido',
-        sellerVerified: false,
+        images: parseJsonField(l.images),
+        videos: parseJsonField(l.videos),
+        seller: userData?.name || 'Desconhecido',
+        sellerVerified: !!userData?.verified,
         sellerRating: 0,
       });
     }
@@ -53,6 +63,7 @@ export async function GET(
     }
 
     const l = listing as any;
+    const userData = Array.isArray(l.users) ? l.users[0] : l.users;
     return NextResponse.json({
       ...l,
       sold: !!l.sold,
@@ -60,8 +71,10 @@ export async function GET(
       verification_requested: !!l.verification_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
-      seller: l.users?.name || 'Desconhecido',
-      sellerVerified: !!l.users?.verified,
+      images: parseJsonField(l.images),
+      videos: parseJsonField(l.videos),
+      seller: userData?.name || 'Desconhecido',
+      sellerVerified: !!userData?.verified,
       sellerRating: 0,
     });
   } catch (error: any) {
@@ -145,6 +158,8 @@ export async function PUT(
       priceKg: updatedListing.price_kg,
       avgWeight: updatedListing.avg_weight,
       verification_requested: updatedListing.verification_requested,
+      images: parseJsonField(updatedListing.images),
+      videos: parseJsonField(updatedListing.videos),
     });
   } catch (error: any) {
     console.error('Error updating listing:', error);
