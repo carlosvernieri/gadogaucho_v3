@@ -29,7 +29,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { RS_CITIES, CATEGORIES_LIST, INITIAL_LISTINGS } from '@/lib/data';
+import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import { slugify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
@@ -198,14 +198,14 @@ function GadoGauchoContent() {
           const uErr = usersRes.ok ? {} : await usersRes.json().catch(() => ({ error: 'Failed to parse users error' }));
           console.error('API Error Details:', { listings: lErr, users: uErr });
           
-          // Fallback to initial data if API fails
-          setListings((INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
+          // Fallback to empty array if API fails
+          setListings([]);
         } else {
           const listingsData = await listingsRes.json();
           const usersData = await usersRes.json();
           
           if (Array.isArray(listingsData)) {
-            setListings(listingsData.length > 0 ? listingsData : (INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
+            setListings(listingsData);
           }
           if (Array.isArray(usersData)) {
             setAllUsers(usersData);
@@ -218,7 +218,7 @@ function GadoGauchoContent() {
             const found = Array.isArray(usersData) ? usersData.find((u: any) => u.email === parsedUser.email) : null;
             if (found) {
               setUser(found);
-              fetch(`/api/favorites?email=${encodeURIComponent(found.email)}`)
+              fetch(`/api/favorites?userId=${found.id}`)
                 .then(res => res.json())
                 .then(data => {
                   if (Array.isArray(data)) setFavorites(data);
@@ -229,7 +229,7 @@ function GadoGauchoContent() {
         }
       } catch (error: any) {
         console.error('Error in fetchData:', error.message || error);
-        setListings((INITIAL_LISTINGS as any[]).map((l, i) => ({ ...l, id: i + 1 })));
+        setListings([]);
       } finally {
         setLoading(false);
       }
@@ -312,7 +312,7 @@ function GadoGauchoContent() {
           setAllUsers([...allUsers, savedUser]);
           localStorage.setItem('gado_gaucho_user', JSON.stringify(savedUser));
           // Fetch favorites
-          fetch(`/api/favorites?email=${encodeURIComponent(savedUser.email)}`)
+          fetch(`/api/favorites?userId=${savedUser.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
@@ -345,7 +345,7 @@ function GadoGauchoContent() {
           setUser(foundUser);
           localStorage.setItem('gado_gaucho_user', JSON.stringify(foundUser));
           // Fetch favorites
-          fetch(`/api/favorites?email=${encodeURIComponent(foundUser.email)}`)
+          fetch(`/api/favorites?userId=${foundUser.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
@@ -443,7 +443,7 @@ function GadoGauchoContent() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
+        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {
@@ -485,8 +485,7 @@ function GadoGauchoContent() {
       location: `${adForm.city.toUpperCase()} - RS`,
       lat: cityData?.lat || null,
       lng: cityData?.lng || null,
-      seller: user?.name || 'Vendedor',
-      userId: user?.id,
+      user_id: user?.id,
       image: adForm.images[0] || 'https://picsum.photos/seed/newcattle/800/600',
       description: adForm.description,
       images: adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
@@ -558,7 +557,7 @@ function GadoGauchoContent() {
     return listings.filter(item => {
       // My Ads and Favorites should show sold items
       if (showMyAds) {
-        return item.seller === user?.name;
+        return Number(item.user_id) === Number(user?.id);
       }
       if (showFavorites) {
         return favorites.map(Number).includes(Number(item.id));
@@ -716,7 +715,7 @@ function GadoGauchoContent() {
                             onVerify={handleRequestVerification}
                             onView={(id) => router.push(`/anuncio/${id}`)}
                             onRemoveFavorite={handleToggleFavorite}
-                            isOwner={user?.name === listing.seller}
+                            isOwner={Number(user?.id) === Number(listing.user_id)}
                           />
                         ) : (
                           <div key={listing.id} className="flex flex-col gap-2">

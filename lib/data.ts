@@ -11,39 +11,31 @@ export const RS_CITIES = [
   { name: 'Santa Cruz do Sul', lat: -29.7181, lng: -52.4272 },
   { name: 'Bento Gonçalves', lat: -29.1706, lng: -51.5181 },
   { name: 'Mariana Pimentel', lat: -30.3533, lng: -51.5833 },
+  { name: 'Dom Pedrito', lat: -31.0128, lng: -54.6731 },
+  { name: 'São Gabriel', lat: -30.3358, lng: -54.3203 },
+  { name: 'Alegrete', lat: -29.7831, lng: -55.7917 },
+  { name: 'Santana do Livramento', lat: -30.8911, lng: -55.5328 },
+  { name: 'Rosário do Sul', lat: -30.2583, lng: -54.9139 },
+  { name: 'Vacaria', lat: -28.5117, lng: -50.9333 },
+  { name: 'Ijuí', lat: -28.3878, lng: -53.9147 },
+  { name: 'Santo Ângelo', lat: -28.2992, lng: -54.2631 },
+  { name: 'Cruz Alta', lat: -28.6389, lng: -53.6072 },
+  { name: 'Santiago', lat: -29.1914, lng: -54.8661 },
+  { name: 'São Borja', lat: -28.6603, lng: -56.0047 },
+  { name: 'Itaqui', lat: -29.1253, lng: -56.5531 },
+  { name: 'Quaraí', lat: -30.3875, lng: -56.4514 },
 ];
 
 export const CATEGORIES_LIST = [
-  'Touro', 'Boi Castrado', 'Novilho', 'Novilha', 'Terneiro', 'Terneira', 'Vaca', 'Vaca com Cria', 'Vaca Prenha', 'Gado de Leite'
+  'Boi Castrado',
+  'Gado de Leite',
+  'Novilha',
+  'Novilho',
+  'Terneira',
+  'Terneiro',
+  'Touro',
+  'Vaca',
+  'Vaca com Cria',
+  'Vaca Prenha'
 ];
 
-export const INITIAL_LISTINGS = [
-  {
-    title: 'Lote de Novilhos Angus',
-    price: 45000,
-    priceKg: 12.50,
-    avgWeight: 360,
-    quantity: 10,
-    category: 'NOVILHO',
-    seller: 'Estância do Sol',
-    verified: true,
-    image: 'https://picsum.photos/seed/cattle1/800/600',
-    images: ['https://picsum.photos/seed/cattle1_1/800/600'],
-    description: 'Excelente lote de novilhos Angus, prontos para engorda.',
-    location: 'URUGUAIANA - RS'
-  },
-  {
-    title: 'Vacas Nelore com Cria',
-    price: 68000,
-    priceKg: 10.80,
-    avgWeight: 450,
-    quantity: 14,
-    category: 'VACA COM CRIA',
-    seller: 'Fazenda Pampa',
-    verified: false,
-    image: 'https://picsum.photos/seed/cattle2/800/600',
-    images: ['https://picsum.photos/seed/cattle2_1/800/600'],
-    description: 'Vacas Nelore de ótima genética com crias ao pé.',
-    location: 'BAGÉ - RS'
-  }
-];

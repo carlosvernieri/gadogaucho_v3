@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { id } = await params;
 
     const { data: listing, error } = await (supabaseAdmin
       .from('listings') as any)
-      .select('*, users(verified)')
+      .select('*, users(name, verified, rating)')
       .eq('id', id)
       .maybeSingle();
     
     if (error) {
-      console.error('Supabase error fetching listing:', JSON.stringify(error, null, 2));
       // Fallback to fetching without join
       const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)
@@ -24,23 +26,25 @@ export async function GET(
         .maybeSingle();
       
       if (fallbackError) {
-        console.error('Supabase fallback error fetching listing:', JSON.stringify(fallbackError, null, 2));
-        throw fallbackError;
+        console.error('Supabase listing fetch failed completely:', fallbackError);
+        return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
       }
       
       if (!fallbackListing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
-
+ 
       const l = fallbackListing as any;
       return NextResponse.json({
         ...l,
         sold: !!l.sold,
         verified: !!l.verified,
         verification_requested: !!l.verification_requested,
-        priceKg: l.price_kg,
-        avgWeight: l.avg_weight,
-        sellerVerified: false, // Fallback
+        priceKg: l.price_kg || l.priceKg,
+        avgWeight: l.avg_weight || l.avgWeight,
+        seller: 'Desconhecido',
+        sellerVerified: false,
+        sellerRating: 0,
       });
     }
 
@@ -56,7 +60,9 @@ export async function GET(
       verification_requested: !!l.verification_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
+      seller: l.users?.name || 'Desconhecido',
       sellerVerified: !!l.users?.verified,
+      sellerRating: l.users?.rating || 0,
     });
   } catch (error: any) {
     console.error('Error fetching listing:', error.message || error);
@@ -68,6 +74,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { id } = await params;
     const { error } = await (supabaseAdmin
@@ -91,6 +100,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { id } = await params;
     const data = await request.json();
@@ -111,6 +123,7 @@ export async function PUT(
     if (data.images !== undefined) updateData.images = data.images;
     if (data.videos !== undefined) updateData.videos = data.videos;
     if (data.userId !== undefined) updateData.user_id = data.userId;
+    if (data.user_id !== undefined) updateData.user_id = data.user_id;
     if (data.verified !== undefined) updateData.verified = data.verified;
     if (data.verification_requested !== undefined) updateData.verification_requested = data.verification_requested;
     if (data.sold !== undefined) updateData.sold = data.sold;

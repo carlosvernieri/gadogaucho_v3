@@ -23,7 +23,7 @@ import { UserProvider } from '@/context/UserContext';
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${grandHotel.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${grandHotel.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-[#F8F9FA] text-[#333]">
         <UserProvider>
           <LoadingProvider>

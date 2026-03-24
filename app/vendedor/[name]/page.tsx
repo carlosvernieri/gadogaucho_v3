@@ -51,7 +51,7 @@ export default function VendedorPage() {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           // Fetch favorites
-          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`)
+          fetch(`/api/favorites?userId=${parsedUser.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
@@ -81,7 +81,7 @@ export default function VendedorPage() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
+        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {

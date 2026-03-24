@@ -8,7 +8,6 @@ import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { INITIAL_LISTINGS } from '@/lib/data';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
@@ -50,7 +49,7 @@ export default function AnuncioPage() {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           // Fetch favorites
-          const favRes = await fetch(`/api/favorites?email=${parsedUser.email}`);
+          const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
           if (favRes.ok) {
             const favData = await favRes.json();
             setFavorites(favData);
@@ -83,7 +82,7 @@ export default function AnuncioPage() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
+        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {

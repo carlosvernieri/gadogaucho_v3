@@ -1,44 +1,51 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
 
     let query = (supabaseAdmin
       .from('listings') as any)
-      .select('*, users(verified)');
+      .select('*, users(name, verified, rating)');
 
     if (seller) {
-      query = query.eq('seller', seller);
+      // If seller is passed as a name, we might need to filter by users.name
+      // But usually it's better to filter by user_id if we have it.
+      // For now, let's assume if seller is passed, it's a name filter on the joined table.
+      query = query.eq('users.name', seller);
     }
 
     const { data: listings, error } = await query.order('id', { ascending: false });
 
     if (error) {
-      console.error('Supabase error fetching listings:', JSON.stringify(error, null, 2));
-      // Fallback to fetching without join if join fails (e.g. schema mismatch)
+      // If the join fails, try a simple select
       const { data: fallbackListings, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)
         .select('*')
         .order('id', { ascending: false });
       
       if (fallbackError) {
-        console.error('Supabase fallback error fetching listings:', JSON.stringify(fallbackError, null, 2));
-        throw fallbackError;
+        console.error('Supabase listings fetch failed completely:', fallbackError);
+        return NextResponse.json([]);
       }
       
-      const mappedListings = fallbackListings.map((l: any) => ({
+      const mappedListings = (fallbackListings || []).map((l: any) => ({
         ...l,
         sold: !!l.sold,
         verified: !!l.verified,
         verification_requested: !!l.verification_requested,
-        priceKg: l.price_kg,
-        avgWeight: l.avg_weight,
-        sellerVerified: false, // Fallback
+        priceKg: l.price_kg || l.priceKg,
+        avgWeight: l.avg_weight || l.avgWeight,
+        seller: 'Desconhecido',
+        sellerVerified: false,
+        sellerRating: 0,
       }));
       return NextResponse.json(mappedListings);
     }
@@ -50,7 +57,9 @@ export async function GET(request: Request) {
       verification_requested: !!l.verification_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
+      seller: l.users?.name || 'Desconhecido',
       sellerVerified: !!l.users?.verified,
+      sellerRating: l.users?.rating || 0,
     }));
     return NextResponse.json(mappedListings);
   } catch (error: any) {
@@ -60,9 +69,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const data = await request.json();
-    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, seller, userId, image, description, images, videos } = data;
+    const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, image, description, images, videos } = data;
+    const userId = data.userId || data.user_id;
 
     const { data: newListing, error } = await (supabaseAdmin
       .from('listings') as any)
@@ -77,7 +90,6 @@ export async function POST(request: Request) {
           location, 
           lat, 
           lng, 
-          seller, 
           user_id: userId || null,
           image, 
           description, 
@@ -109,6 +121,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { error } = await (supabaseAdmin
       .from('listings') as any)

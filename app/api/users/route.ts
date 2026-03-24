@@ -1,17 +1,34 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { data: users, error } = await (supabaseAdmin
       .from('users') as any)
-      .select('id, name, email, phone, city, is_admin, verified');
+      .select('id, name, email, phone, city, is_admin, verified, rating');
 
     if (error) {
-      console.error('Supabase error fetching users:', error);
-      throw error;
+      // If the full select fails, try a simple select
+      const { data: fallbackUsers, error: fallbackError } = await (supabaseAdmin
+        .from('users') as any)
+        .select('*');
+      
+      if (fallbackError) {
+        console.error('Supabase users fetch failed completely:', fallbackError);
+        return NextResponse.json([]);
+      }
+      
+      const mappedUsers = (fallbackUsers || []).map((u: any) => ({
+        ...u,
+        verified: u.verified ?? false,
+        rating: u.rating ?? 0
+      }));
+      return NextResponse.json(mappedUsers);
     }
 
     return NextResponse.json(users);
@@ -22,6 +39,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const data = await request.json();
     const { name, email, phone, city, password, is_admin } = data;

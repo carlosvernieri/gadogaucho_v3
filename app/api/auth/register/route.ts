@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
-    const isAdmin = email === 'adriano.prog@gmail.com';
+    const isAdmin = email === 'admin@admin.com';
 
     const { data: newUser, error } = await (supabaseAdmin
       .from('users') as any)

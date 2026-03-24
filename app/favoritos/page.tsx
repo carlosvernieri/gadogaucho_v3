@@ -37,7 +37,7 @@ export default function FavoritosPage() {
             console.error('Listings fetch failed:', err);
             return { ok: false, json: async () => [] } as Response;
           }),
-          fetch(`/api/favorites?email=${encodeURIComponent(parsedUser.email)}`).catch(err => {
+          fetch(`/api/favorites?userId=${parsedUser.id}`).catch(err => {
             console.error('Favorites fetch failed:', err);
             return { ok: false, json: async () => [] } as Response;
           })
@@ -66,7 +66,7 @@ export default function FavoritosPage() {
       await fetch('/api/favorites', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, listingId: listingIdNum })
+        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
       });
       setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
     } catch (error) {

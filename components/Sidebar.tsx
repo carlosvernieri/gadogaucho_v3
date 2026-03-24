@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Search, X, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { MapPin, Search, X, LayoutGrid, ShieldCheck, Plus } from 'lucide-react';
 import { CATEGORIES_LIST } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -95,6 +95,7 @@ export const Sidebar = ({
                 value={citySearch}
                 onChange={(e) => onCitySearchChange(e.target.value)}
                 onFocus={() => setShowSuggestions(true)}
+                suppressHydrationWarning
                 className="w-full bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
               {citySuggestions.length > 0 && showSuggestions && (
@@ -145,6 +146,7 @@ export const Sidebar = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
+                suppressHydrationWarning
                 className="flex-1 bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
               <button 
@@ -214,6 +216,29 @@ export const Sidebar = ({
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-auto pt-6 border-t border-[#E9ECEF]">
+        <button 
+          onClick={async () => {
+            if (confirm('Deseja criar 20 anúncios de exemplo?')) {
+              try {
+                const res = await fetch('/api/seed');
+                const data = await res.json();
+                if (res.ok) {
+                  alert(`Sucesso! ${data.listingsCount} anúncios criados.`);
+                  window.location.reload();
+                } else {
+                  alert(`Erro: ${data.error}`);
+                }
+              } catch (e) {
+                alert('Erro ao conectar com o servidor.');
+              }
+            }
+          }}
+          className="w-full py-3 bg-[#F8F9FA] text-[#666] text-xs font-bold rounded-xl border border-[#E9ECEF] hover:bg-white hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all flex items-center justify-center gap-2"
+        >
+          <Plus size={14} /> Criar Dados de Exemplo
+        </button>
       </div>
     </aside>
   );

@@ -45,7 +45,7 @@ export default function MeusAnunciosPage() {
     fetchData();
   }, [router]);
 
-  const myAds = listings.filter(l => l.seller === user?.name);
+  const myAds = listings.filter(l => Number(l.user_id) === Number(user?.id));
 
   if (loading) {
     return (

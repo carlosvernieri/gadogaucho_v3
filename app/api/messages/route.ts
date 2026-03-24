@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function POST(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { listingId, name, email, phone, message } = await request.json();
 
@@ -36,6 +39,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
@@ -87,6 +93,9 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { id, is_read } = await request.json();
 
@@ -112,6 +121,9 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
