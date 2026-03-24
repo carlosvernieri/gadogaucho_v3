@@ -127,7 +127,7 @@ export default function FavoritosPage() {
           searchQuery=""
           onSearchChange={() => {}}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}

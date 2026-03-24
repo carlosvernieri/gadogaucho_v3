@@ -104,8 +104,8 @@ export const ListingListItem = ({
         </div>
 
         <div className="text-xl font-bold text-[#2D5A27]">
-          R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          <span className="text-xs font-normal text-[#999] ml-2">(R$ {listing.priceKg.toFixed(2)}/kg)</span>
+          R$ {(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <span className="text-xs font-normal text-[#999] ml-2">(R$ {(listing.priceKg || 0).toFixed(2)}/kg)</span>
         </div>
       </div>
 

@@ -126,20 +126,20 @@ export const ListingDetail = ({
           <div className="mb-6">
             <span className="text-[10px] font-bold text-[#999] uppercase">Preço por kg</span>
             <div className="text-4xl font-bold text-[#2D5A27] mb-2">
-              R$ {listing.priceKg.toFixed(2)}/kg
+              R$ {(listing.priceKg || 0).toFixed(2)}/kg
             </div>
             <div className="grid grid-cols-3 gap-4 text-[11px] text-[#666]">
               <div>
                 <span className="block opacity-60">Peso Médio:</span>
-                <span className="font-bold">{listing.avgWeight}kg</span>
+                <span className="font-bold">{listing.avgWeight || 0}kg</span>
               </div>
               <div>
                 <span className="block opacity-60">Lote:</span>
-                <span className="font-bold">{listing.quantity} animais</span>
+                <span className="font-bold">{listing.quantity || 0} animais</span>
               </div>
               <div>
                 <span className="block opacity-60">Valor Total: R$</span>
-                <span className="font-bold">{listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold">{(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

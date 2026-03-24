@@ -110,15 +110,15 @@ export const ListingCard = ({
           {listing.category} <span className="text-xs font-normal opacity-40">cod: {listing.id}</span>
         </h3>
         <div className="text-2xl font-bold text-[#2D5A27] mb-2">
-          R$ {listing.priceKg.toFixed(2)}/kg
+          R$ {(listing.priceKg || 0).toFixed(2)}/kg
         </div>
         
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#666] mb-4">
-          <span>{listing.avgWeight}kg méd.</span>
+          <span>{listing.avgWeight || 0}kg méd.</span>
           <span>•</span>
-          <span>{listing.quantity} animais</span>
+          <span>{listing.quantity || 0} animais</span>
           <span>•</span>
-          <span>R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <span>R$ {(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         </div>
         
         <div className="flex items-center justify-between text-[10px] text-[#999] mb-4">

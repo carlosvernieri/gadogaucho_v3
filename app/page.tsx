@@ -680,7 +680,7 @@ function GadoGauchoContent() {
           showVerifiedOnly={showVerifiedOnly}
           onShowVerifiedOnlyChange={setShowVerifiedOnly}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch={citySearch}
           onCitySearchChange={(val) => {
             setCitySearch(val);
