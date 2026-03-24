@@ -11,6 +11,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Search } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 
 export default function CategoriaPage() {
   const params = useParams();
@@ -71,7 +72,7 @@ export default function CategoriaPage() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {

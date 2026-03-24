@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
+import { safeJsonStringify } from '@/lib/utils';
 
 export async function GET() {
   try {
@@ -57,8 +58,8 @@ export async function GET() {
         sold: Math.random() > 0.8,
         image: `https://picsum.photos/seed/cattle-${i}/800/600`,
         description: `Excelente lote de ${quantity} ${category.toLowerCase()} em ${cityObj.name}. Animais de ótima procedência, com peso médio de ${avgWeight}kg.`,
-        images: JSON.stringify([`https://picsum.photos/seed/cattle-${i}-1/800/600`, `https://picsum.photos/seed/cattle-${i}-2/800/600`]),
-        videos: JSON.stringify([])
+        images: safeJsonStringify([`https://picsum.photos/seed/cattle-${i}-1/800/600`, `https://picsum.photos/seed/cattle-${i}-2/800/600`]),
+        videos: safeJsonStringify([])
       });
     }
 

@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -140,7 +141,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/users/${u.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verified: !u.verified })
+        body: safeJsonStringify({ verified: !u.verified })
       });
       if (res.ok) {
         setAllUsers(allUsers.map(user => user.id === u.id ? { ...user, verified: !u.verified } : user));
@@ -156,7 +157,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: safeJsonStringify({
           name: authForm.name,
           email: authForm.email,
           phone: authForm.phone,
@@ -179,7 +180,7 @@ export default function AdminPage() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authForm)
+        body: safeJsonStringify(authForm)
       });
       if (res.ok) {
         setShowUserModal(false);
@@ -195,7 +196,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verified: true, verification_requested: false })
+        body: safeJsonStringify({ verified: true, verification_requested: false })
       });
       if (res.ok) {
         fetchData();
@@ -210,7 +211,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verification_requested: false })
+        body: safeJsonStringify({ verification_requested: false })
       });
       if (res.ok) {
         fetchData();

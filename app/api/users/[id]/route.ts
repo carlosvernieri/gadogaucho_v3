@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { safeJsonStringify } from '@/lib/utils';
 
 export async function DELETE(
   request: Request,
@@ -16,7 +17,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Supabase error deleting user:', JSON.stringify(error, null, 2));
+    console.error('Supabase error deleting user:', safeJsonStringify(error, 2));
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }
@@ -40,7 +41,7 @@ export async function PUT(
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Supabase error updating user:', JSON.stringify(error, null, 2));
+    console.error('Supabase error updating user:', safeJsonStringify(error, 2));
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }

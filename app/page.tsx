@@ -30,7 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { slugify } from '@/lib/utils';
+import { slugify, safeJsonStringify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
@@ -327,13 +327,13 @@ function GadoGauchoContent() {
         const res = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
+          body: safeJsonStringify(newUser)
         });
         if (res.ok) {
           const savedUser = await res.json();
           setUser(savedUser);
           setAllUsers([...allUsers, savedUser]);
-          localStorage.setItem('gado_gaucho_user', JSON.stringify(savedUser));
+          localStorage.setItem('gado_gaucho_user', safeJsonStringify(savedUser));
           // Fetch favorites
           fetch(`/api/favorites?userId=${savedUser.id}`)
             .then(res => res.json())
@@ -357,7 +357,7 @@ function GadoGauchoContent() {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: safeJsonStringify({
             email: authForm.email,
             password: authForm.password
           })
@@ -366,7 +366,7 @@ function GadoGauchoContent() {
         if (res.ok) {
           const foundUser = await res.json();
           setUser(foundUser);
-          localStorage.setItem('gado_gaucho_user', JSON.stringify(foundUser));
+          localStorage.setItem('gado_gaucho_user', safeJsonStringify(foundUser));
           // Fetch favorites
           fetch(`/api/favorites?userId=${foundUser.id}`)
             .then(res => res.json())
@@ -416,7 +416,7 @@ function GadoGauchoContent() {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: safeJsonStringify(data)
       });
       if (res.ok) {
         const updated = await res.json();
@@ -478,7 +478,7 @@ function GadoGauchoContent() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {
@@ -535,7 +535,7 @@ function GadoGauchoContent() {
       const res = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAd)
+        body: safeJsonStringify(newAd)
       });
 
       if (res.ok) {

@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 
 export default function AnuncioPage() {
   const params = useParams();
@@ -82,7 +83,7 @@ export default function AnuncioPage() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {

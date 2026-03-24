@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { safeJsonStringify } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Supabase error creating listing:', JSON.stringify(error, null, 2));
+      console.error('Supabase error creating listing:', safeJsonStringify(error, 2));
       throw error;
     }
 

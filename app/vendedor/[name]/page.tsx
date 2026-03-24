@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { User, MapPin, ChevronLeft } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 
 export default function VendedorPage() {
@@ -81,7 +82,7 @@ export default function VendedorPage() {
       const res = await fetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
       });
 
       if (res.ok) {

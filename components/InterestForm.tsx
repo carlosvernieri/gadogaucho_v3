@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, User, Phone, Mail, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { showToast } from './ConfirmModal';
+import { safeJsonStringify } from '@/lib/utils';
 
 interface InterestFormProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: safeJsonStringify({
           listingId: Number(listingId),
           ...formData
         })

@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Heart, LayoutGrid, Menu as MenuIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 
 export default function FavoritosPage() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function FavoritosPage() {
       await fetch('/api/favorites', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
       });
       setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
     } catch (error) {

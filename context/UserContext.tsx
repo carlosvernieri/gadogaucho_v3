@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { safeJsonStringify } from '@/lib/utils';
 
 interface UserContextType {
   user: any;
@@ -26,7 +27,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const setUser = (newUser: any) => {
     setUserState(newUser);
     if (newUser) {
-      localStorage.setItem('gado_gaucho_user', JSON.stringify(newUser));
+      localStorage.setItem('gado_gaucho_user', safeJsonStringify(newUser));
     } else {
       localStorage.removeItem('gado_gaucho_user');
     }

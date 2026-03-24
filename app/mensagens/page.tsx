@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
+import { safeJsonStringify } from '@/lib/utils';
 
 export default function MensagensPage() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function MensagensPage() {
       const res = await fetch('/api/messages', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, is_read: !currentRead })
+        body: safeJsonStringify({ id, is_read: !currentRead })
       });
 
       if (res.ok) {
