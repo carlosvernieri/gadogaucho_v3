@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const { data: users, error } = await (supabaseAdmin
       .from('users') as any)
-      .select('id, name, email, phone, city, is_admin, verified, rating');
+      .select('id, name, email, phone, city, is_admin, verified');
 
     if (error) {
       // If the full select fails, try a simple select
@@ -26,7 +26,7 @@ export async function GET() {
       const mappedUsers = (fallbackUsers || []).map((u: any) => ({
         ...u,
         verified: u.verified ?? false,
-        rating: u.rating ?? 0
+        rating: 0
       }));
       return NextResponse.json(mappedUsers);
     }

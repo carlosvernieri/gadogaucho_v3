@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
@@ -18,6 +19,18 @@ export default function MensagensPage() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'success' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem('gado_gaucho_user');
@@ -67,19 +80,29 @@ export default function MensagensPage() {
   };
 
   const handleDeleteMessage = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta mensagem?')) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Mensagem',
+      message: 'Tem certeza que deseja excluir esta mensagem?',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/messages?id=${id}`, {
+            method: 'DELETE'
+          });
 
-    try {
-      const res = await fetch(`/api/messages?id=${id}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        setMessages(messages.filter(m => m.id !== id));
+          if (res.ok) {
+            setMessages(prev => prev.filter(m => m.id !== id));
+            showToast('Mensagem excluída com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir mensagem.', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting message:', error);
+          showToast('Erro de conexão.', 'error');
+        }
       }
-    } catch (error) {
-      console.error('Error deleting message:', error);
-    }
+    });
   };
 
   return (
@@ -250,6 +273,15 @@ export default function MensagensPage() {
           onAuthClick={() => router.push('/?auth=login')} 
         />
       )}
+
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   );
 }

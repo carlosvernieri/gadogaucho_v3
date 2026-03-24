@@ -13,7 +13,7 @@ export async function GET(
 
     const { data: listing, error } = await (supabaseAdmin
       .from('listings') as any)
-      .select('*, users(name, verified, rating)')
+      .select('*, users(name, verified)')
       .eq('id', id)
       .maybeSingle();
     
@@ -62,7 +62,7 @@ export async function GET(
       avgWeight: l.avg_weight,
       seller: l.users?.name || 'Desconhecido',
       sellerVerified: !!l.users?.verified,
-      sellerRating: l.users?.rating || 0,
+      sellerRating: 0,
     });
   } catch (error: any) {
     console.error('Error fetching listing:', error.message || error);

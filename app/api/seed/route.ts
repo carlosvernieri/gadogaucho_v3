@@ -4,87 +4,74 @@ import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 
 export async function GET() {
   try {
-    // 1. Create 10 Creators
-    const creators = [];
-    for (let i = 1; i <= 10; i++) {
-      const city = RS_CITIES[i % RS_CITIES.length];
-      creators.push({
-        name: `Criador ${i}`,
-        email: `criador${i}@exemplo.com`,
-        phone: `(51) 99999-000${i}`,
-        city: city.name,
-        password: 'password123',
-        is_admin: false,
-        verified: i % 2 === 0,
-        rating: 4 + (i % 10) / 10
-      });
+    // 1. Ensure admin user exists
+    const { data: adminUser, error: adminError } = await (supabaseAdmin as any)
+      .from('users')
+      .select('id')
+      .eq('email', 'admin@admin.com')
+      .maybeSingle();
+
+    let userId: any = (adminUser as any)?.id;
+
+    if (adminError || !adminUser) {
+      const { data: newUser, error: createError } = await (supabaseAdmin as any)
+        .from('users')
+        .insert({
+          name: 'Administrador',
+          email: 'admin@admin.com',
+          city: 'Porto Alegre',
+          phone: '(51) 99999-9999',
+          password: 'admin',
+          is_admin: true,
+          verified: true
+        })
+        .select('id')
+        .single();
+
+      if (createError) throw createError;
+      userId = (newUser as any).id;
     }
 
-    const { data: createdUsers, error: userError } = await (supabaseAdmin
-      .from('users') as any)
-      .upsert(creators, { onConflict: 'email' })
-      .select();
-
-    if (userError) throw userError;
-
-    // 2. Create 20 Listings (2 per creator)
-    const listings = [];
-    const cattleImages = [
-      'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1596733430284-f7437764b1a9?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1527153376651-133464593466?auto=format&fit=crop&q=80&w=800'
-    ];
-
-    const testVideo = 'https://www.w3schools.com/html/mov_bbb.mp4';
-
+    // 2. Prepare 20 ads
+    const ads = [];
     for (let i = 0; i < 20; i++) {
-      const creator = (createdUsers as any[])[i % (createdUsers as any[]).length];
       const category = CATEGORIES_LIST[i % CATEGORIES_LIST.length];
-      const city = RS_CITIES[(i + 5) % RS_CITIES.length];
-      const priceKg = 8 + Math.random() * 4;
-      const weight = 200 + Math.random() * 400;
-      const quantity = 1 + Math.floor(Math.random() * 50);
+      const cityObj = RS_CITIES[i % RS_CITIES.length];
+      const quantity = Math.floor(Math.random() * 30) + 5;
+      const avgWeight = Math.floor(Math.random() * 400) + 150;
+      const priceKg = (Math.random() * 5 + 8).toFixed(2);
+      const price = (quantity * avgWeight * parseFloat(priceKg)).toFixed(2);
 
-      listings.push({
-        category: category.toUpperCase(),
-        title: `${category} de Qualidade em ${city.name}`,
-        price: priceKg * weight * quantity,
-        price_kg: priceKg,
-        avg_weight: weight,
-        quantity: quantity,
-        location: `${city.name.toUpperCase()} - RS`,
-        lat: city.lat,
-        lng: city.lng,
-        user_id: creator.id,
-        image: cattleImages[i % cattleImages.length],
-        description: `Excelente lote de ${category.toLowerCase()} localizado em ${city.name}. Animais bem cuidados, prontos para comercialização. Entre em contato para mais detalhes.`,
-        images: [
-          cattleImages[i % cattleImages.length],
-          cattleImages[(i + 1) % cattleImages.length]
-        ],
-        videos: [testVideo],
-        verified: i % 3 === 0,
-        sold: false
+      ads.push({
+        category,
+        title: `${quantity} ${category} - ${cityObj.name}`,
+        price: parseFloat(price),
+        price_kg: parseFloat(priceKg),
+        avg_weight: avgWeight,
+        quantity,
+        location: cityObj.name,
+        lat: cityObj.lat,
+        lng: cityObj.lng,
+        user_id: userId,
+        verified: Math.random() > 0.3,
+        sold: Math.random() > 0.8,
+        image: `https://picsum.photos/seed/cattle-${i}/800/600`,
+        description: `Excelente lote de ${quantity} ${category.toLowerCase()} em ${cityObj.name}. Animais de ótima procedência, com peso médio de ${avgWeight}kg.`,
+        images: JSON.stringify([`https://picsum.photos/seed/cattle-${i}-1/800/600`, `https://picsum.photos/seed/cattle-${i}-2/800/600`]),
+        videos: JSON.stringify([])
       });
     }
 
-    const { data: createdListings, error: listingError } = await (supabaseAdmin
-      .from('listings') as any)
-      .insert(listings)
-      .select();
+    // 3. Insert ads
+    const { error: insertError } = await (supabaseAdmin as any)
+      .from('listings')
+      .insert(ads);
 
-    if (listingError) throw listingError;
+    if (insertError) throw insertError;
 
-    return NextResponse.json({
-      message: 'Seed completed successfully',
-      usersCount: createdUsers.length,
-      listingsCount: createdListings.length
-    });
+    return NextResponse.json({ success: true, message: '20 example ads inserted successfully.' });
   } catch (error: any) {
     console.error('Seed error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

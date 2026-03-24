@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { useUser } from '@/context/UserContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -44,6 +45,18 @@ export default function AdminPage() {
 
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'success' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -100,15 +113,26 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-    try {
-      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setAllUsers(allUsers.filter(u => u.id !== id));
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Usuário',
+      message: 'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            setAllUsers(prev => prev.filter(u => u.id !== id));
+            showToast('Usuário excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir usuário.', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showToast('Erro de conexão.', 'error');
+        }
       }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
+    });
   };
 
   const handleToggleUserVerified = async (u: any) => {
@@ -197,15 +221,26 @@ export default function AdminPage() {
   };
 
   const handleDeleteListing = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este anúncio?')) return;
-    try {
-      const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchData();
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Anúncio',
+      message: 'Tem certeza que deseja excluir este anúncio?',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchData();
+            showToast('Anúncio excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir anúncio.', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting listing:', error);
+          showToast('Erro de conexão.', 'error');
+        }
       }
-    } catch (error) {
-      console.error('Error deleting listing:', error);
-    }
+    });
   };
 
   if (loading) {
@@ -609,6 +644,15 @@ export default function AdminPage() {
           onAuthClick={() => router.push('/?auth=login')} 
         />
       )}
+
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   );
 }

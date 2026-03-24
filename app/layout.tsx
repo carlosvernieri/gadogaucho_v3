@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 import { LoadingProvider } from '@/components/LoadingProvider';
 import { UserProvider } from '@/context/UserContext';
+import { ToastContainer } from '@/components/ConfirmModal';
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
@@ -28,6 +29,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <UserProvider>
           <LoadingProvider>
             {children}
+            <ToastContainer />
           </LoadingProvider>
         </UserProvider>
       </body>

@@ -38,6 +38,7 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
 import { BottomNav } from '@/components/BottomNav';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useUser } from '@/context/UserContext';
 
@@ -93,10 +94,10 @@ function GadoGauchoContent() {
         setShowCitySuggestions(false);
       }, (error) => {
         console.error('Error getting location:', error);
-        alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
+        showToast('Não foi possível obter sua localização. Verifique as permissões do navegador.');
       });
     } else {
-      alert('Geolocalização não é suportada pelo seu navegador.');
+      showToast('Geolocalização não é suportada pelo seu navegador.');
     }
   };
   // Modals
@@ -114,6 +115,28 @@ function GadoGauchoContent() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedListingForShare, setSelectedListingForShare] = useState<any>(null);
   const [favoriteToastMessage, setFavoriteToastMessage] = useState('');
+
+  // Custom Modal States
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    type?: 'danger' | 'info' | 'warning' | 'success';
+    loading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showToast = (message: string) => {
+    setFavoriteToastMessage(message);
+    setShowShareToast(true);
+    setTimeout(() => setShowShareToast(false), 3000);
+  };
 
   // Handle URL parameters for modals
   useEffect(() => {
@@ -146,11 +169,11 @@ function GadoGauchoContent() {
       const file = files[i];
       // Basic size check (e.g., 5MB for images, 20MB for videos)
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
-        alert(`A imagem ${file.name} é muito grande. Máximo 5MB.`);
+        showToast(`A imagem ${file.name} é muito grande. Máximo 5MB.`);
         continue;
       }
       if (type === 'videos' && file.size > 20 * 1024 * 1024) {
-        alert(`O vídeo ${file.name} é muito grande. Máximo 20MB.`);
+        showToast(`O vídeo ${file.name} é muito grande. Máximo 20MB.`);
         continue;
       }
 
@@ -366,13 +389,25 @@ function GadoGauchoContent() {
   };
 
   const handleDeleteListing = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este anúncio?')) return;
-    try {
-      await fetch(`/api/listings/${id}`, { method: 'DELETE' });
-      setListings(listings.filter(l => l.id !== id));
-    } catch (error) {
-      console.error('Error deleting listing:', error);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Anúncio',
+      message: 'Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/listings/${id}`, { method: 'DELETE' });
+          setListings(listings.filter(l => l.id !== id));
+          showToast('Anúncio excluído com sucesso');
+        } catch (error) {
+          console.error('Error deleting listing:', error);
+          showToast('Erro ao excluir anúncio');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   const handleUpdateListing = async (id: number, data: any) => {
@@ -395,11 +430,11 @@ function GadoGauchoContent() {
         } else {
           message += `\n\nDetalhes: ${error.details || (error.message ? error.message : String(error))}`;
         }
-        alert(message);
+        showToast(message);
       }
     } catch (error: any) {
       console.error('Error updating listing:', error);
-      alert(`Erro de rede ao atualizar anúncio: ${error.message || error}`);
+      showToast(`Erro de rede ao atualizar anúncio: ${error.message || error}`);
     } finally {
       setIsUpdatingListing(false);
     }
@@ -409,14 +444,14 @@ function GadoGauchoContent() {
   const handleToggleSold = async (id: number, currentStatus: boolean) => {
     const updated = await handleUpdateListing(id, { sold: !currentStatus });
     if (updated) {
-      alert(`Anúncio marcado como ${!currentStatus ? 'vendido' : 'disponível'}!`);
+      showToast(`Anúncio marcado como ${!currentStatus ? 'vendido' : 'disponível'}!`);
     }
   };
 
   const handleRequestVerification = async (id: number) => {
     const updated = await handleUpdateListing(id, { verification_requested: true });
     if (updated) {
-      alert('Solicitação de verificação enviada com sucesso! O administrador irá analisar seu anúncio.');
+      showToast('Solicitação de verificação enviada com sucesso!');
     }
   };
 
@@ -507,10 +542,10 @@ function GadoGauchoContent() {
         const savedAd = await res.json();
         if (editingListingId) {
           setListings(listings.map(l => l.id === editingListingId ? savedAd : l));
-          alert('Anúncio atualizado com sucesso!');
+          showToast('Anúncio atualizado com sucesso!');
         } else {
           setListings([savedAd, ...listings]);
-          alert('Anúncio criado com sucesso!');
+          showToast('Anúncio criado com sucesso!');
         }
         setShowAdModal(false);
         setEditingListingId(null);
@@ -527,11 +562,11 @@ function GadoGauchoContent() {
         });
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);
+        showToast(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);
       }
     } catch (error: any) {
       console.error(`Error ${editingListingId ? 'updating' : 'creating'} ad:`, error);
-      alert(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${error.message || 'Tente novamente.'}`);
+      showToast(`Erro ao ${editingListingId ? 'atualizar' : 'criar'} anúncio: ${error.message || 'Tente novamente.'}`);
     } finally {
       setIsSubmittingAd(false);
     }
@@ -748,6 +783,54 @@ function GadoGauchoContent() {
         </main>
       </div>
       
+      {/* Admin Seed Button */}
+      {user?.is_admin && (
+        <button
+          onClick={() => {
+            setConfirmModal({
+              isOpen: true,
+              title: 'Gerar Dados Exemplo',
+              message: 'Deseja inserir 20 anúncios de exemplo no banco de dados para teste?',
+              confirmText: 'Gerar Agora',
+              onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, loading: true }));
+                try {
+                  const res = await fetch('/api/seed');
+                  const data = await res.json();
+                  if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => window.location.reload(), 1500);
+                  } else {
+                    showToast('Erro ao inserir dados: ' + data.error);
+                  }
+                } catch (error) {
+                  showToast('Erro ao conectar ao servidor');
+                } finally {
+                  setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+                }
+              }
+            });
+          }}
+          className="fixed bottom-24 right-6 z-[60] bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600 transition-all flex items-center gap-2 font-bold text-sm"
+          title="Gerar 20 anúncios de exemplo"
+        >
+          <Plus size={20} />
+          <span className="hidden sm:inline">Gerar Dados Exemplo</span>
+        </button>
+      )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        type={confirmModal.type}
+        loading={confirmModal.loading}
+      />
+
       {/* Auth Modal */}
       <AnimatePresence>
         {showAuthModal && (

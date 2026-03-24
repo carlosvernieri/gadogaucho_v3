@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, User, Phone, Mail, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { showToast } from './ConfirmModal';
 
 interface InterestFormProps {
   isOpen: boolean;
@@ -52,11 +53,11 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
           });
         }, 3000);
       } else {
-        alert(`Erro ao enviar mensagem: ${result.error || 'Erro desconhecido'}`);
+        showToast(`Erro ao enviar mensagem: ${result.error || 'Erro desconhecido'}`, 'error');
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Erro de conexão ao enviar mensagem. Tente novamente.');
+      showToast('Erro de conexão ao enviar mensagem. Tente novamente.', 'error');
     } finally {
       setIsSubmitting(false);
     }

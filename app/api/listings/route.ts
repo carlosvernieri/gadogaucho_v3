@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
     let query = (supabaseAdmin
       .from('listings') as any)
-      .select('*, users(name, verified, rating)');
+      .select('*, users(name, verified)');
 
     if (seller) {
       // If seller is passed as a name, we might need to filter by users.name
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       avgWeight: l.avg_weight,
       seller: l.users?.name || 'Desconhecido',
       sellerVerified: !!l.users?.verified,
-      sellerRating: l.users?.rating || 0,
+      sellerRating: 0,
     }));
     return NextResponse.json(mappedListings);
   } catch (error: any) {
