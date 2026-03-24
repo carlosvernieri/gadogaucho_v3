@@ -23,12 +23,8 @@ import {
   Search,
   Megaphone,
   Heart,
-  Loader2,
-  Camera,
-  Video
+  Loader2
 } from 'lucide-react';
-import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { useRef } from 'react';
 import Image from 'next/image';
 
 export default function AdminPage() {
@@ -50,33 +46,6 @@ export default function AdminPage() {
 
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
-  const [isSubmittingAd, setIsSubmittingAd] = useState(false);
-  const [adForm, setAdForm] = useState({
-    category: 'Boi Castrado',
-    city: '',
-    weight: 0,
-    priceKg: 0,
-    batchSize: 1,
-    description: '',
-    images: [] as string[],
-    videos: [] as string[]
-  });
-  const [citySearchAd, setCitySearchAd] = useState('');
-  const [showAdSuggestions, setShowAdSuggestions] = useState(false);
-  const [citySuggestionsAd, setCitySuggestionsAd] = useState<any[]>([]);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
-  const totalPrice = adForm.weight * adForm.priceKg * adForm.batchSize;
-
-  useEffect(() => {
-    if (citySearchAd.trim().length > 1) {
-      const filtered = RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase())).slice(0, 5);
-      setCitySuggestionsAd(filtered);
-    } else {
-      setCitySuggestionsAd([]);
-    }
-  }, [citySearchAd]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -162,8 +131,6 @@ export default function AdminPage() {
         } catch (error) {
           console.error('Error deleting user:', error);
           showToast('Erro de conexão.', 'error');
-        } finally {
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -254,100 +221,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleToggleListingVerified = async (l: any) => {
-    try {
-      const res = await fetch(`/api/listings/${l.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verified: !l.verified })
-      });
-      if (res.ok) {
-        setListings(listings.map(listing => listing.id === l.id ? { ...listing, verified: !l.verified } : listing));
-        showToast(l.verified ? 'Verificação removida!' : 'Anúncio verificado!', 'success');
-      }
-    } catch (error) {
-      console.error('Error toggling listing verification:', error);
-    }
-  };
-
-  const handleEditListing = (l: any) => {
-    setEditingListingId(l.id);
-    setAdForm({
-      category: l.category,
-      city: l.location,
-      weight: l.avgWeight || 0,
-      priceKg: l.priceKg || 0,
-      batchSize: l.quantity || 1,
-      description: l.description || '',
-      images: l.images || [],
-      videos: l.videos || []
-    });
-    setCitySearchAd(l.location);
-    setShowAdModal(true);
-  };
-
-  const handleUpdateListing = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmittingAd(true);
-    try {
-      const res = await fetch(`/api/listings/${editingListingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({
-          category: adForm.category,
-          title: `${adForm.batchSize} ${adForm.category} em ${adForm.city}`,
-          price: totalPrice,
-          priceKg: adForm.priceKg,
-          avgWeight: adForm.weight,
-          quantity: adForm.batchSize,
-          location: adForm.city,
-          description: adForm.description,
-          images: adForm.images,
-          videos: adForm.videos
-        })
-      });
-      if (res.ok) {
-        setShowAdModal(false);
-        setEditingListingId(null);
-        fetchData();
-        showToast('Anúncio atualizado com sucesso!', 'success');
-      }
-    } catch (error) {
-      console.error('Error updating listing:', error);
-      showToast('Erro ao atualizar anúncio.', 'error');
-    } finally {
-      setIsSubmittingAd(false);
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newFiles: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      const promise = new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-      });
-      reader.readAsDataURL(file);
-      newFiles.push(await promise);
-    }
-
-    setAdForm(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newFiles]
-    }));
-  };
-
-  const removeFile = (index: number, type: 'images' | 'videos') => {
-    setAdForm(prev => ({
-      ...prev,
-      [type]: prev[type].filter((_, i) => i !== index)
-    }));
-  };
-
   const handleDeleteListing = async (id: number) => {
     setConfirmModal({
       isOpen: true,
@@ -366,8 +239,6 @@ export default function AdminPage() {
         } catch (error) {
           console.error('Error deleting listing:', error);
           showToast('Erro de conexão.', 'error');
-        } finally {
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -628,14 +499,10 @@ export default function AdminPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <button 
-                                onClick={() => handleToggleListingVerified(l)}
-                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
-                                title={l.verified ? "Remover Verificação" : "Verificar Anúncio"}
-                              >
-                                <ShieldCheck size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleEditListing(l)}
+                                onClick={() => {
+                                  setEditingListingId(l.id);
+                                  setShowAdModal(true);
+                                }}
                                 className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
                                 title="Editar Anúncio"
                               >
@@ -763,218 +630,6 @@ export default function AdminPage() {
                     className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
                   >
                     {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {showAdModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setShowAdModal(false); setEditingListingId(null); }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
-            >
-              {isSubmittingAd && (
-                <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
-                  <p className="text-[#2D5A27] font-bold">Salvando alterações...</p>
-                </div>
-              )}
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-[#333]">Editar Anúncio</h2>
-                  <button onClick={() => { setShowAdModal(false); setEditingListingId(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
-                    <X size={24} />
-                  </button>
-                </div>
-                
-                <form onSubmit={handleUpdateListing} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
-                      <select 
-                        value={adForm.category}
-                        onChange={(e) => setAdForm({...adForm, category: e.target.value})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
-                      >
-                        {CATEGORIES_LIST.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Município (RS)</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          required
-                          value={citySearchAd}
-                          onChange={(e) => {
-                            setCitySearchAd(e.target.value);
-                            setAdForm({...adForm, city: e.target.value});
-                            setShowAdSuggestions(true);
-                          }}
-                          onFocus={() => setShowAdSuggestions(true)}
-                          placeholder="Busque o município..." 
-                          className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                        />
-                        {citySuggestionsAd.length > 0 && (
-                          <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-10 overflow-hidden">
-                            {citySuggestionsAd.map((city: any) => (
-                              <button 
-                                key={city.name}
-                                type="button"
-                                onClick={() => {
-                                  setAdForm({...adForm, city: city.name});
-                                  setCitySearchAd(city.name);
-                                  setShowAdSuggestions(false);
-                                }}
-                                className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
-                              >
-                                <span>{city.name}</span>
-                                <span className="text-[10px] text-[#999]">RS</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Peso Médio (kg)</label>
-                      <input 
-                        type="number" 
-                        required
-                        value={adForm.weight || ''}
-                        onChange={(e) => setAdForm({...adForm, weight: Number(e.target.value)})}
-                        placeholder="0" 
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Valor por kg (R$)</label>
-                      <input 
-                        type="number" 
-                        step="0.01"
-                        required
-                        value={adForm.priceKg || ''}
-                        onChange={(e) => setAdForm({...adForm, priceKg: Number(e.target.value)})}
-                        placeholder="0,00" 
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Valor Total (Calculado)</label>
-                      <div className="w-full bg-[#E9F0E8] text-[#2D5A27] font-bold rounded-xl px-4 py-3 text-sm border border-transparent">
-                        R$ {totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Tamanho do Lote (Animais)</label>
-                    <input 
-                      type="number" 
-                      required
-                      value={adForm.batchSize}
-                      onChange={(e) => setAdForm({...adForm, batchSize: Number(e.target.value)})}
-                      placeholder="1" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Descrição</label>
-                    <textarea 
-                      rows={3}
-                      value={adForm.description}
-                      onChange={(e) => setAdForm({...adForm, description: e.target.value})}
-                      placeholder="Detalhes sobre o gado, genética, vacinação..." 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none" 
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <input 
-                        type="file" 
-                        ref={imageInputRef} 
-                        onChange={(e) => handleFileChange(e, 'images')} 
-                        multiple 
-                        accept="image/*" 
-                        className="hidden" 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => imageInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
-                      >
-                        <Camera size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Fotos</span>
-                      </button>
-
-                      <input 
-                        type="file" 
-                        ref={videoInputRef} 
-                        onChange={(e) => handleFileChange(e, 'videos')} 
-                        multiple 
-                        accept="video/*" 
-                        className="hidden" 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => videoInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
-                      >
-                        <Video size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Vídeos</span>
-                      </button>
-                    </div>
-
-                    {/* Previews */}
-                    {(adForm.images.length > 0 || adForm.videos.length > 0) && (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
-                        {adForm.images.map((img, idx) => (
-                          <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group">
-                            <Image src={img} alt="" fill className="object-cover" unoptimized />
-                            <button 
-                              type="button"
-                              onClick={() => removeFile(idx, 'images')}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                        {adForm.videos.map((vid, idx) => (
-                          <div key={`vid-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group bg-black flex items-center justify-center">
-                            <Video size={20} className="text-white" />
-                            <button 
-                              type="button"
-                              onClick={() => removeFile(idx, 'videos')}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
-                    Salvar Alterações
                   </button>
                 </form>
               </div>

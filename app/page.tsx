@@ -30,7 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { slugify, safeJsonStringify, maskPhone, validateEmail } from '@/lib/utils';
+import { slugify, safeJsonStringify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
@@ -276,8 +276,7 @@ function GadoGauchoContent() {
     phone: '',
     email: '',
     city: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   });
 
   // Ad Form State
@@ -319,28 +318,8 @@ function GadoGauchoContent() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
-      // Validations
-      if (!validateEmail(authForm.email)) {
-        setAuthError('E-mail inválido');
-        return;
-      }
-
-      if (authForm.phone.length < 14) {
-        setAuthError('Telefone inválido. Use o formato (xx) xxxxx-xxxx');
-        return;
-      }
-
-      if (authForm.password !== authForm.confirmPassword) {
-        setAuthError('As senhas não coincidem');
-        return;
-      }
-
       const newUser = { 
-        name: authForm.name,
-        phone: authForm.phone,
-        email: authForm.email,
-        city: authForm.city,
-        password: authForm.password,
+        ...authForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
       };
       
@@ -680,7 +659,7 @@ function GadoGauchoContent() {
           showVerifiedOnly={showVerifiedOnly}
           onShowVerifiedOnlyChange={setShowVerifiedOnly}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch={citySearch}
           onCitySearchChange={(val) => {
             setCitySearch(val);
@@ -949,7 +928,7 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: maskPhone(e.target.value)})}
+                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
                           placeholder="(00) 00000-0000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
@@ -1021,21 +1000,6 @@ function GadoGauchoContent() {
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                     />
                   </div>
-                  {authMode === 'register' && (
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                        Confirmar Senha <span className="text-[#DC3545]">*</span>
-                      </label>
-                      <input 
-                        type="password" 
-                        required
-                        value={authForm.confirmPassword}
-                        onChange={(e) => setAuthForm({...authForm, confirmPassword: e.target.value})}
-                        placeholder="••••••••" 
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
-                      />
-                    </div>
-                  )}
                   
                   <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
                     {authMode === 'login' ? 'Entrar' : 'Cadastrar'}

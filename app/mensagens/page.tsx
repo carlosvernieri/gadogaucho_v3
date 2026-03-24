@@ -101,8 +101,6 @@ export default function MensagensPage() {
         } catch (error) {
           console.error('Error deleting message:', error);
           showToast('Erro de conexão.', 'error');
-        } finally {
-          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -137,7 +135,7 @@ export default function MensagensPage() {
           searchQuery=""
           onSearchChange={() => {}}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}
