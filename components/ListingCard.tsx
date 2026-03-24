@@ -107,7 +107,7 @@ export const ListingCard = ({
       
       <div className="p-4">
         <h3 className="text-lg font-bold text-[#333] mb-1">
-          {listing.title.split(' ')[0]} <span className="text-xs font-normal opacity-40">cod: {listing.id}</span>
+          {listing.category} <span className="text-xs font-normal opacity-40">cod: {listing.id}</span>
         </h3>
         <div className="text-2xl font-bold text-[#2D5A27] mb-2">
           R$ {listing.priceKg.toFixed(2)}/kg
