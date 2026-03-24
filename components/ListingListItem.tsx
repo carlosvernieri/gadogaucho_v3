@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart } from 'lucide-react';
 import { Badge } from './Badge';
 
@@ -73,7 +74,13 @@ export const ListingListItem = ({
             <>
               <span className="text-[#E9ECEF]">•</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-[#666] uppercase tracking-wider">{listing.seller}</span>
+                <Link 
+                  href={`/vendedor/${listing.user_id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[10px] font-bold text-[#666] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
+                >
+                  {listing.seller}
+                </Link>
                 {listing.sellerVerified && (
                   <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
                     VERIFICADO

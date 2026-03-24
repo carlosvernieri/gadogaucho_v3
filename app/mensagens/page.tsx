@@ -101,6 +101,8 @@ export default function MensagensPage() {
         } catch (error) {
           console.error('Error deleting message:', error);
           showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });

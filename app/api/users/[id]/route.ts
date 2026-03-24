@@ -1,47 +1,34 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { safeJsonStringify } from '@/lib/utils';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
-export async function DELETE(
+export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { error } = await (supabaseAdmin
-      .from('users') as any)
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Supabase error deleting user:', safeJsonStringify(error, 2));
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
-}
-
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
   try {
     const { id } = await params;
-    const data = await request.json();
-    
-    const { data: updatedUser, error } = await (supabaseAdmin
+
+    const { data: user, error } = await (supabaseAdmin
       .from('users') as any)
-      .update(data)
+      .select('id, name, email, phone, city, is_admin, verified')
       .eq('id', id)
-      .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase user fetch failed:', error);
+      return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
+    }
 
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    console.error('Supabase error updating user:', safeJsonStringify(error, 2));
-    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (error: any) {
+    console.error('Error fetching user:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
