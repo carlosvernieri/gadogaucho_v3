@@ -276,8 +276,24 @@ function GadoGauchoContent() {
     phone: '',
     email: '',
     city: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
+
+  const formatPhone = (value: string, type: 'space' | 'dash' = 'space') => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    if (type === 'space') {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)} ${numbers.slice(6, 11)}`;
+    } else {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6, 11)}`;
+    }
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
   // Ad Form State
   const [adForm, setAdForm] = useState({
@@ -318,6 +334,19 @@ function GadoGauchoContent() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
+      if (!validateEmail(authForm.email)) {
+        setAuthError('E-mail inválido');
+        return;
+      }
+      if (authForm.password !== authForm.confirmPassword) {
+        setAuthError('As senhas não coincidem');
+        return;
+      }
+      if (authForm.phone.replace(/\D/g, '').length < 11) {
+        setAuthError('Telefone deve ter 11 dígitos');
+        return;
+      }
+
       const newUser = { 
         ...authForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
@@ -928,8 +957,8 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                          placeholder="(00) 00000-0000" 
+                          onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
+                          placeholder="(00) 0000 00000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
                       </div>
@@ -1000,6 +1029,21 @@ function GadoGauchoContent() {
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                     />
                   </div>
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                        Confirmar Senha <span className="text-[#DC3545]">*</span>
+                      </label>
+                      <input 
+                        type="password" 
+                        required
+                        value={authForm.confirmPassword}
+                        onChange={(e) => setAuthForm({...authForm, confirmPassword: e.target.value})}
+                        placeholder="••••••••" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
+                      />
+                    </div>
+                  )}
                   
                   <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
                     {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
