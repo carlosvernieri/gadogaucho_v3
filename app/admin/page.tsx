@@ -27,6 +27,15 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 
+const formatPhone = (val: string) => {
+  if (!val) return '';
+  let v = val.replace(/\D/g, '');
+  if (v.length > 11) v = v.substring(0, 11);
+  if (v.length > 2) v = `(${v.substring(0, 2)}) ` + v.substring(2);
+  if (v.length > 9) v = v.substring(0, 9) + ' ' + v.substring(9);
+  return v;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, setUser, logout } = useUser();
@@ -46,6 +55,16 @@ export default function AdminPage() {
 
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [adForm, setAdForm] = useState({
+    title: '',
+    category: '',
+    price: 0,
+    priceKg: 0,
+    avgWeight: 0,
+    quantity: 0,
+    location: '',
+    description: ''
+  });
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -105,7 +124,7 @@ export default function AdminPage() {
     setAuthForm({
       name: u.name,
       email: u.email,
-      phone: u.phone || '',
+      phone: u.phone ? formatPhone(u.phone) : '',
       city: u.city || '',
       password: ''
     });
@@ -153,6 +172,13 @@ export default function AdminPage() {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authForm.phone) {
+      const rawPhone = authForm.phone.replace(/\D/g, '');
+      if (rawPhone.length !== 11) {
+        showToast('O telefone deve ter formato válido: (xx) xxxx xxxxx', 'error');
+        return;
+      }
+    }
     try {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
@@ -176,6 +202,13 @@ export default function AdminPage() {
 
   const handleAdminCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authForm.phone) {
+      const rawPhone = authForm.phone.replace(/\D/g, '');
+      if (rawPhone.length !== 11) {
+        showToast('O telefone deve ter formato válido: (xx) xxxx xxxxx', 'error');
+        return;
+      }
+    }
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
@@ -242,6 +275,43 @@ export default function AdminPage() {
         }
       }
     });
+  };
+
+  const handleToggleListingVerified = async (l: any) => {
+    try {
+      const res = await fetch(`/api/listings/${l.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify({ verified: !l.verified })
+      });
+      if (res.ok) {
+        setListings(listings.map(listing => listing.id === l.id ? { ...listing, verified: !l.verified } : listing));
+      }
+    } catch (error) {
+      console.error('Error toggling listing verification:', error);
+    }
+  };
+
+  const handleUpdateListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/listings/${editingListingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify(adForm)
+      });
+      if (res.ok) {
+        setShowAdModal(false);
+        setEditingListingId(null);
+        fetchData();
+        showToast('Anúncio atualizado com sucesso!', 'success');
+      } else {
+        showToast('Erro ao atualizar anúncio.', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating listing:', error);
+      showToast('Erro de conexão.', 'error');
+    }
   };
 
   if (loading) {
@@ -499,8 +569,25 @@ export default function AdminPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <button 
+                                onClick={() => handleToggleListingVerified(l)}
+                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                                title={l.verified ? "Remover Verificação" : "Marcar como Verificado"}
+                              >
+                                <ShieldCheck size={16} />
+                              </button>
+                              <button 
                                 onClick={() => {
                                   setEditingListingId(l.id);
+                                  setAdForm({
+                                    title: l.title || '',
+                                    category: l.category || '',
+                                    price: l.price || 0,
+                                    priceKg: l.priceKg || 0,
+                                    avgWeight: l.avgWeight || 0,
+                                    quantity: l.quantity || 0,
+                                    location: l.location || '',
+                                    description: l.description || ''
+                                  });
                                   setShowAdModal(true);
                                 }}
                                 className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
@@ -588,8 +675,8 @@ export default function AdminPage() {
                     <input 
                       type="tel" 
                       value={authForm.phone}
-                      onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                      placeholder="(00) 00000-0000" 
+                      onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
+                      placeholder="(00) 0000 00000" 
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
                     />
                   </div>
@@ -630,6 +717,132 @@ export default function AdminPage() {
                     className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
                   >
                     {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAdModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowAdModal(false); setEditingListingId(null); }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+            >
+              <div className="p-8 border-b border-[#E9ECEF] flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-[#333]">Editar Anúncio</h2>
+                <button onClick={() => { setShowAdModal(false); setEditingListingId(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-8 overflow-y-auto">
+                <form onSubmit={handleUpdateListing} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Título do Anúncio</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={adForm.title}
+                      onChange={(e) => setAdForm({...adForm, title: e.target.value})}
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
+                      <select 
+                        required
+                        value={adForm.category}
+                        onChange={(e) => setAdForm({...adForm, category: e.target.value})}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none" 
+                      >
+                        <option value="Touro">Touro</option>
+                        <option value="Vaca">Vaca</option>
+                        <option value="Bezerro">Bezerro(a)</option>
+                        <option value="Novilha">Novilha(o)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Quantidade (Animais)</label>
+                      <input 
+                        type="number" 
+                        required min="1"
+                        value={adForm.quantity}
+                        onChange={(e) => setAdForm({...adForm, quantity: Number(e.target.value)})}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Preço por Kg (R$)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" required
+                        value={adForm.priceKg}
+                        onChange={(e) => setAdForm({...adForm, priceKg: Number(e.target.value)})}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Peso Médio (Kg)</label>
+                      <input 
+                        type="number" 
+                        step="0.1" required
+                        value={adForm.avgWeight}
+                        onChange={(e) => setAdForm({...adForm, avgWeight: Number(e.target.value)})}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Preço Total (R$)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" required
+                        value={adForm.price}
+                        onChange={(e) => setAdForm({...adForm, price: Number(e.target.value)})}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Localização</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={adForm.location}
+                      onChange={(e) => setAdForm({...adForm, location: e.target.value})}
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Descrição</label>
+                    <textarea 
+                      required rows={4}
+                      value={adForm.description}
+                      onChange={(e) => setAdForm({...adForm, description: e.target.value})}
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none" 
+                    />
+                  </div>
+                  
+                  <button 
+                    type="submit"
+                    className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
+                  >
+                    Salvar Alterações
                   </button>
                 </form>
               </div>
