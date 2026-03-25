@@ -11,6 +11,7 @@ export async function GET(
   }
   try {
     const { id } = await params;
+    console.log('API: GET listing for id', id);
 
     const { data: listing, error } = await (supabaseAdmin
       .from('listings') as any)
@@ -19,6 +20,7 @@ export async function GET(
       .maybeSingle();
     
     if (error) {
+      console.error('API: Supabase join fetch failed', error);
       // If the join fails, try a simple select and then fetch the user separately
       const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)

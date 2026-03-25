@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ListingDetail } from '@/components/ListingDetail';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify } from '@/lib/utils';
 
-export default function AnuncioPage() {
-  const params = useParams();
+export default function AnuncioPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = React.use(paramsPromise);
   const router = useRouter();
   const id = params.id;
   const { user, setUser, logout } = useUser();
@@ -28,18 +28,25 @@ export default function AnuncioPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
+    console.log('AnuncioPage: id changed to', id);
     if (!id) return;
 
     const fetchData = async () => {
+      setLoading(true);
+      console.log('AnuncioPage: Fetching data for id', id);
       try {
         const [listingRes, listingsRes] = await Promise.all([
           fetch(`/api/listings/${id}`),
           fetch('/api/listings')
         ]);
         
+        console.log('AnuncioPage: listingRes status', listingRes.status);
         if (listingRes.ok) {
           const data = await listingRes.json();
+          console.log('AnuncioPage: listing data received', data.id);
           setListing(data);
+        } else {
+          console.error('AnuncioPage: listing fetch failed', listingRes.status, await listingRes.text());
         }
         
         if (listingsRes.ok) {

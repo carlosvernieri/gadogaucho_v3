@@ -20,19 +20,16 @@ export const ListingCard = ({
   onToggleFavorite?: (id: number) => void
 }) => {
   const router = useRouter();
-  const [isNavigating, setIsNavigating] = useState(false);
-
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const handleCardClick = () => {
-    setIsNavigating(true);
     router.push(`/anuncio/${listing.id}`);
   };
 
   const handleSellerClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/vendedor/${listing.user_id}`);
+    router.push(`/vendedor/${encodeURIComponent(listing.seller)}`);
   };
 
   const handleActionClick = (e: React.MouseEvent, action: 'heart' | 'share') => {
@@ -52,14 +49,6 @@ export const ListingCard = ({
       onClick={() => handleCardClick()}
       className="bg-white rounded-2xl overflow-hidden border border-[#E9ECEF] shadow-sm hover:shadow-md transition-shadow group relative cursor-pointer"
     >
-      {isNavigating && (
-        <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center">
-          <div className="w-10 h-10 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
-          <Loader2 size={16} className="text-[#2D5A27] animate-pulse absolute" />
-          <span className="mt-3 text-[10px] font-bold text-[#2D5A27] uppercase tracking-wider">Carregando...</span>
-        </div>
-      )}
-      
       {/* Action Buttons */}
       <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
         <button 
@@ -110,15 +99,15 @@ export const ListingCard = ({
           {listing.category} <span className="text-xs font-normal opacity-40">cod: {listing.id}</span>
         </h3>
         <div className="text-2xl font-bold text-[#2D5A27] mb-2">
-          R$ {(listing.priceKg || 0).toFixed(2)}/kg
+          R$ {(Number(listing.priceKg) || 0).toFixed(2)}/kg
         </div>
         
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#666] mb-4">
-          <span>{listing.avgWeight || 0}kg méd.</span>
+          <span>{listing.avgWeight}kg méd.</span>
           <span>•</span>
-          <span>{listing.quantity || 0} animais</span>
+          <span>{listing.quantity} animais</span>
           <span>•</span>
-          <span>R$ {(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <span>R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         </div>
         
         <div className="flex items-center justify-between text-[10px] text-[#999] mb-4">
