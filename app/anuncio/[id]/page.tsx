@@ -28,55 +28,44 @@ export default function AnuncioPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchData = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
-      
       try {
-        // Fetch main listing first as it's critical
-        const listingRes = await fetch(`/api/listings/${id}`);
+        const [listingRes, listingsRes] = await Promise.all([
+          fetch(`/api/listings/${id}`),
+          fetch('/api/listings')
+        ]);
+        
         if (listingRes.ok) {
           const data = await listingRes.json();
           setListing(data);
-        } else {
-          console.error('Failed to fetch listing:', listingRes.status);
+        }
+        
+        if (listingsRes.ok) {
+          const data = await listingsRes.json();
+          setListings(Array.isArray(data) ? data : []);
         }
 
-        // Fetch other data in parallel without blocking the main listing if they fail
-        Promise.all([
-          fetch('/api/listings').then(res => res.ok ? res.json() : []),
-          (async () => {
-            const storedUser = localStorage.getItem('gado_gaucho_user');
-            if (storedUser) {
-              try {
-                const parsedUser = JSON.parse(storedUser);
-                setUser(parsedUser);
-                const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
-                return favRes.ok ? favRes.json() : [];
-              } catch (e) {
-                console.error('Error parsing stored user:', e);
-              }
-            }
-            return [];
-          })()
-        ]).then(([listingsData, favoritesData]) => {
-          if (listingsData) setListings(listingsData);
-          if (favoritesData) setFavorites(favoritesData);
-        }).catch(err => {
-          console.error('Error fetching secondary data:', err);
-        });
-
+        const storedUser = localStorage.getItem('gado_gaucho_user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Fetch favorites
+          const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
+          if (favRes.ok) {
+            const favData = await favRes.json();
+            setFavorites(favData);
+          }
+        }
       } catch (error: any) {
         console.error('Error fetching data:', error.message || error);
       } finally {
-        // Ensure loading is set to false after the main listing attempt
         setLoading(false);
       }
     };
     fetchData();
-  }, [id, setUser]);
+  }, [id]);
 
   const handleShare = (id: number) => {
     setShowShareModal(true);
@@ -193,7 +182,7 @@ export default function AnuncioPage() {
           searchQuery=""
           onSearchChange={() => {}}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}
