@@ -284,7 +284,8 @@ function GadoGauchoContent() {
     phone: '',
     email: '',
     city: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
 
   // Ad Form State
@@ -326,14 +327,20 @@ function GadoGauchoContent() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
+      if (authForm.password !== authForm.confirmPassword) {
+        setAuthError('As senhas não coincidem. Verifique e tente novamente.');
+        return;
+      }
+
       const rawPhone = authForm.phone.replace(/\D/g, '');
       if (rawPhone.length !== 11) {
         setAuthError('O telefone deve ter formato válido: (xx) xxxx xxxxx');
         return;
       }
 
+      const { confirmPassword, ...restAuthForm } = authForm;
       const newUser = { 
-        ...authForm, 
+        ...restAuthForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
       };
       
@@ -978,6 +985,22 @@ function GadoGauchoContent() {
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                     />
                   </div>
+
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                        Confirmar Senha <span className="text-[#DC3545]">*</span>
+                      </label>
+                      <input 
+                        type="password" 
+                        required
+                        value={authForm.confirmPassword}
+                        onChange={(e) => setAuthForm({...authForm, confirmPassword: e.target.value})}
+                        placeholder="••••••••" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
+                      />
+                    </div>
+                  )}
                   
                   <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
                     {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
