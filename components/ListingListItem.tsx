@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart } from 'lucide-react';
 import { Badge } from './Badge';
 
@@ -74,13 +73,7 @@ export const ListingListItem = ({
             <>
               <span className="text-[#E9ECEF]">•</span>
               <div className="flex items-center gap-1.5">
-                <Link 
-                  href={`/vendedor/${listing.user_id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-[10px] font-bold text-[#666] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
-                >
-                  {listing.seller}
-                </Link>
+                <span className="text-[10px] font-bold text-[#666] uppercase tracking-wider">{listing.seller}</span>
                 {listing.sellerVerified && (
                   <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
                     VERIFICADO
@@ -104,8 +97,8 @@ export const ListingListItem = ({
         </div>
 
         <div className="text-xl font-bold text-[#2D5A27]">
-          R$ {(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          <span className="text-xs font-normal text-[#999] ml-2">(R$ {(listing.priceKg || 0).toFixed(2)}/kg)</span>
+          R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <span className="text-xs font-normal text-[#999] ml-2">(R$ {listing.priceKg.toFixed(2)}/kg)</span>
         </div>
       </div>
 
