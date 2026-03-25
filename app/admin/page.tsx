@@ -7,7 +7,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify, formatPhone, isValidPhone } from '@/lib/utils';
+import { safeJsonStringify } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -153,10 +153,6 @@ export default function AdminPage() {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValidPhone(authForm.phone)) {
-      showToast('O telefone deve estar no formato (xx) xxxx xxxxx', 'error');
-      return;
-    }
     try {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
@@ -180,10 +176,6 @@ export default function AdminPage() {
 
   const handleAdminCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValidPhone(authForm.phone)) {
-      showToast('O telefone deve estar no formato (xx) xxxx xxxxx', 'error');
-      return;
-    }
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
@@ -596,8 +588,8 @@ export default function AdminPage() {
                     <input 
                       type="tel" 
                       value={authForm.phone}
-                      onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
-                      placeholder="(00) 0000 00000" 
+                      onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
+                      placeholder="(00) 00000-0000" 
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
                     />
                   </div>

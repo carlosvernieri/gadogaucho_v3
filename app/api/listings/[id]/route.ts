@@ -11,35 +11,20 @@ export async function GET(
   }
   try {
     const { id } = await params;
-    console.log('API: GET listing for id', id);
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-    }
-
-    // Try to find by ID (could be integer or string depending on how it was created)
-    let query = supabaseAdmin.from('listings').select('*, users!user_id(name, verified)');
-    
-    // If id is numeric, try to match it as a number first
-    if (!isNaN(Number(id))) {
-      query = query.eq('id', Number(id));
-    } else {
-      query = query.eq('id', id);
-    }
-
-    const { data: listing, error } = await (query as any).maybeSingle();
+    const { data: listing, error } = await (supabaseAdmin
+      .from('listings') as any)
+      .select('*, users(name, verified)')
+      .eq('id', id)
+      .maybeSingle();
     
     if (error) {
-      console.error('API: Supabase fetch failed for id', id, error);
-      // Fallback to simple select
-      let fallbackQuery = supabaseAdmin.from('listings').select('*');
-      if (!isNaN(Number(id))) {
-        fallbackQuery = fallbackQuery.eq('id', Number(id));
-      } else {
-        fallbackQuery = fallbackQuery.eq('id', id);
-      }
-      
-      const { data: fallbackListing, error: fallbackError } = await (fallbackQuery as any).maybeSingle();
+      // Fallback to fetching without join
+      const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
+        .from('listings') as any)
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
       
       if (fallbackError) {
         console.error('Supabase listing fetch failed completely:', fallbackError);
@@ -49,14 +34,7 @@ export async function GET(
       if (!fallbackListing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
-
-      // Fetch the user to map the name
-      const { data: userData } = await (supabaseAdmin
-        .from('users') as any)
-        .select('name, verified')
-        .eq('id', fallbackListing.user_id)
-        .maybeSingle();
-  
+ 
       const l = fallbackListing as any;
       return NextResponse.json({
         ...l,
@@ -67,8 +45,8 @@ export async function GET(
         avgWeight: l.avg_weight || l.avgWeight,
         images: parseJsonField(l.images),
         videos: parseJsonField(l.videos),
-        seller: userData?.name || 'Desconhecido',
-        sellerVerified: !!userData?.verified,
+        seller: 'Desconhecido',
+        sellerVerified: false,
         sellerRating: 0,
       });
     }
@@ -78,7 +56,6 @@ export async function GET(
     }
 
     const l = listing as any;
-    const userData = Array.isArray(l.users) ? l.users[0] : l.users;
     return NextResponse.json({
       ...l,
       sold: !!l.sold,
@@ -88,8 +65,8 @@ export async function GET(
       avgWeight: l.avg_weight,
       images: parseJsonField(l.images),
       videos: parseJsonField(l.videos),
-      seller: userData?.name || 'Desconhecido',
-      sellerVerified: !!userData?.verified,
+      seller: l.users?.name || 'Desconhecido',
+      sellerVerified: !!l.users?.verified,
       sellerRating: 0,
     });
   } catch (error: any) {

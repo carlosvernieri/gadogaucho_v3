@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ListingDetail } from '@/components/ListingDetail';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
@@ -13,10 +13,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify } from '@/lib/utils';
 
-export default function AnuncioPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
-  const params = React.use(paramsPromise);
+export default function AnuncioPage() {
+  const params = useParams();
   const router = useRouter();
-  const id = params?.id;
+  const id = params.id;
   const { user, setUser, logout } = useUser();
   const [listing, setListing] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
@@ -26,57 +26,44 @@ export default function AnuncioPage({ params: paramsPromise }: { params: Promise
   const [showShareModal, setShowShareModal] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [toastMessage, setToastMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    console.log('AnuncioPage: Fetching data for id', id);
-    try {
-      const [listingRes, listingsRes] = await Promise.all([
-        fetch(`/api/listings/${id}`),
-        fetch('/api/listings')
-      ]);
-      
-      console.log('AnuncioPage: listingRes status', listingRes.status);
-      if (listingRes.ok) {
-        const data = await listingRes.json();
-        console.log('AnuncioPage: listing data received', data);
-        setListing(data);
-      } else {
-        const errorText = await listingRes.text();
-        console.error('AnuncioPage: listing fetch failed', listingRes.status, errorText);
-        setError(`Erro ao carregar anúncio: ${listingRes.status}`);
-      }
-      
-      if (listingsRes.ok) {
-        const data = await listingsRes.json();
-        setListings(Array.isArray(data) ? data : []);
-      }
-
-      const storedUser = localStorage.getItem('gado_gaucho_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        // Fetch favorites
-        const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
-        if (favRes.ok) {
-          const favData = await favRes.json();
-          setFavorites(favData);
-        }
-      }
-    } catch (err: any) {
-      console.error('AnuncioPage: Error fetching data:', err.message || err);
-      setError('Erro de conexão ao carregar o anúncio.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [listingRes, listingsRes] = await Promise.all([
+          fetch(`/api/listings/${id}`),
+          fetch('/api/listings')
+        ]);
+        
+        if (listingRes.ok) {
+          const data = await listingRes.json();
+          setListing(data);
+        }
+        
+        if (listingsRes.ok) {
+          const data = await listingsRes.json();
+          setListings(data);
+        }
+
+        const storedUser = localStorage.getItem('gado_gaucho_user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Fetch favorites
+          const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
+          if (favRes.ok) {
+            const favData = await favRes.json();
+            setFavorites(favData);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching data:', error.message || error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
-  }, [id, setUser]);
+  }, [id]);
 
   const handleShare = (id: number) => {
     setShowShareModal(true);
@@ -154,28 +141,10 @@ export default function AnuncioPage({ params: paramsPromise }: { params: Promise
           onFavoritesClick={() => router.push('/favoritos')}
           onMyAdsClick={() => router.push('/meus-anuncios')}
         />
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center max-w-md">
-            <h1 className="text-2xl font-bold text-[#333] mb-4">
-              {error || 'Anúncio não encontrado'}
-            </h1>
-            <p className="text-[#666] mb-8">
-              Não foi possível carregar os detalhes deste anúncio. Verifique o código ou tente novamente mais tarde.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                onClick={() => fetchData()} 
-                className="px-8 py-3 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg hover:bg-[#1E3D1A] transition-all"
-              >
-                Tentar Novamente
-              </button>
-              <button 
-                onClick={() => router.push('/')} 
-                className="px-8 py-3 bg-white text-[#2D5A27] border border-[#2D5A27] font-bold rounded-xl hover:bg-[#F8F9FA] transition-all"
-              >
-                Voltar para Início
-              </button>
-            </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-[#333] mb-4">Anúncio não encontrado</h1>
+            <button onClick={() => router.push('/')} className="text-[#2D5A27] font-bold hover:underline">Voltar para a página inicial</button>
           </div>
         </div>
       </div>
@@ -211,7 +180,7 @@ export default function AnuncioPage({ params: paramsPromise }: { params: Promise
           searchQuery=""
           onSearchChange={() => {}}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}

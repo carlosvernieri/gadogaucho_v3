@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { safeJsonStringify, isValidPhone } from '@/lib/utils';
+import { safeJsonStringify } from '@/lib/utils';
 
 export async function DELETE(
   request: Request,
@@ -30,10 +30,6 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
     
-    if (data.phone && !isValidPhone(data.phone)) {
-      return NextResponse.json({ error: 'Telefone inválido. Use o formato (xx) xxxx xxxxx' }, { status: 400 });
-    }
-
     const { data: updatedUser, error } = await (supabaseAdmin
       .from('users') as any)
       .update(data)

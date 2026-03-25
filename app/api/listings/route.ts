@@ -11,22 +11,22 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
-    const userId = searchParams.get('userId');
 
     let query = (supabaseAdmin
       .from('listings') as any)
-      .select('*, users!user_id(name, verified)');
+      .select('*, users(name, verified)');
 
-    if (userId) {
-      query = query.eq('user_id', userId);
-    } else if (seller) {
+    if (seller) {
+      // If seller is passed as a name, we might need to filter by users.name
+      // But usually it's better to filter by user_id if we have it.
+      // For now, let's assume if seller is passed, it's a name filter on the joined table.
       query = query.eq('users.name', seller);
     }
 
     const { data: listings, error } = await query.order('id', { ascending: false });
 
     if (error) {
-      // If the join fails, try a simple select and then fetch users separately
+      // If the join fails, try a simple select
       const { data: fallbackListings, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)
         .select('*')
@@ -36,52 +36,36 @@ export async function GET(request: Request) {
         console.error('Supabase listings fetch failed completely:', fallbackError);
         return NextResponse.json([]);
       }
-
-      // Fetch all users to map names
-      const { data: allUsers } = await (supabaseAdmin
-        .from('users') as any)
-        .select('id, name, verified');
       
-      const userMap = (allUsers || []).reduce((acc: any, u: any) => {
-        acc[u.id] = u;
-        return acc;
-      }, {});
-      
-      const mappedListings = (fallbackListings || []).map((l: any) => {
-        const userData = userMap[l.user_id];
-        return {
-          ...l,
-          sold: !!l.sold,
-          verified: !!l.verified,
-          verification_requested: !!l.verification_requested,
-          priceKg: l.price_kg || l.priceKg,
-          avgWeight: l.avg_weight || l.avgWeight,
-          images: parseJsonField(l.images),
-          videos: parseJsonField(l.videos),
-          seller: userData?.name || 'Desconhecido',
-          sellerVerified: !!userData?.verified,
-          sellerRating: 0,
-        };
-      });
-      return NextResponse.json(mappedListings);
-    }
-
-    const mappedListings = listings.map((l: any) => {
-      const userData = Array.isArray(l.users) ? l.users[0] : l.users;
-      return {
+      const mappedListings = (fallbackListings || []).map((l: any) => ({
         ...l,
         sold: !!l.sold,
         verified: !!l.verified,
         verification_requested: !!l.verification_requested,
-        priceKg: l.price_kg,
-        avgWeight: l.avg_weight,
+        priceKg: l.price_kg || l.priceKg,
+        avgWeight: l.avg_weight || l.avgWeight,
         images: parseJsonField(l.images),
         videos: parseJsonField(l.videos),
-        seller: userData?.name || 'Desconhecido',
-        sellerVerified: !!userData?.verified,
+        seller: 'Desconhecido',
+        sellerVerified: false,
         sellerRating: 0,
-      };
-    });
+      }));
+      return NextResponse.json(mappedListings);
+    }
+
+    const mappedListings = listings.map((l: any) => ({
+      ...l,
+      sold: !!l.sold,
+      verified: !!l.verified,
+      verification_requested: !!l.verification_requested,
+      priceKg: l.price_kg,
+      avgWeight: l.avg_weight,
+      images: parseJsonField(l.images),
+      videos: parseJsonField(l.videos),
+      seller: l.users?.name || 'Desconhecido',
+      sellerVerified: !!l.users?.verified,
+      sellerRating: 0,
+    }));
     return NextResponse.json(mappedListings);
   } catch (error: any) {
     console.error('Error fetching listings:', error.message || error);

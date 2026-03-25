@@ -66,28 +66,3 @@ export function unslugify(slug: string, list?: string[]) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
-
-/**
- * Formats a phone number string to (xx) xxxx xxxxx.
- */
-export function formatPhone(value: string) {
-  if (!value) return value;
-  const phoneNumber = value.replace(/[^\d]/g, '');
-  const phoneNumberLength = phoneNumber.length;
-  
-  if (phoneNumberLength <= 2) {
-    return `(${phoneNumber}`;
-  }
-  if (phoneNumberLength <= 6) {
-    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
-  }
-  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)} ${phoneNumber.slice(6, 11)}`;
-}
-
-/**
- * Validates if a phone number is in the format (xx) xxxx xxxxx.
- */
-export function isValidPhone(phone: string) {
-  const phoneRegex = /^\(\d{2}\) \d{4} \d{5}$/;
-  return phoneRegex.test(phone);
-}
