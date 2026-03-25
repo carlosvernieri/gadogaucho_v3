@@ -44,6 +44,14 @@ import { useUser } from '@/context/UserContext';
 
 // --- Main App ---
 
+const formatPhone = (val: string) => {
+  const digits = val.replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)} ${digits.slice(6)}`;
+};
+
 function GadoGauchoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -318,6 +326,12 @@ function GadoGauchoContent() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
+      const rawPhone = authForm.phone.replace(/\D/g, '');
+      if (rawPhone.length !== 11) {
+        setAuthError('O telefone deve ter formato válido: (xx) xxxx xxxxx');
+        return;
+      }
+
       const newUser = { 
         ...authForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
@@ -892,8 +906,8 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                          placeholder="(00) 00000-0000" 
+                          onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
+                          placeholder="(00) 0000 00000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
                       </div>

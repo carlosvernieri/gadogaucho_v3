@@ -9,6 +9,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, email, password, city, phone } = body;
 
+    const rawPhone = phone ? phone.replace(/\D/g, '') : '';
+    if (rawPhone.length !== 11) {
+      return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
+    }
+
     // Check if user exists
     const { data: existingUser } = await supabaseAdmin
       .from('users')

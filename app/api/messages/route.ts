@@ -12,6 +12,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'E-mail inválido' }, { status: 400 });
+    }
+
+    const rawPhone = phone ? phone.replace(/\D/g, '') : '';
+    if (rawPhone.length !== 11) {
+      return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
+    }
+
     const { data, error } = await (supabaseAdmin
       .from('messages') as any)
       .insert([

@@ -3,3 +3,9 @@
 @theme {
   --font-logo: var(--font-logo);
 }
+
+@layer base {
+  button {
+    cursor: pointer;
+  }
+}
