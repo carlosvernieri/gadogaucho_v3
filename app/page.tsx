@@ -30,7 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { slugify, safeJsonStringify } from '@/lib/utils';
+import { slugify, safeJsonStringify, formatPhone, isValidPhone } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
@@ -318,6 +318,10 @@ function GadoGauchoContent() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
+      if (!isValidPhone(authForm.phone)) {
+        setAuthError('O telefone deve estar no formato (xx) xxxx xxxxx');
+        return;
+      }
       const newUser = { 
         ...authForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
@@ -928,8 +932,8 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                          placeholder="(00) 00000-0000" 
+                          onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
+                          placeholder="(00) 0000 00000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
                       </div>

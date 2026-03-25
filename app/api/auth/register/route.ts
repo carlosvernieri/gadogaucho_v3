@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { isValidPhone } from '@/lib/utils';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -8,6 +9,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, email, password, city, phone } = body;
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json({ error: 'Telefone inválido. Use o formato (xx) xxxx xxxxx' }, { status: 400 });
+    }
 
     // Check if user exists
     const { data: existingUser } = await supabaseAdmin

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { isValidPhone } from '@/lib/utils';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -10,6 +11,10 @@ export async function POST(request: Request) {
 
     if (!listingId || !name || !email || !phone || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json({ error: 'Telefone inválido. Use o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
 
     const { data, error } = await (supabaseAdmin

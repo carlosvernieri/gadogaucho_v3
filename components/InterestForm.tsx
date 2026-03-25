@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, User, Phone, Mail, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { showToast } from './ConfirmModal';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, formatPhone, isValidPhone } from '@/lib/utils';
 
 interface InterestFormProps {
   isOpen: boolean;
@@ -25,6 +25,12 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isValidPhone(formData.phone)) {
+      showToast('O telefone deve estar no formato (xx) xxxx xxxxx', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -135,8 +141,8 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
                           required
                           type="tel"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="(00) 00000-0000"
+                          onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+                          placeholder="(00) 0000 00000"
                           className="w-full pl-12 pr-4 py-4 bg-[#F8F9FA] border border-[#E9ECEF] rounded-2xl focus:outline-none focus:border-[#2D5A27] transition-all text-sm"
                         />
                       </div>
