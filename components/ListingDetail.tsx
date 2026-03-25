@@ -126,20 +126,20 @@ export const ListingDetail = ({
           <div className="mb-6">
             <span className="text-[10px] font-bold text-[#999] uppercase">Preço por kg</span>
             <div className="text-4xl font-bold text-[#2D5A27] mb-2">
-              R$ {(listing.priceKg || 0).toFixed(2)}/kg
+              R$ {listing.priceKg.toFixed(2)}/kg
             </div>
             <div className="grid grid-cols-3 gap-4 text-[11px] text-[#666]">
               <div>
                 <span className="block opacity-60">Peso Médio:</span>
-                <span className="font-bold">{listing.avgWeight || 0}kg</span>
+                <span className="font-bold">{listing.avgWeight}kg</span>
               </div>
               <div>
                 <span className="block opacity-60">Lote:</span>
-                <span className="font-bold">{listing.quantity || 0} animais</span>
+                <span className="font-bold">{listing.quantity} animais</span>
               </div>
               <div>
                 <span className="block opacity-60">Valor Total: R$</span>
-                <span className="font-bold">{(listing.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="font-bold">{listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@ export const ListingDetail = ({
           
           <div className="bg-[#F8F9FA] rounded-2xl p-4 mb-6 flex items-center gap-4">
             <Link 
-              href={`/vendedor/${listing.user_id}`}
+              href={`/vendedor/${encodeURIComponent(listing.seller)}`}
               className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm hover:opacity-80 transition-opacity"
             >
               <Image src={`https://picsum.photos/seed/${listing.seller}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
@@ -159,7 +159,7 @@ export const ListingDetail = ({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Link 
-                  href={`/vendedor/${listing.user_id}`}
+                  href={`/vendedor/${encodeURIComponent(listing.seller)}`}
                   className="font-bold text-sm text-[#333] hover:text-[#2D5A27] transition-colors"
                 >
                   {listing.seller}

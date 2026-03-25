@@ -28,8 +28,6 @@ export default function AnuncioPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    if (!id) return;
-
     const fetchData = async () => {
       try {
         const [listingRes, listingsRes] = await Promise.all([
@@ -44,7 +42,7 @@ export default function AnuncioPage() {
         
         if (listingsRes.ok) {
           const data = await listingsRes.json();
-          setListings(Array.isArray(data) ? data : []);
+          setListings(data);
         }
 
         const storedUser = localStorage.getItem('gado_gaucho_user');
@@ -182,7 +180,7 @@ export default function AnuncioPage() {
           searchQuery=""
           onSearchChange={() => {}}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}

@@ -1,34 +1,47 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+import { safeJsonStringify } from '@/lib/utils';
 
-export async function GET(
+export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
-  }
   try {
     const { id } = await params;
-
-    const { data: user, error } = await (supabaseAdmin
+    const { error } = await (supabaseAdmin
       .from('users') as any)
-      .select('id, name, email, phone, city, is_admin, verified')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Supabase error deleting user:', safeJsonStringify(error, 2));
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const data = await request.json();
+    
+    const { data: updatedUser, error } = await (supabaseAdmin
+      .from('users') as any)
+      .update(data)
       .eq('id', id)
-      .maybeSingle();
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Supabase user fetch failed:', error);
-      return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
-    }
+    if (error) throw error;
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(user);
-  } catch (error: any) {
-    console.error('Error fetching user:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(updatedUser);
+  } catch (error) {
+    console.error('Supabase error updating user:', safeJsonStringify(error, 2));
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
