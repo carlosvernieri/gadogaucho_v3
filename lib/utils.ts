@@ -66,3 +66,28 @@ export function unslugify(slug: string, list?: string[]) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+/**
+ * Masks a phone number in the format (xx) xxxx xxxxx.
+ */
+export function maskPhone(value: string) {
+  if (!value) return "";
+  value = value.replace(/\D/g, "");
+  if (value.length > 11) value = value.slice(0, 11);
+  
+  if (value.length > 2) {
+    value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+  }
+  if (value.length > 9) {
+    value = `${value.slice(0, 9)}-${value.slice(9)}`;
+  }
+  return value;
+}
+
+/**
+ * Validates an email address.
+ */
+export function validateEmail(email: string) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}

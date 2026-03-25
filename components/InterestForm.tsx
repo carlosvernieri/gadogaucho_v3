@@ -23,8 +23,30 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6, 11)}`;
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateEmail(formData.email)) {
+      showToast('E-mail inválido', 'error');
+      return;
+    }
+
+    if (formData.phone.replace(/\D/g, '').length < 11) {
+      showToast('Telefone deve ter 11 dígitos', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -135,8 +157,8 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
                           required
                           type="tel"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="(00) 00000-0000"
+                          onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+                          placeholder="(00) 0000-00000"
                           className="w-full pl-12 pr-4 py-4 bg-[#F8F9FA] border border-[#E9ECEF] rounded-2xl focus:outline-none focus:border-[#2D5A27] transition-all text-sm"
                         />
                       </div>

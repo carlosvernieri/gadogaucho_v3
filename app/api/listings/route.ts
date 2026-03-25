@@ -11,15 +11,15 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
+    const userId = searchParams.get('userId');
 
     let query = (supabaseAdmin
       .from('listings') as any)
       .select('*, users!user_id(name, verified)');
 
-    if (seller) {
-      // If seller is passed as a name, we might need to filter by users.name
-      // But usually it's better to filter by user_id if we have it.
-      // For now, let's assume if seller is passed, it's a name filter on the joined table.
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else if (seller) {
       query = query.eq('users.name', seller);
     }
 

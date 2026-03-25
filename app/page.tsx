@@ -108,6 +108,7 @@ function GadoGauchoContent() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showMyAds, setShowMyAds] = useState(false);
   const [isSubmittingAd, setIsSubmittingAd] = useState(false);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [isUpdatingListing, setIsUpdatingListing] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -276,7 +277,8 @@ function GadoGauchoContent() {
     phone: '',
     email: '',
     city: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
 
   // Ad Form State
@@ -317,9 +319,32 @@ function GadoGauchoContent() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setIsSubmittingAuth(true);
     if (authMode === 'register') {
+      // Validations
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(authForm.email)) {
+        setAuthError('E-mail inválido');
+        return;
+      }
+
+      const phoneRegex = /^\(\d{2}\) \d{4} \d{5}$/;
+      if (!phoneRegex.test(authForm.phone)) {
+        setAuthError('Telefone deve estar no formato (xx) xxxx xxxxx');
+        return;
+      }
+
+      if (authForm.password !== authForm.confirmPassword) {
+        setAuthError('As senhas não coincidem');
+        return;
+      }
+
       const newUser = { 
-        ...authForm, 
+        name: authForm.name,
+        phone: authForm.phone,
+        email: authForm.email,
+        city: authForm.city,
+        password: authForm.password,
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
       };
       
@@ -329,64 +354,69 @@ function GadoGauchoContent() {
           headers: { 'Content-Type': 'application/json' },
           body: safeJsonStringify(newUser)
         });
-        if (res.ok) {
-          const savedUser = await res.json();
-          setUser(savedUser);
-          setAllUsers([...allUsers, savedUser]);
-          localStorage.setItem('gado_gaucho_user', safeJsonStringify(savedUser));
-          // Fetch favorites
-          fetch(`/api/favorites?userId=${savedUser.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
-            })
-            .catch(err => console.error('Error fetching favorites:', err));
-          setShowAuthModal(false);
-        } else {
-          const error = await res.json();
-          setAuthError(error.error || 'Erro ao cadastrar');
+          if (res.ok) {
+            const savedUser = await res.json();
+            setUser(savedUser);
+            setAllUsers([...allUsers, savedUser]);
+            localStorage.setItem('gado_gaucho_user', safeJsonStringify(savedUser));
+            // Fetch favorites
+            fetch(`/api/favorites?userId=${savedUser.id}`)
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data)) setFavorites(data);
+              })
+              .catch(err => console.error('Error fetching favorites:', err));
+            setShowAuthModal(false);
+          } else {
+            const error = await res.json();
+            setAuthError(error.error || 'Erro ao cadastrar');
+            setIsSubmittingAuth(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error registering:', error);
+          setAuthError('Erro ao conectar ao servidor');
+          setIsSubmittingAuth(false);
           return;
         }
-      } catch (error) {
-        console.error('Error registering:', error);
-        setAuthError('Erro ao conectar ao servidor');
-        return;
-      }
-    } else {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: safeJsonStringify({
-            email: authForm.email,
-            password: authForm.password
-          })
-        });
-
-        if (res.ok) {
-          const foundUser = await res.json();
-          setUser(foundUser);
-          localStorage.setItem('gado_gaucho_user', safeJsonStringify(foundUser));
-          // Fetch favorites
-          fetch(`/api/favorites?userId=${foundUser.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
+      } else {
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: safeJsonStringify({
+              email: authForm.email,
+              password: authForm.password
             })
-            .catch(err => console.error('Error fetching favorites:', err));
-          setShowAuthModal(false);
-        } else {
-          const error = await res.json();
-          setAuthError(error.error || 'Erro ao fazer login');
+          });
+  
+          if (res.ok) {
+            const foundUser = await res.json();
+            setUser(foundUser);
+            localStorage.setItem('gado_gaucho_user', safeJsonStringify(foundUser));
+            // Fetch favorites
+            fetch(`/api/favorites?userId=${foundUser.id}`)
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data)) setFavorites(data);
+              })
+              .catch(err => console.error('Error fetching favorites:', err));
+            setShowAuthModal(false);
+          } else {
+            const error = await res.json();
+            setAuthError(error.error || 'Erro ao fazer login');
+            setIsSubmittingAuth(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error logging in:', error);
+          setAuthError('Erro ao conectar ao servidor');
+          setIsSubmittingAuth(false);
           return;
         }
-      } catch (error) {
-        console.error('Error logging in:', error);
-        setAuthError('Erro ao conectar ao servidor');
-        return;
       }
-    }
-  };
+      setIsSubmittingAuth(false);
+    };
 
   const handleDeleteListing = async (id: number) => {
     setConfirmModal({
@@ -884,6 +914,15 @@ function GadoGauchoContent() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl"
             >
+              {isSubmittingAuth && (
+                <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
+                    {authMode === 'login' ? 'Entrando...' : 'Criando conta...'}
+                  </h3>
+                  <p className="text-sm text-[#666] mt-2">Por favor, aguarde um momento.</p>
+                </div>
+              )}
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold text-[#333]">
@@ -928,8 +967,22 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                          placeholder="(00) 00000-0000" 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const digits = val.replace(/\D/g, '').slice(0, 11);
+                            let formatted = digits;
+                            if (digits.length > 0) {
+                              formatted = `(${digits.slice(0, 2)}`;
+                              if (digits.length > 2) {
+                                formatted += `) ${digits.slice(2, 6)}`;
+                                if (digits.length > 6) {
+                                  formatted += ` ${digits.slice(6, 11)}`;
+                                }
+                              }
+                            }
+                            setAuthForm({...authForm, phone: formatted});
+                          }}
+                          placeholder="(00) 0000 00000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
                       </div>
@@ -1000,8 +1053,27 @@ function GadoGauchoContent() {
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                     />
                   </div>
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                        Confirmar Senha <span className="text-[#DC3545]">*</span>
+                      </label>
+                      <input 
+                        type="password" 
+                        required
+                        value={authForm.confirmPassword}
+                        onChange={(e) => setAuthForm({...authForm, confirmPassword: e.target.value})}
+                        placeholder="••••••••" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
+                      />
+                    </div>
+                  )}
                   
-                  <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
+                  <button 
+                    disabled={isSubmittingAuth}
+                    className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingAuth && <Loader2 size={20} className="animate-spin" />}
                     {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
                   </button>
                 </form>
