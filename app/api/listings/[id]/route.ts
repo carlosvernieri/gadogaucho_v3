@@ -13,20 +13,33 @@ export async function GET(
     const { id } = await params;
     console.log('API: GET listing for id', id);
 
-    const { data: listing, error } = await (supabaseAdmin
-      .from('listings') as any)
-      .select('*, users!user_id(name, verified)')
-      .eq('id', id)
-      .maybeSingle();
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    // Try to find by ID (could be integer or string depending on how it was created)
+    let query = supabaseAdmin.from('listings').select('*, users!user_id(name, verified)');
+    
+    // If id is numeric, try to match it as a number first
+    if (!isNaN(Number(id))) {
+      query = query.eq('id', Number(id));
+    } else {
+      query = query.eq('id', id);
+    }
+
+    const { data: listing, error } = await (query as any).maybeSingle();
     
     if (error) {
-      console.error('API: Supabase join fetch failed', error);
-      // If the join fails, try a simple select and then fetch the user separately
-      const { data: fallbackListing, error: fallbackError } = await (supabaseAdmin
-        .from('listings') as any)
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      console.error('API: Supabase fetch failed for id', id, error);
+      // Fallback to simple select
+      let fallbackQuery = supabaseAdmin.from('listings').select('*');
+      if (!isNaN(Number(id))) {
+        fallbackQuery = fallbackQuery.eq('id', Number(id));
+      } else {
+        fallbackQuery = fallbackQuery.eq('id', id);
+      }
+      
+      const { data: fallbackListing, error: fallbackError } = await (fallbackQuery as any).maybeSingle();
       
       if (fallbackError) {
         console.error('Supabase listing fetch failed completely:', fallbackError);
