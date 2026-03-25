@@ -89,9 +89,9 @@ export default function CategoriaPage() {
 
   const filteredListings = useMemo(() => {
     return listings.filter(item => {
-      const matchesCategory = item.category.toLowerCase() === categoryName.toLowerCase();
+      const matchesCategory = item.category && categoryName && item.category.toLowerCase() === categoryName.toLowerCase();
       const matchesSearch = !searchQuery || 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
         item.id.toString().includes(searchQuery);
       return matchesCategory && matchesSearch;
     });
@@ -151,7 +151,7 @@ export default function CategoriaPage() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           listingsCount={listings.length}
-          getCategoryCount={(catName) => listings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
+          getCategoryCount={(catName) => listings.filter(l => l.category && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}

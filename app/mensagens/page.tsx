@@ -95,12 +95,15 @@ export default function MensagensPage() {
           if (res.ok) {
             setMessages(prev => prev.filter(m => m.id !== id));
             showToast('Mensagem excluída com sucesso!', 'success');
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
           } else {
             showToast('Erro ao excluir mensagem.', 'error');
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
           }
         } catch (error) {
           console.error('Error deleting message:', error);
           showToast('Erro de conexão.', 'error');
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });

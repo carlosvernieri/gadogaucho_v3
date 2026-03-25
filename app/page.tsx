@@ -76,12 +76,34 @@ function GadoGauchoContent() {
     return d;
   }, []);
 
+  const [allRSCities, setAllRSCities] = useState<any[]>(RS_CITIES);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/43/municipios');
+        if (response.ok) {
+          const data = await response.json();
+          const formattedCities = data.map((city: any) => ({
+            name: city.nome,
+            // Keep existing lat/lng if we have them in RS_CITIES
+            ...RS_CITIES.find(c => c.name.toLowerCase() === city.nome.toLowerCase())
+          }));
+          setAllRSCities(formattedCities);
+        }
+      } catch (error) {
+        console.error('Error fetching cities:', error);
+      }
+    };
+    fetchCities();
+  }, []);
+
   const citySuggestions = useMemo(() => {
     if (citySearch.length > 1 && showCitySuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
+      return allRSCities.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
     }
     return [];
-  }, [citySearch, showCitySuggestions]);
+  }, [citySearch, showCitySuggestions, allRSCities]);
 
   const handleUseMyLocation = () => {
     if (navigator.geolocation) {
@@ -276,7 +298,8 @@ function GadoGauchoContent() {
     phone: '',
     email: '',
     city: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
 
   // Ad Form State
@@ -298,17 +321,17 @@ function GadoGauchoContent() {
 
   const citySuggestionsAd = useMemo(() => {
     if (citySearchAd.length > 1 && showAdSuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
+      return allRSCities.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
     }
     return [];
-  }, [citySearchAd, showAdSuggestions]);
+  }, [citySearchAd, showAdSuggestions, allRSCities]);
 
   const citySuggestionsAuth = useMemo(() => {
     if (citySearchAuth.length > 1 && showAuthSuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
+      return allRSCities.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
     }
     return [];
-  }, [citySearchAuth, showAuthSuggestions]);
+  }, [citySearchAuth, showAuthSuggestions, allRSCities]);
 
   const totalPrice = useMemo(() => {
     return adForm.weight * adForm.priceKg;
@@ -317,7 +340,28 @@ function GadoGauchoContent() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(authForm.email)) {
+      setAuthError('E-mail inválido');
+      return;
+    }
+
     if (authMode === 'register') {
+      // Phone validation (xx) xxxx xxxxx
+      const phoneRegex = /^\(\d{2}\) \d{4} \d{5}$/;
+      if (!phoneRegex.test(authForm.phone)) {
+        setAuthError('Telefone inválido. Use o formato (xx) xxxx xxxxx');
+        return;
+      }
+
+      // Password confirmation
+      if (authForm.password !== authForm.confirmPassword) {
+        setAuthError('As senhas não coincidem');
+        return;
+      }
+
       const newUser = { 
         ...authForm, 
         is_admin: authForm.email === 'adriano.prog@gmail.com' 
@@ -508,7 +552,7 @@ function GadoGauchoContent() {
     setIsSubmittingAd(true);
     
     // Find coordinates for the selected city
-    const cityData = RS_CITIES.find(c => c.name.toLowerCase() === adForm.city.toLowerCase());
+    const cityData = allRSCities.find(c => c.name.toLowerCase() === adForm.city.toLowerCase());
     
     const newAd = {
       category: adForm.category.toUpperCase(),
@@ -928,8 +972,23 @@ function GadoGauchoContent() {
                           type="tel" 
                           required
                           value={authForm.phone}
-                          onChange={(e) => setAuthForm({...authForm, phone: e.target.value})}
-                          placeholder="(00) 00000-0000" 
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, '');
+                            if (val.length > 11) val = val.slice(0, 11);
+                            
+                            let formatted = val;
+                            if (val.length > 0) {
+                              formatted = `(${val.slice(0, 2)}`;
+                              if (val.length > 2) {
+                                formatted += `) ${val.slice(2, 6)}`;
+                                if (val.length > 6) {
+                                  formatted += ` ${val.slice(6, 11)}`;
+                                }
+                              }
+                            }
+                            setAuthForm({...authForm, phone: formatted});
+                          }}
+                          placeholder="(00) 0000 00000" 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                         />
                       </div>
@@ -1000,6 +1059,21 @@ function GadoGauchoContent() {
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                     />
                   </div>
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                        Confirmar Senha <span className="text-[#DC3545]">*</span>
+                      </label>
+                      <input 
+                        type="password" 
+                        required
+                        value={authForm.confirmPassword}
+                        onChange={(e) => setAuthForm({...authForm, confirmPassword: e.target.value})}
+                        placeholder="••••••••" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
+                      />
+                    </div>
+                  )}
                   
                   <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
                     {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
