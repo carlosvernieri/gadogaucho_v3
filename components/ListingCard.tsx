@@ -32,7 +32,7 @@ export const ListingCard = ({
   const handleSellerClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/vendedor/${encodeURIComponent(listing.seller)}`);
+    router.push(`/vendedor/${listing.user_id}`);
   };
 
   const handleActionClick = (e: React.MouseEvent, action: 'heart' | 'share') => {

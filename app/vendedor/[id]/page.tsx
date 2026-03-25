@@ -17,9 +17,11 @@ import { Badge } from '@/components/Badge';
 export default function VendedorPage() {
   const params = useParams();
   const router = useRouter();
-  const sellerName = decodeURIComponent(params.name as string);
+  const sellerId = params.id as string;
   const { user, setUser, logout } = useUser();
   
+  const [sellerName, setSellerName] = useState('Carregando...');
+  const [sellerVerified, setSellerVerified] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
   const [allListings, setAllListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,12 @@ export default function VendedorPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sellerRes, allRes] = await Promise.all([
-          fetch(`/api/listings?seller=${encodeURIComponent(sellerName)}`).catch(err => {
+        const [sellerUser, sellerRes, allRes] = await Promise.all([
+          fetch(`/api/users/${sellerId}`).catch(err => {
+            console.error('User fetch failed:', err);
+            return { ok: false, json: async () => ({}) } as Response;
+          }),
+          fetch(`/api/listings?userId=${sellerId}`).catch(err => {
             console.error('Seller listings fetch failed:', err);
             return { ok: false, json: async () => [] } as Response;
           }),
@@ -41,6 +47,14 @@ export default function VendedorPage() {
           })
         ]);
         
+        if (sellerUser.ok) {
+           const sUser = await sellerUser.json();
+           setSellerName(sUser.name || 'Vendedor Desconhecido');
+           setSellerVerified(!!sUser.verified);
+        } else {
+           setSellerName('Vendedor Desconhecido');
+        }
+
         const sellerData = sellerRes.ok ? await sellerRes.json() : [];
         setListings(Array.isArray(sellerData) ? sellerData : []);
         
@@ -66,7 +80,7 @@ export default function VendedorPage() {
       }
     };
     fetchData();
-  }, [sellerName]);
+  }, [sellerId]);
 
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
@@ -122,7 +136,7 @@ export default function VendedorPage() {
           onMyAdsClick={() => router.push('/meus-anuncios')}
         />
         <div className="flex-1 flex items-center justify-center">
-          <LoadingScreen fullScreen={false} message={`Carregando perfil de ${sellerName}...`} />
+          <LoadingScreen fullScreen={false} message={`Carregando perfil...`} />
         </div>
       </div>
     );
@@ -182,7 +196,7 @@ export default function VendedorPage() {
             <div className="bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm flex flex-col md:flex-row items-center gap-8">
               <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-[#F8F9FA] shadow-md">
                 <Image 
-                  src={`https://picsum.photos/seed/${sellerName}/200/200`} 
+                  src={`https://picsum.photos/seed/${sellerId}/200/200`} 
                   alt={sellerName} 
                   fill 
                   className="object-cover" 
@@ -196,7 +210,7 @@ export default function VendedorPage() {
                     <MapPin size={16} className="text-[#2D5A27]" />
                     Rio Grande do Sul
                   </div>
-                  {listings.length > 0 && listings[0].sellerVerified && (
+                  {sellerVerified && (
                     <Badge variant="seller-verified" className="text-[10px] py-1 px-3 rounded-full">
                       Vendedor Verificado
                     </Badge>

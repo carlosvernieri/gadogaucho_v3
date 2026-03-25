@@ -8,13 +8,13 @@ import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
 import { InterestForm } from './InterestForm';
 
-export const ListingDetail = ({ 
-  listing, 
-  onShare, 
-  onToggleFavorite, 
-  isFavorite 
-}: { 
-  listing: any, 
+export const ListingDetail = ({
+  listing,
+  onShare,
+  onToggleFavorite,
+  isFavorite
+}: {
+  listing: any,
   onShare: (id: number) => void,
   onToggleFavorite: (id: number) => void,
   isFavorite: boolean
@@ -29,24 +29,24 @@ export const ListingDetail = ({
       <div className="flex-1">
         <div className="relative aspect-[16/10] rounded-3xl overflow-hidden mb-4 shadow-lg bg-[#F8F9FA]">
           {activeMedia < (listing.images?.length || 0) ? (
-            <Image 
-              src={allMedia[activeMedia]} 
-              alt={listing.title} 
-              fill 
+            <Image
+              src={allMedia[activeMedia]}
+              alt={listing.title}
+              fill
               className="object-cover"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <video 
-              src={allMedia[activeMedia]} 
-              controls 
+            <video
+              src={allMedia[activeMedia]}
+              controls
               className="w-full h-full object-contain bg-black"
             />
           )}
           {listing.sold && (
             <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none" />
           )}
-          <Link 
+          <Link
             href="/"
             className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#333] hover:bg-white transition-all shadow-md z-10"
           >
@@ -60,20 +60,20 @@ export const ListingDetail = ({
               </Badge>
             </div>
           )}
-          
+
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {allMedia.map((_: string, idx: number) => (
-              <div 
-                key={idx} 
-                className={`h-1.5 rounded-full transition-all ${activeMedia === idx ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} 
+              <div
+                key={idx}
+                className={`h-1.5 rounded-full transition-all ${activeMedia === idx ? 'w-8 bg-white' : 'w-2 bg-white/50'}`}
               />
             ))}
           </div>
         </div>
-        
+
         <div className="flex gap-4 overflow-x-auto pb-2">
           {allMedia.map((media: string, idx: number) => (
-            <button 
+            <button
               key={idx}
               onClick={() => setActiveMedia(idx)}
               className={`relative w-24 aspect-square rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${activeMedia === idx ? 'border-[#2D5A27]' : 'border-transparent opacity-70'}`}
@@ -89,13 +89,13 @@ export const ListingDetail = ({
           ))}
         </div>
       </div>
-      
+
       {/* Right: Info */}
       <div className="w-full lg:w-[400px] flex flex-col gap-6">
         <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col gap-1">
-              <Link 
+              <Link
                 href={`/categoria/${slugify(listing.category)}`}
                 className="text-[10px] font-bold text-[#999] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
               >
@@ -104,17 +104,16 @@ export const ListingDetail = ({
               <span className="text-[10px] text-[#999]">Cód: #{listing.id}</span>
             </div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => onToggleFavorite(listing.id)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${
-                  isFavorite 
-                    ? 'bg-[#DC3545] text-white border-[#DC3545]' 
-                    : 'bg-[#F8F9FA] text-[#DC3545] border-transparent hover:border-[#E9ECEF] hover:bg-white'
-                }`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${isFavorite
+                  ? 'bg-[#DC3545] text-white border-[#DC3545]'
+                  : 'bg-[#F8F9FA] text-[#DC3545] border-transparent hover:border-[#E9ECEF] hover:bg-white'
+                  }`}
               >
                 <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
               </button>
-              <button 
+              <button
                 onClick={() => onShare(listing.id)}
                 className="w-10 h-10 rounded-full bg-[#F8F9FA] flex items-center justify-center text-[#666] hover:bg-white border border-transparent hover:border-[#E9ECEF] transition-all"
               >
@@ -122,7 +121,7 @@ export const ListingDetail = ({
               </button>
             </div>
           </div>
-          
+
           <div className="mb-6">
             <span className="text-[10px] font-bold text-[#999] uppercase">Preço por kg</span>
             <div className="text-4xl font-bold text-[#2D5A27] mb-2">
@@ -143,23 +142,23 @@ export const ListingDetail = ({
               </div>
             </div>
           </div>
-          
-          <h1 className="text-2xl font-bold text-[#333] mb-4 leading-tight">{listing.title}</h1>
+
+          <h1 className="text-2xl font-bold text-[#333] mb-4 leading-tight">{listing.category}</h1>
           <p className="text-sm text-[#666] leading-relaxed mb-8">
             {listing.description}
           </p>
-          
+
           <div className="bg-[#F8F9FA] rounded-2xl p-4 mb-6 flex items-center gap-4">
-            <Link 
-              href={`/vendedor/${encodeURIComponent(listing.seller)}`}
+            <Link
+              href={`/vendedor/${listing.user_id}`}
               className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm hover:opacity-80 transition-opacity"
             >
-              <Image src={`https://picsum.photos/seed/${listing.seller}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
+              <Image src={`https://picsum.photos/seed/${listing.user_id}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
             </Link>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Link 
-                  href={`/vendedor/${encodeURIComponent(listing.seller)}`}
+                <Link
+                  href={`/vendedor/${listing.user_id}`}
                   className="font-bold text-sm text-[#333] hover:text-[#2D5A27] transition-colors"
                 >
                   {listing.seller}
@@ -175,9 +174,9 @@ export const ListingDetail = ({
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
-            <button 
+            <button
               onClick={() => setShowInterestForm(true)}
               className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98]"
             >
@@ -187,7 +186,7 @@ export const ListingDetail = ({
         </div>
       </div>
 
-      <InterestForm 
+      <InterestForm
         isOpen={showInterestForm}
         onClose={() => setShowInterestForm(false)}
         listingId={listing.id}

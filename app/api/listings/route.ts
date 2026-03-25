@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
+    const userId = searchParams.get('userId');
 
     let query = (supabaseAdmin
       .from('listings') as any)
@@ -21,6 +22,10 @@ export async function GET(request: Request) {
       // But usually it's better to filter by user_id if we have it.
       // For now, let's assume if seller is passed, it's a name filter on the joined table.
       query = query.eq('users.name', seller);
+    }
+
+    if (userId) {
+      query = query.eq('user_id', userId);
     }
 
     const { data: listings, error } = await query.order('id', { ascending: false });
