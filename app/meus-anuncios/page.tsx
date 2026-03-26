@@ -63,7 +63,7 @@ export default function MeusAnunciosPage() {
 
   const citySuggestionsAd = React.useMemo(() => {
     if (!showAdSuggestions) return [];
-    if (!citySearchAd) return RS_CITIES;
+    if (citySearchAd.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
   }, [citySearchAd, showAdSuggestions]);
 

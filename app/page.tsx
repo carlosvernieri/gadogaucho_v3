@@ -87,7 +87,7 @@ function GadoGauchoContent() {
   const citySuggestions = useMemo(() => {
     if (!showCitySuggestions) return [];
     if (citySearch === 'Minha Localização') return [];
-    if (!citySearch) return RS_CITIES;
+    if (citySearch.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
   }, [citySearch, showCitySuggestions]);
 
@@ -307,13 +307,13 @@ function GadoGauchoContent() {
 
   const citySuggestionsAd = useMemo(() => {
     if (!showAdSuggestions) return [];
-    if (!citySearchAd) return RS_CITIES;
+    if (citySearchAd.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
   }, [citySearchAd, showAdSuggestions]);
 
   const citySuggestionsAuth = useMemo(() => {
     if (!showAuthSuggestions) return [];
-    if (!citySearchAuth) return RS_CITIES;
+    if (citySearchAuth.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
   }, [citySearchAuth, showAuthSuggestions]);
 
