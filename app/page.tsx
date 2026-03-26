@@ -802,41 +802,7 @@ function GadoGauchoContent() {
         </main>
       </div>
       
-      {/* Admin Seed Button */}
-      {user?.is_admin && (
-        <button
-          onClick={() => {
-            setConfirmModal({
-              isOpen: true,
-              title: 'Gerar Dados Exemplo',
-              message: 'Deseja inserir 20 anúncios de exemplo no banco de dados para teste?',
-              confirmText: 'Gerar Agora',
-              onConfirm: async () => {
-                setConfirmModal(prev => ({ ...prev, loading: true }));
-                try {
-                  const res = await fetch('/api/seed');
-                  const data = await res.json();
-                  if (data.success) {
-                    showToast(data.message);
-                    setTimeout(() => window.location.reload(), 1500);
-                  } else {
-                    showToast('Erro ao inserir dados: ' + data.error);
-                  }
-                } catch (error) {
-                  showToast('Erro ao conectar ao servidor');
-                } finally {
-                  setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
-                }
-              }
-            });
-          }}
-          className="fixed bottom-24 right-6 z-[60] bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600 transition-all flex items-center gap-2 font-bold text-sm"
-          title="Gerar 20 anúncios de exemplo"
-        >
-          <Plus size={20} />
-          <span className="hidden sm:inline">Gerar Dados Exemplo</span>
-        </button>
-      )}
+
 
       {/* Confirm Modal */}
       <ConfirmModal 
