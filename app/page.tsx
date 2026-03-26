@@ -123,6 +123,7 @@ function GadoGauchoContent() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedListingForShare, setSelectedListingForShare] = useState<any>(null);
   const [favoriteToastMessage, setFavoriteToastMessage] = useState('');
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   // Custom Modal States
   const [confirmModal, setConfirmModal] = useState<{
@@ -493,6 +494,8 @@ function GadoGauchoContent() {
     const isFavorite = favorites.map(Number).includes(listingIdNum);
     const method = isFavorite ? 'DELETE' : 'POST';
 
+    setIsTogglingFavorite(true);
+
     try {
       const res = await fetch('/api/favorites', {
         method,
@@ -513,6 +516,8 @@ function GadoGauchoContent() {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
+    } finally {
+      setIsTogglingFavorite(false);
     }
   };
 
@@ -815,6 +820,14 @@ function GadoGauchoContent() {
         type={confirmModal.type}
         loading={confirmModal.loading}
       />
+
+      {/* Custom Full-Screen Loading States */}
+      {isTogglingFavorite && (
+        <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+          <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Atualizando favoritos...</h3>
+        </div>
+      )}
 
       {/* Auth Modal */}
       <AnimatePresence>
