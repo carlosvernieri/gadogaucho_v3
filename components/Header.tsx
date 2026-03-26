@@ -18,12 +18,12 @@ interface HeaderProps {
   onMessagesClick?: () => void;
 }
 
-export const Header = ({ 
-  user, 
-  onMenuClick, 
-  onAuthClick, 
-  onAdClick, 
-  onAdminClick, 
+export const Header = ({
+  user,
+  onMenuClick,
+  onAuthClick,
+  onAdClick,
+  onAdminClick,
   onLogout,
   onHomeClick,
   onFavoritesClick,
@@ -35,24 +35,24 @@ export const Header = ({
     <header className="z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={onMenuClick}
             className="lg:hidden p-2 text-[#333] cursor-pointer"
           >
             <Menu size={22} className="sm:w-6 sm:h-6" />
           </button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={onHomeClick}>
-            <div className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 bg-[#2D5A27] rounded-xl items-center justify-center text-white">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#2D5A27] rounded-xl flex items-center justify-center text-white">
               <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
             <span className="text-[22px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={onAdClick}
                 className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-emerald-100 text-[#2D5A27] rounded-lg text-sm font-bold hover:bg-emerald-200 transition-all shadow-md shadow-emerald-800/10 cursor-pointer"
               >
@@ -60,7 +60,7 @@ export const Header = ({
               </button>
               <div className="hidden lg:flex items-center gap-2">
                 {user.is_admin && (
-                  <button 
+                  <button
                     onClick={() => router.push('/admin')}
                     className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
                     title="Painel Administrativo"
@@ -69,7 +69,7 @@ export const Header = ({
                     <span className="hidden xl:inline">Admin</span>
                   </button>
                 )}
-                <button 
+                <button
                   onClick={onMyAdsClick}
                   className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
                   title="Meus Anúncios"
@@ -77,7 +77,7 @@ export const Header = ({
                   <Megaphone size={20} />
                   <span className="hidden xl:inline">Meus Anúncios</span>
                 </button>
-                <button 
+                <button
                   onClick={onMessagesClick || (() => router.push('/mensagens'))}
                   className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
                   title="Mensagens"
@@ -85,7 +85,7 @@ export const Header = ({
                   <MessageSquare size={20} />
                   <span className="hidden xl:inline">Mensagens</span>
                 </button>
-                <button 
+                <button
                   onClick={onFavoritesClick}
                   className="p-2 text-[#666] hover:text-[#DC3545] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
                   title="Meus Favoritos"
@@ -105,7 +105,7 @@ export const Header = ({
                     {user.is_admin ? 'Administrador' : 'Usuário'}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={onLogout}
                   className="p-2 text-[#999] hover:text-[#333] transition-colors cursor-pointer"
                 >
@@ -115,13 +115,13 @@ export const Header = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => onAuthClick('register')}
                 className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-emerald-100 text-[#2D5A27] rounded-lg text-sm font-bold hover:bg-emerald-200 transition-all shadow-md shadow-emerald-800/10 cursor-pointer"
               >
                 <Megaphone size={18} /> Anuncie aqui
               </button>
-              <button 
+              <button
                 onClick={() => onAuthClick('login')}
                 className="flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
