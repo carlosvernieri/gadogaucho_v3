@@ -85,10 +85,10 @@ function GadoGauchoContent() {
   }, []);
 
   const citySuggestions = useMemo(() => {
-    if (citySearch.length > 1 && showCitySuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
-    }
-    return [];
+    if (!showCitySuggestions) return [];
+    if (citySearch === 'Minha Localização') return [];
+    if (!citySearch) return RS_CITIES;
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
   }, [citySearch, showCitySuggestions]);
 
   const handleUseMyLocation = () => {
@@ -306,17 +306,15 @@ function GadoGauchoContent() {
   const [showAuthSuggestions, setShowAuthSuggestions] = useState(false);
 
   const citySuggestionsAd = useMemo(() => {
-    if (citySearchAd.length > 1 && showAdSuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
-    }
-    return [];
+    if (!showAdSuggestions) return [];
+    if (!citySearchAd) return RS_CITIES;
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
   }, [citySearchAd, showAdSuggestions]);
 
   const citySuggestionsAuth = useMemo(() => {
-    if (citySearchAuth.length > 1 && showAuthSuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
-    }
-    return [];
+    if (!showAuthSuggestions) return [];
+    if (!citySearchAuth) return RS_CITIES;
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
   }, [citySearchAuth, showAuthSuggestions]);
 
   const totalPrice = useMemo(() => {
@@ -933,6 +931,7 @@ function GadoGauchoContent() {
                               setShowAuthSuggestions(true);
                             }}
                             onFocus={() => setShowAuthSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
                             placeholder="Sua cidade no RS" 
                             className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20" 
                           />
@@ -1096,6 +1095,7 @@ function GadoGauchoContent() {
                             setShowAdSuggestions(true);
                           }}
                           onFocus={() => setShowAdSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowAdSuggestions(false), 200)}
                           placeholder="Busque o município..." 
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
                         />

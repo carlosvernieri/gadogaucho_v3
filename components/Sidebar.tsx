@@ -95,6 +95,7 @@ export const Sidebar = ({
                 value={citySearch}
                 onChange={(e) => onCitySearchChange(e.target.value)}
                 onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 suppressHydrationWarning
                 className="w-full bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />

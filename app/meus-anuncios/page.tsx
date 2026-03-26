@@ -62,10 +62,9 @@ export default function MeusAnunciosPage() {
   const [showAdSuggestions, setShowAdSuggestions] = useState(false);
 
   const citySuggestionsAd = React.useMemo(() => {
-    if (citySearchAd.length > 1 && showAdSuggestions) {
-      return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
-    }
-    return [];
+    if (!showAdSuggestions) return [];
+    if (!citySearchAd) return RS_CITIES;
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
   }, [citySearchAd, showAdSuggestions]);
 
 
@@ -565,6 +564,7 @@ export default function MeusAnunciosPage() {
                           setShowAdSuggestions(true);
                         }}
                         onFocus={() => setShowAdSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowAdSuggestions(false), 200)}
                         placeholder="Nome da cidade..."
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
                       />

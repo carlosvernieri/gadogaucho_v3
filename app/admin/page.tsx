@@ -23,9 +23,12 @@ import {
   Search,
   Megaphone,
   Heart,
-  Loader2
+  Loader2,
+  Camera,
+  Video
 } from 'lucide-react';
 import Image from 'next/image';
+import { RS_CITIES } from '@/lib/data';
 
 const formatPhone = (val: string) => {
   if (!val) return '';
@@ -55,6 +58,7 @@ export default function AdminPage() {
 
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [isUpdatingListing, setIsUpdatingListing] = useState(false);
   const [adForm, setAdForm] = useState({
     title: '',
     category: '',
@@ -63,8 +67,64 @@ export default function AdminPage() {
     avgWeight: 0,
     quantity: 0,
     location: '',
-    description: ''
+    description: '',
+    images: [] as string[],
+    videos: [] as string[]
   });
+  
+  const [citySearchAd, setCitySearchAd] = useState('');
+  const [showAdSuggestions, setShowAdSuggestions] = useState(false);
+
+  const citySuggestionsAd = React.useMemo(() => {
+    if (!showAdSuggestions) return [];
+    if (!citySearchAd) return RS_CITIES;
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAd.toLowerCase()));
+  }, [citySearchAd, showAdSuggestions]);
+
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const videoInputRef = React.useRef<HTMLInputElement>(null);
+
+  const totalPrice = React.useMemo(() => {
+    return adForm.avgWeight * adForm.priceKg;
+  }, [adForm.avgWeight, adForm.priceKg]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newFiles: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (type === 'images' && file.size > 5 * 1024 * 1024) {
+        showToast('A imagem é muito grande. Máximo 5MB.', 'error');
+        continue;
+      }
+      if (type === 'videos' && file.size > 50 * 1024 * 1024) {
+        showToast('O vídeo é muito grande. Máximo 50MB.', 'error');
+        continue;
+      }
+      
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      newFiles.push(base64);
+    }
+
+    setAdForm(prev => ({
+      ...prev,
+      [type]: [...prev[type], ...newFiles]
+    }));
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number, type: 'images' | 'videos') => {
+    setAdForm(prev => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== index)
+    }));
+  };
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -294,23 +354,38 @@ export default function AdminPage() {
 
   const handleUpdateListing = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUpdatingListing(true);
     try {
+      const cityData = RS_CITIES.find(c => c.name.toLowerCase() === citySearchAd.toLowerCase());
+      
+      const payload = {
+        ...adForm,
+        price: totalPrice,
+        location: adForm.location || (citySearchAd ? `${citySearchAd} - RS` : ''),
+        lat: cityData?.lat || null,
+        lng: cityData?.lng || null,
+        image: adForm.images.length > 0 ? adForm.images[0] : null
+      };
+
       const res = await fetch(`/api/listings/${editingListingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify(adForm)
+        body: safeJsonStringify(payload)
       });
       if (res.ok) {
         setShowAdModal(false);
         setEditingListingId(null);
-        fetchData();
+        await fetchData();
         showToast('Anúncio atualizado com sucesso!', 'success');
       } else {
-        showToast('Erro ao atualizar anúncio.', 'error');
+        const err = await res.json().catch(() => ({}));
+        showToast(`Erro ao atualizar anúncio. ${err.error || ''}`, 'error');
       }
     } catch (error) {
       console.error('Error updating listing:', error);
       showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsUpdatingListing(false);
     }
   };
 
@@ -586,8 +661,11 @@ export default function AdminPage() {
                                     avgWeight: l.avgWeight || 0,
                                     quantity: l.quantity || 0,
                                     location: l.location || '',
-                                    description: l.description || ''
+                                    description: l.description || '',
+                                    images: Array.isArray(l.images) ? l.images : (l.image ? [l.image] : []),
+                                    videos: Array.isArray(l.videos) ? l.videos : []
                                   });
+                                  setCitySearchAd(l.location ? l.location.split(' - ')[0] : '');
                                   setShowAdModal(true);
                                 }}
                                 className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
@@ -741,6 +819,13 @@ export default function AdminPage() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
             >
+              {isUpdatingListing && (
+                <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Salvando alterações...</h3>
+                  <p className="text-sm text-[#666] mt-2">Atualizando dados e imagens, por favor aguarde.</p>
+                </div>
+              )}
               <div className="p-8 border-b border-[#E9ECEF] flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-[#333]">Editar Anúncio</h2>
                 <button onClick={() => { setShowAdModal(false); setEditingListingId(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
@@ -810,23 +895,51 @@ export default function AdminPage() {
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Preço Total (R$)</label>
                       <input 
-                        type="number" 
-                        step="0.01" required
-                        value={adForm.price}
-                        onChange={(e) => setAdForm({...adForm, price: Number(e.target.value)})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        type="text" 
+                        readOnly
+                        value={totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        className="w-full bg-[#E9F0E8] text-[#2D5A27] font-bold border border-transparent rounded-xl px-4 py-3 text-sm outline-none cursor-not-allowed" 
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Localização</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={adForm.location}
-                      onChange={(e) => setAdForm({...adForm, location: e.target.value})}
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
-                    />
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Localização (Município RS)</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        required
+                        value={citySearchAd}
+                        onChange={(e) => {
+                          setCitySearchAd(e.target.value);
+                          setAdForm({...adForm, location: e.target.value});
+                          setShowAdSuggestions(true);
+                        }}
+                        onFocus={() => setShowAdSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowAdSuggestions(false), 200)}
+                        placeholder="Nome da cidade..."
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      />
+                      {citySuggestionsAd.length > 0 && (
+                        <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                          {citySuggestionsAd.map((city: any) => (
+                            <button 
+                              key={city.name}
+                              type="button"
+                              onClick={() => {
+                                const newLocation = `${city.name.toUpperCase()} - RS`;
+                                setAdForm({...adForm, location: newLocation});
+                                setCitySearchAd(city.name.toUpperCase());
+                                setShowAdSuggestions(false);
+                              }}
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{city.name}</span>
+                              <span className="text-[10px] text-[#999]">RS</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Descrição</label>
@@ -836,6 +949,75 @@ export default function AdminPage() {
                       onChange={(e) => setAdForm({...adForm, description: e.target.value})}
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none" 
                     />
+                  </div>
+
+                  <div className="space-y-4 border-t border-[#E9ECEF] pt-4 mt-4">
+                    <label className="block text-sm font-bold text-[#333] mb-2">Fotos e Vídeos</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input 
+                        type="file" 
+                        ref={imageInputRef} 
+                        onChange={(e) => handleFileChange(e, 'images')} 
+                        multiple 
+                        accept="image/*" 
+                        className="hidden" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => imageInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                      >
+                        <Camera size={24} />
+                        <span className="text-[10px] font-bold uppercase">Adicionar Fotos</span>
+                      </button>
+
+                      <input 
+                        type="file" 
+                        ref={videoInputRef} 
+                        onChange={(e) => handleFileChange(e, 'videos')} 
+                        multiple 
+                        accept="video/*" 
+                        className="hidden" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => videoInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                      >
+                        <Video size={24} />
+                        <span className="text-[10px] font-bold uppercase">Adicionar Vídeos</span>
+                      </button>
+                    </div>
+
+                    {(adForm.images.length > 0 || adForm.videos.length > 0) && (
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                        {adForm.images.map((img, idx) => (
+                          <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group border border-[#E9ECEF]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <button 
+                              type="button"
+                              onClick={() => removeFile(idx, 'images')}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        {adForm.videos.map((vid, idx) => (
+                          <div key={`vid-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group bg-black flex items-center justify-center border border-[#E9ECEF]">
+                            <Video size={20} className="text-white" />
+                            <button 
+                              type="button"
+                              onClick={() => removeFile(idx, 'videos')}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   <button 
