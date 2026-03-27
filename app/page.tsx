@@ -30,7 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { slugify, safeJsonStringify } from '@/lib/utils';
+import { slugify, safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
@@ -117,6 +117,7 @@ function GadoGauchoContent() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showMyAds, setShowMyAds] = useState(false);
   const [isSubmittingAd, setIsSubmittingAd] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isUpdatingListing, setIsUpdatingListing] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -125,6 +126,7 @@ function GadoGauchoContent() {
   const [selectedListingForShare, setSelectedListingForShare] = useState<any>(null);
   const [favoriteToastMessage, setFavoriteToastMessage] = useState('');
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState<string[]>([]);
 
   // Custom Modal States
   const [confirmModal, setConfirmModal] = useState<{
@@ -172,9 +174,12 @@ function GadoGauchoContent() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
+    setIsUploadingMedia(true);
     const newFiles: string[] = [];
+    const newImages: string[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
@@ -193,29 +198,84 @@ function GadoGauchoContent() {
           .getPublicUrl(filePath);
 
         newFiles.push(data.publicUrl);
+
+        if (type === 'videos') {
+          try {
+            const thumbBlob = await generateVideoThumbnail(file);
+            const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
+            const { error: thumbErr } = await supabase.storage
+              .from('gado_gaucho_media')
+              .upload(`images/${thumbName}`, thumbBlob);
+              
+            if (!thumbErr) {
+              const { data: thumbData } = supabase.storage
+                .from('gado_gaucho_media')
+                .getPublicUrl(`images/${thumbName}`);
+              newImages.push(thumbData.publicUrl);
+            }
+          } catch(err) {
+            console.error('Failed to generate video thumbnail:', err);
+          }
+        }
+
       } catch (err) {
         console.error('Upload Error:', err);
         showToast(`Erro ao enviar ${file.name}.`);
       }
     }
 
-    setAdForm(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newFiles]
-    }));
+    setAdForm((prev) => {
+      if (type === 'videos') {
+        return {
+          ...prev,
+          videos: [...prev.videos, ...newFiles],
+          images: newImages.length > 0 ? [...prev.images, ...newImages] : prev.images
+        };
+      } else {
+        return {
+          ...prev,
+          images: [...prev.images, ...newFiles]
+        };
+      }
+    });
     
     e.target.value = '';
     
     if (newFiles.length > 0) {
       showToast('Mídia adicionada com sucesso!');
     }
+    setIsUploadingMedia(false);
   };
 
   const removeFile = (index: number, type: 'images' | 'videos') => {
+    const fileUrl = adForm[type][index];
+    if (fileUrl) {
+       if (editingListingId) {
+          setMediaToDelete(prev => [...prev, fileUrl]);
+       } else {
+          deleteMediaFromStorage([fileUrl]);
+       }
+    }
     setAdForm(prev => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index)
     }));
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    setAdForm(prev => {
+      const newImages = [...prev.images];
+      if (direction === 'left' && index > 0) {
+        const temp = newImages[index - 1];
+        newImages[index - 1] = newImages[index];
+        newImages[index] = temp;
+      } else if (direction === 'right' && index < newImages.length - 1) {
+        const temp = newImages[index + 1];
+        newImages[index + 1] = newImages[index];
+        newImages[index] = temp;
+      }
+      return { ...prev, images: newImages };
+    });
   };
 
   // Fetch initial data
@@ -420,11 +480,18 @@ function GadoGauchoContent() {
     setConfirmModal({
       isOpen: true,
       title: 'Excluir Anúncio',
-      message: 'Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.',
+      message: 'Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita e todas as mídias anexadas serão apagadas.',
       confirmText: 'Excluir',
       type: 'danger',
       onConfirm: async () => {
         try {
+          const listing = listings.find(l => l.id === id);
+          if (listing) {
+            const allMedia = [...(listing.images || []), ...(listing.videos || [])];
+            if (allMedia.length > 0) {
+              await deleteMediaFromStorage(allMedia);
+            }
+          }
           await fetch(`/api/listings/${id}`, { method: 'DELETE' });
           setListings(listings.filter(l => l.id !== id));
           showToast('Anúncio excluído com sucesso');
@@ -573,6 +640,10 @@ function GadoGauchoContent() {
       if (res.ok) {
         const savedAd = await res.json();
         if (editingListingId) {
+          if (mediaToDelete.length > 0) {
+            await deleteMediaFromStorage(mediaToDelete);
+            setMediaToDelete([]);
+          }
           setListings(listings.map(l => l.id === editingListingId ? savedAd : l));
           showToast('Anúncio atualizado com sucesso!');
         } else {
@@ -617,6 +688,7 @@ function GadoGauchoContent() {
       videos: Array.isArray(listing.videos) ? listing.videos : []
     });
     setCitySearchAd(listing.location.split(' - ')[0]);
+    setMediaToDelete([]);
     setShowAdModal(true);
   };
 
@@ -1040,11 +1112,15 @@ function GadoGauchoContent() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              {isSubmittingAd && (
+              {(isSubmittingAd || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
                   <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
-                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Processando anúncio...</h3>
-                  <p className="text-sm text-[#666] mt-2">Carregando dados e imagens, por favor aguarde.</p>
+                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
+                    {isUploadingMedia ? 'Enviando mídias...' : 'Processando anúncio...'}
+                  </h3>
+                  <p className="text-sm text-[#666] mt-2">
+                    {isUploadingMedia ? 'Aguarde o carregamento das suas fotos e vídeos.' : 'Carregando dados e imagens, por favor aguarde.'}
+                  </p>
                 </div>
               )}
               <div className="p-8">
@@ -1052,7 +1128,7 @@ function GadoGauchoContent() {
                   <h2 className="text-2xl font-bold text-[#333]">
                     {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}
                   </h2>
-                  <button onClick={() => { setShowAdModal(false); setEditingListingId(null); }} className="text-[#999] hover:text-[#333] cursor-pointer">
+                  <button onClick={() => { setShowAdModal(false); setEditingListingId(null); setMediaToDelete([]); }} className="text-[#999] hover:text-[#333] cursor-pointer">
                     <X size={24} />
                   </button>
                 </div>
@@ -1173,14 +1249,16 @@ function GadoGauchoContent() {
                         multiple 
                         accept="image/*" 
                         className="hidden" 
+                        disabled={isUploadingMedia}
                       />
                       <button 
                         type="button" 
+                        disabled={isUploadingMedia}
                         onClick={() => imageInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                        className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        <Camera size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Fotos</span>
+                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Camera size={24} />}
+                        <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
                       <input 
@@ -1190,14 +1268,16 @@ function GadoGauchoContent() {
                         multiple 
                         accept="video/*" 
                         className="hidden" 
+                        disabled={isUploadingMedia}
                       />
                       <button 
                         type="button" 
+                        disabled={isUploadingMedia}
                         onClick={() => videoInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                        className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        <Video size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Vídeos</span>
+                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Video size={24} />}
+                        <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
                     </div>
 
@@ -1205,15 +1285,38 @@ function GadoGauchoContent() {
                     {(adForm.images.length > 0 || adForm.videos.length > 0) && (
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
                         {adForm.images.map((img, idx) => (
-                          <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group">
+                          <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group border border-[#E9ECEF]">
                             <Image src={img} alt="" fill className="object-cover" unoptimized />
+                            
+                            {/* Reorder Overlay */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                               {idx > 0 && (
+                                  <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                    <ChevronLeft size={16} />
+                                  </button>
+                               )}
+                               {idx < adForm.images.length - 1 && (
+                                  <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                    <ChevronRight size={16} />
+                                  </button>
+                               )}
+                            </div>
+
+                            {/* Delete Button */}
                             <button 
                               type="button"
                               onClick={() => removeFile(idx, 'images')}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10 shadow-md"
                             >
                               <X size={12} />
                             </button>
+                            
+                            {/* Capa Badge */}
+                            {idx === 0 && (
+                              <div className="absolute top-1 left-1 bg-[#2D5A27] text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full z-10 shadow-md">
+                                Capa
+                              </div>
+                            )}
                           </div>
                         ))}
                         {adForm.videos.map((vid, idx) => (

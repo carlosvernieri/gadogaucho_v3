@@ -8,7 +8,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -21,6 +21,7 @@ import {
   Check, 
   MapPin,
   ChevronLeft,
+  ChevronRight,
   Search,
   Megaphone,
   Heart,
@@ -60,6 +61,8 @@ export default function AdminPage() {
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
   const [isUpdatingListing, setIsUpdatingListing] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState<string[]>([]);
   const [adForm, setAdForm] = useState({
     title: '',
     category: '',
@@ -91,9 +94,12 @@ export default function AdminPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
+    setIsUploadingMedia(true);
     const newFiles: string[] = [];
+    const newImages: string[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
@@ -121,27 +127,83 @@ export default function AdminPage() {
           .getPublicUrl(filePath);
 
         newFiles.push(data.publicUrl);
+
+        if (type === 'videos') {
+          try {
+            const thumbBlob = await generateVideoThumbnail(file);
+            const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
+            const { error: thumbErr } = await supabase.storage
+              .from('gado_gaucho_media')
+              .upload(`images/${thumbName}`, thumbBlob);
+              
+            if (!thumbErr) {
+              const { data: thumbData } = supabase.storage
+                .from('gado_gaucho_media')
+                .getPublicUrl(`images/${thumbName}`);
+              newImages.push(thumbData.publicUrl);
+            }
+          } catch(err) {
+            console.error('Failed to generate video thumbnail:', err);
+          }
+        }
+
       } catch (err) {
         console.error('Upload Error:', err);
         showToast(`Erro ao enviar ${file.name}.`);
       }
     }
 
-    setAdForm(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newFiles]
-    }));
+    setAdForm((prev) => {
+      if (type === 'videos') {
+        return {
+          ...prev,
+          videos: [...prev.videos, ...newFiles],
+          images: newImages.length > 0 ? [...prev.images, ...newImages] : prev.images
+        };
+      } else {
+        return {
+          ...prev,
+          images: [...prev.images, ...newFiles]
+        };
+      }
+    });
     e.target.value = '';
+    
     if (newFiles.length > 0) {
       showToast('Mídia atualizada com sucesso!');
     }
+    setIsUploadingMedia(false);
   };
 
   const removeFile = (index: number, type: 'images' | 'videos') => {
+    const fileUrl = adForm[type][index];
+    if (fileUrl) {
+       if (editingListingId) {
+          setMediaToDelete(prev => [...prev, fileUrl]);
+       } else {
+          deleteMediaFromStorage([fileUrl]);
+       }
+    }
     setAdForm(prev => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index)
     }));
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    setAdForm(prev => {
+      const newImages = [...prev.images];
+      if (direction === 'left' && index > 0) {
+        const temp = newImages[index - 1];
+        newImages[index - 1] = newImages[index];
+        newImages[index] = temp;
+      } else if (direction === 'right' && index < newImages.length - 1) {
+        const temp = newImages[index + 1];
+        newImages[index + 1] = newImages[index];
+        newImages[index] = temp;
+      }
+      return { ...prev, images: newImages };
+    });
   };
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -340,6 +402,13 @@ export default function AdminPage() {
       type: 'danger',
       onConfirm: async () => {
         try {
+          const listing = listings.find(l => l.id === id);
+          if (listing) {
+            const allMedia = [...(listing.images || []), ...(listing.videos || [])];
+            if (allMedia.length > 0) {
+              await deleteMediaFromStorage(allMedia);
+            }
+          }
           const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' });
           if (res.ok) {
             fetchData();
@@ -391,6 +460,10 @@ export default function AdminPage() {
         body: safeJsonStringify(payload)
       });
       if (res.ok) {
+        if (mediaToDelete.length > 0) {
+          await deleteMediaFromStorage(mediaToDelete);
+          setMediaToDelete([]);
+        }
         setShowAdModal(false);
         setEditingListingId(null);
         await fetchData();
@@ -828,7 +901,7 @@ export default function AdminPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setShowAdModal(false); setEditingListingId(null); }}
+              onClick={() => { setShowAdModal(false); setEditingListingId(null); setMediaToDelete([]); }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div 
@@ -837,11 +910,15 @@ export default function AdminPage() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
             >
-              {isUpdatingListing && (
+              {(isUpdatingListing || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
                   <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
-                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Salvando alterações...</h3>
-                  <p className="text-sm text-[#666] mt-2">Atualizando dados e imagens, por favor aguarde.</p>
+                  <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
+                    {isUploadingMedia ? 'Enviando mídias...' : 'Salvando alterações...'}
+                  </h3>
+                  <p className="text-sm text-[#666] mt-2">
+                    {isUploadingMedia ? 'Aguarde o carregamento das suas fotos e vídeos.' : 'Atualizando dados e imagens, por favor aguarde.'}
+                  </p>
                 </div>
               )}
               <div className="p-8 border-b border-[#E9ECEF] flex items-center justify-between">
@@ -979,14 +1056,16 @@ export default function AdminPage() {
                         multiple 
                         accept="image/*" 
                         className="hidden" 
+                        disabled={isUploadingMedia}
                       />
                       <button 
                         type="button" 
+                        disabled={isUploadingMedia}
                         onClick={() => imageInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                        className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        <Camera size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Fotos</span>
+                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Camera size={24} />}
+                        <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
                       <input 
@@ -996,14 +1075,16 @@ export default function AdminPage() {
                         multiple 
                         accept="video/*" 
                         className="hidden" 
+                        disabled={isUploadingMedia}
                       />
                       <button 
                         type="button" 
+                        disabled={isUploadingMedia}
                         onClick={() => videoInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl hover:border-[#2D5A27] hover:bg-[#F8F9FA] transition-all text-[#999] hover:text-[#2D5A27] cursor-pointer"
+                        className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        <Video size={24} />
-                        <span className="text-[10px] font-bold uppercase">Adicionar Vídeos</span>
+                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Video size={24} />}
+                        <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
                     </div>
 
@@ -1013,13 +1094,36 @@ export default function AdminPage() {
                           <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group border border-[#E9ECEF]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={img} alt="" className="w-full h-full object-cover" />
+                            
+                            {/* Reorder Overlay */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                               {idx > 0 && (
+                                  <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                    <ChevronLeft size={16} />
+                                  </button>
+                               )}
+                               {idx < adForm.images.length - 1 && (
+                                  <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                    <ChevronRight size={16} />
+                                  </button>
+                               )}
+                            </div>
+
+                            {/* Delete Button */}
                             <button 
                               type="button"
                               onClick={() => removeFile(idx, 'images')}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10 shadow-md"
                             >
                               <X size={12} />
                             </button>
+                            
+                            {/* Capa Badge */}
+                            {idx === 0 && (
+                              <div className="absolute top-1 left-1 bg-[#2D5A27] text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full z-10 shadow-md">
+                                Capa
+                              </div>
+                            )}
                           </div>
                         ))}
                         {adForm.videos.map((vid, idx) => (
