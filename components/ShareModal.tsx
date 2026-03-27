@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Share2, Copy, Facebook, MessageCircle } from 'lucide-react';
+import { X, Share2, Copy, MessageCircle } from 'lucide-react';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -22,12 +22,6 @@ export const ShareModal = ({ isOpen, onClose, url, title, onCopySuccess }: Share
       icon: <MessageCircle size={24} />,
       color: 'bg-[#25D366]',
       link: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`
-    },
-    {
-      name: 'Facebook',
-      icon: <Facebook size={24} />,
-      color: 'bg-[#1877F2]',
-      link: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`
     },
     {
       name: 'Copiar Link',
