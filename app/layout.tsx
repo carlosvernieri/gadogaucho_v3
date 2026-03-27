@@ -15,7 +15,14 @@ const grandHotel = Grand_Hotel({
 
 export const metadata: Metadata = {
   title: 'Gado Gaúcho - Anúncios de Gado',
-  description: 'A maior plataforma de compra e venda de gado.',
+  description: 'A maior plataforma de compra e venda de gado do RS. Anuncie seu gado e encontre o que precisa.',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 import { LoadingProvider } from '@/components/LoadingProvider';
@@ -25,7 +32,6 @@ import { ToastContainer } from '@/components/ConfirmModal';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${grandHotel.variable}`}>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"></meta>
       <body suppressHydrationWarning className="font-sans antialiased bg-[#F8F9FA] text-[#333]">
         <UserProvider>
           <LoadingProvider>
