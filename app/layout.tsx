@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import { Inter, Grand_Hotel } from 'next/font/google';
 import './globals.css';
 
@@ -22,9 +22,10 @@ import { LoadingProvider } from '@/components/LoadingProvider';
 import { UserProvider } from '@/context/UserContext';
 import { ToastContainer } from '@/components/ConfirmModal';
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${grandHotel.variable}`}>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"></meta>
       <body suppressHydrationWarning className="font-sans antialiased bg-[#F8F9FA] text-[#333]">
         <UserProvider>
           <LoadingProvider>
