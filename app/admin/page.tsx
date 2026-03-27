@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
 import { safeJsonStringify } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -104,12 +105,26 @@ export default function AdminPage() {
         continue;
       }
       
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      newFiles.push(base64);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `${type}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('gado_gaucho_media')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('gado_gaucho_media')
+          .getPublicUrl(filePath);
+
+        newFiles.push(data.publicUrl);
+      } catch (err) {
+        console.error('Upload Error:', err);
+        showToast(`Erro ao enviar ${file.name}.`);
+      }
     }
 
     setAdForm(prev => ({
@@ -117,6 +132,9 @@ export default function AdminPage() {
       [type]: [...prev[type], ...newFiles]
     }));
     e.target.value = '';
+    if (newFiles.length > 0) {
+      showToast('Mídia atualizada com sucesso!');
+    }
   };
 
   const removeFile = (index: number, type: 'images' | 'videos') => {

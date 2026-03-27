@@ -34,6 +34,7 @@ import { slugify, safeJsonStringify } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
+import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
@@ -176,22 +177,26 @@ function GadoGauchoContent() {
     const newFiles: string[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // Basic size check (e.g., 5MB for images, 20MB for videos)
-      if (type === 'images' && file.size > 5 * 1024 * 1024) {
-        showToast(`A imagem ${file.name} é muito grande. Máximo 5MB.`);
-        continue;
-      }
-      if (type === 'videos' && file.size > 20 * 1024 * 1024) {
-        showToast(`O vídeo ${file.name} é muito grande. Máximo 20MB.`);
-        continue;
-      }
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `${type}/${fileName}`;
 
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      newFiles.push(base64);
+        const { error: uploadError } = await supabase.storage
+          .from('gado_gaucho_media')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('gado_gaucho_media')
+          .getPublicUrl(filePath);
+
+        newFiles.push(data.publicUrl);
+      } catch (err) {
+        console.error('Upload Error:', err);
+        showToast(`Erro ao enviar ${file.name}.`);
+      }
     }
 
     setAdForm(prev => ({
@@ -199,8 +204,11 @@ function GadoGauchoContent() {
       [type]: [...prev[type], ...newFiles]
     }));
     
-    // Reset input value to allow selecting same file again
     e.target.value = '';
+    
+    if (newFiles.length > 0) {
+      showToast('Mídia adicionada com sucesso!');
+    }
   };
 
   const removeFile = (index: number, type: 'images' | 'videos') => {

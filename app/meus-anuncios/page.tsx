@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
+import { supabase } from '@/lib/supabase';
 import { Sidebar } from '@/components/Sidebar';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
@@ -116,12 +117,26 @@ export default function MeusAnunciosPage() {
         continue;
       }
 
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      newFiles.push(base64);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `${type}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('gado_gaucho_media')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('gado_gaucho_media')
+          .getPublicUrl(filePath);
+
+        newFiles.push(data.publicUrl);
+      } catch (err) {
+        console.error('Upload Error:', err);
+        showToast(`Erro ao enviar ${file.name}.`, 'error');
+      }
     }
 
     setAdForm(prev => ({
@@ -129,6 +144,9 @@ export default function MeusAnunciosPage() {
       [type]: [...prev[type], ...newFiles]
     }));
     e.target.value = '';
+    if (newFiles.length > 0) {
+      showToast('Upload concluído com sucesso!', 'success');
+    }
   };
 
   const removeFile = (index: number, type: 'images' | 'videos') => {
