@@ -150,7 +150,7 @@ export default function FavoritosPage() {
                 <p className="text-sm text-[#999]">Seus anúncios salvos para acompanhar</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-[#E9ECEF]">
+            <div className="hidden sm:flex items-center gap-2 bg-white p-1 rounded-xl border border-[#E9ECEF]">
               <button 
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[#2D5A27] text-white shadow-lg' : 'text-[#999] hover:bg-[#F8F9FA]'}`}
@@ -181,7 +181,7 @@ export default function FavoritosPage() {
               </button>
             </div>
           ) : (
-            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+            <div className={viewMode === 'grid' ? "flex flex-col gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3 sm:gap-6" : "flex flex-col gap-4"}>
               <AnimatePresence mode="popLayout">
                 {favoriteListings.map((item) => (
                   <motion.div
@@ -193,12 +193,24 @@ export default function FavoritosPage() {
                     transition={{ duration: 0.2 }}
                   >
                     {viewMode === 'grid' ? (
-                      <ListingCard 
-                        listing={item} 
-                        isFavorite={true}
-                        onToggleFavorite={() => handleToggleFavorite(item.id)}
-                        onShare={() => {}}
-                      />
+                      <>
+                        <div className="hidden sm:block">
+                          <ListingCard 
+                            listing={item} 
+                            isFavorite={true}
+                            onToggleFavorite={() => handleToggleFavorite(item.id)}
+                            onShare={() => {}}
+                          />
+                        </div>
+                        <div className="block sm:hidden">
+                          <ListingListItem 
+                            listing={item} 
+                            isOwner={false}
+                            onRemoveFavorite={() => handleToggleFavorite(item.id)}
+                            onView={(id) => router.push(`/anuncio/${id}`)}
+                          />
+                        </div>
+                      </>
                     ) : (
                       <ListingListItem 
                         listing={item} 

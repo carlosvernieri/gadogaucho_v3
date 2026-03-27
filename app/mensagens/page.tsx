@@ -148,12 +148,12 @@ export default function MensagensPage() {
         />
 
         <main className="flex-1">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-[#333]">Mensagens Recebidas</h1>
-              <p className="text-[#999] mt-1">Gerencie os contatos interessados em seus anúncios</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#333]">Mensagens Recebidas</h1>
+              <p className="text-[#999] mt-1 text-sm sm:text-base">Gerencie os contatos interessados em seus anúncios</p>
             </div>
-            <div className="bg-white px-4 py-2 rounded-2xl border border-[#E9ECEF] flex items-center gap-2">
+            <div className="bg-white px-4 py-2 rounded-2xl border border-[#E9ECEF] inline-flex w-fit items-center gap-2">
               <Mail size={18} className="text-[#2D5A27]" />
               <span className="text-sm font-bold text-[#333]">{messages.length} mensagens</span>
             </div>

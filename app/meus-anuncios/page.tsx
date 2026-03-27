@@ -357,7 +357,7 @@ export default function MeusAnunciosPage() {
         />
 
         <main className="flex-1">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-[#E9F0E8] flex items-center justify-center text-[#2D5A27]">
                 <Megaphone size={24} />
