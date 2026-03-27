@@ -5,6 +5,18 @@
 }
 
 @layer base {
+
+  input,
+  select,
+  textarea {
+    @apply text-base md:text-sm;
+    /* Explicação: 
+       - text-base (16px) no mobile para evitar o zoom.
+       - md:text-sm (14px) no desktop se o seu design pedir uma fonte menor.
+    */
+  }
+
+
   button {
     cursor: pointer;
   }
