@@ -170,8 +170,8 @@ export default function VendedorPage() {
           }}
           searchQuery=""
           onSearchChange={() => {}}
-          listingsCount={allListings.length}
-          getCategoryCount={(catName) => allListings.filter(l => l.category.toLowerCase() === catName.toLowerCase()).length}
+          listingsCount={allListings.filter(l => !l.sold).length}
+          getCategoryCount={(catName) => allListings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
           onCitySearchChange={() => {}}
           maxDistance={100}
