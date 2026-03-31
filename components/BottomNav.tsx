@@ -19,7 +19,7 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
     { icon: Heart, label: 'Favoritos', path: '/favoritos', action: () => user ? router.push('/favoritos') : onAuthClick() },
     ...(user ? [{ icon: PlusCircle, label: 'Anunciar', path: null, action: onAdClick, primary: true }] : []),
     { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', action: () => user ? router.push('/mensagens') : onAuthClick() },
-    { icon: User, label: 'Meus Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
+    { icon: User, label: 'Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
   ];
 
   return (

@@ -19,7 +19,7 @@ import Image from 'next/image';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
-  const { user, setUser, logout } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -87,7 +87,9 @@ export default function MeusAnunciosPage() {
     const init = async () => {
       const storedUser = localStorage.getItem('gado_gaucho_user');
       if (!storedUser) {
-        router.push('/?auth=login');
+        setAuthMode('login');
+        setShowAuthModal(true);
+        router.push('/');
         return;
       }
       const parsedUser = JSON.parse(storedUser);
@@ -373,7 +375,7 @@ export default function MeusAnunciosPage() {
         <Header
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={openNewAdModal}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
@@ -398,7 +400,7 @@ export default function MeusAnunciosPage() {
       <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={openNewAdModal}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
@@ -518,7 +520,7 @@ export default function MeusAnunciosPage() {
         <BottomNav
           user={user}
           onAdClick={openNewAdModal}
-          onAuthClick={() => router.push('/?auth=login')}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
         />
       )}
 

@@ -18,7 +18,7 @@ export default function VendedorPage() {
   const params = useParams();
   const router = useRouter();
   const sellerId = params.id as string;
-  const { user, setUser, logout } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
   
   const [sellerName, setSellerName] = useState('Carregando...');
   const [sellerVerified, setSellerVerified] = useState(false);
@@ -84,7 +84,8 @@ export default function VendedorPage() {
 
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
-      router.push('/?auth=login');
+      setAuthMode('login');
+      setShowAuthModal(true);
       return;
     }
 
@@ -124,7 +125,7 @@ export default function VendedorPage() {
         <Header 
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
@@ -147,7 +148,7 @@ export default function VendedorPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
@@ -268,7 +269,7 @@ export default function VendedorPage() {
         <BottomNav 
           user={user} 
           onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => router.push('/?auth=login')} 
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
         />
       )}
     </div>

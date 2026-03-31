@@ -290,6 +290,8 @@ export default function AdminPage() {
         } catch (error) {
           console.error('Error deleting user:', error);
           showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -419,6 +421,8 @@ export default function AdminPage() {
         } catch (error) {
           console.error('Error deleting listing:', error);
           showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });

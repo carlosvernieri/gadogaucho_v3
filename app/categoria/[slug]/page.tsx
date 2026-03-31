@@ -17,7 +17,7 @@ export default function CategoriaPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { user, setUser, logout } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +60,8 @@ export default function CategoriaPage() {
 
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
-      router.push('/?auth=login');
+      setAuthMode('login');
+      setShowAuthModal(true);
       return;
     }
 
@@ -103,7 +104,7 @@ export default function CategoriaPage() {
         <Header 
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
@@ -127,7 +128,7 @@ export default function CategoriaPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
@@ -196,7 +197,7 @@ export default function CategoriaPage() {
         <BottomNav 
           user={user} 
           onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => router.push('/?auth=login')} 
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
         />
       )}
     </div>

@@ -29,6 +29,8 @@ import { LoadingProvider } from '@/components/LoadingProvider';
 import { UserProvider } from '@/context/UserContext';
 import { ToastContainer } from '@/components/ConfirmModal';
 
+import { AuthModal } from '@/components/AuthModal';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${grandHotel.variable}`}>
@@ -36,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <UserProvider>
           <LoadingProvider>
             {children}
+            <AuthModal />
             <ToastContainer />
           </LoadingProvider>
         </UserProvider>

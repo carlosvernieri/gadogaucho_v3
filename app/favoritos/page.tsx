@@ -15,7 +15,7 @@ import { safeJsonStringify } from '@/lib/utils';
 
 export default function FavoritosPage() {
   const router = useRouter();
-  const { user, setUser, logout } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ export default function FavoritosPage() {
         <Header 
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+          onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
@@ -104,7 +104,7 @@ export default function FavoritosPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAuthClick={(mode) => { setAuthMode(mode as 'login'|'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
@@ -231,7 +231,7 @@ export default function FavoritosPage() {
         <BottomNav 
           user={user} 
           onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => router.push('/?auth=login')} 
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
         />
       )}
     </div>

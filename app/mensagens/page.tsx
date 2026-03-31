@@ -15,7 +15,7 @@ import { safeJsonStringify } from '@/lib/utils';
 
 export default function MensagensPage() {
   const router = useRouter();
-  const { user, setUser, logout } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -111,7 +111,7 @@ export default function MensagensPage() {
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => router.push(`/?auth=${mode}`)}
+        onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
         onLogout={() => {
@@ -271,7 +271,7 @@ export default function MensagensPage() {
         <BottomNav 
           user={user} 
           onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => router.push('/?auth=login')} 
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
         />
       )}
 
