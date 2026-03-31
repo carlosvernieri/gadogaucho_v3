@@ -199,7 +199,7 @@ function GadoGauchoContent() {
 
         newFiles.push(data.publicUrl);
 
-        if (type === 'videos') {
+        if (type === 'videos' && adForm.images.length === 0 && newImages.length === 0) {
           try {
             const thumbBlob = await generateVideoThumbnail(file);
             const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
@@ -1286,7 +1286,8 @@ function GadoGauchoContent() {
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
                         {adForm.images.map((img, idx) => (
                           <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group border border-[#E9ECEF]">
-                            <Image src={img} alt="" fill className="object-cover" unoptimized />
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img} alt="" className="w-full h-full object-cover" />
                             
                             {/* Reorder Overlay */}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

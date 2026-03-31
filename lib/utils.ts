@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabase';
-
 /**
  * Safely stringifies an object, handling circular references.
  */
@@ -117,16 +115,22 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
 
 export const deleteMediaFromStorage = async (urls: string[]) => {
   if (!urls || urls.length === 0) return;
-  const pathsToRemove = urls
-    .filter(url => url && url.includes('supabase.co') && url.includes('gado_gaucho_media/'))
-    .map(url => url.split('gado_gaucho_media/')[1])
-    .filter(Boolean);
+  
+  const validUrls = urls.filter(url => url && url.includes('supabase.co') && url.includes('gado_gaucho_media/'));
+  if (validUrls.length === 0) return;
 
-  if (pathsToRemove.length > 0) {
-    try {
-      await supabase.storage.from('gado_gaucho_media').remove(pathsToRemove);
-    } catch(err) {
+  try {
+    const res = await fetch('/api/storage/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: validUrls })
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
       console.error('Failed to delete media from storage:', err);
     }
+  } catch (err) {
+    console.error('Failed to delete media from storage:', err);
   }
 };

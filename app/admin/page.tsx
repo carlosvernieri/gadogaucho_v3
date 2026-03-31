@@ -128,7 +128,7 @@ export default function AdminPage() {
 
         newFiles.push(data.publicUrl);
 
-        if (type === 'videos') {
+        if (type === 'videos' && adForm.images.length === 0 && newImages.length === 0) {
           try {
             const thumbBlob = await generateVideoThumbnail(file);
             const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
