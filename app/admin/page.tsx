@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { RS_CITIES } from '@/lib/data';
+import imageCompression from 'browser-image-compression';
 
 const formatPhone = (val: string) => {
   if (!val) return '';
@@ -112,13 +113,29 @@ export default function AdminPage() {
       }
       
       try {
+        let fileToUpload: File | Blob = file;
+        
+        if (type === 'images') {
+          try {
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              initialQuality: 0.8,
+            };
+            fileToUpload = await imageCompression(file, options);
+          } catch (error) {
+            console.error('Erro na compressão:', error);
+          }
+        }
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('gado_gaucho_media')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 

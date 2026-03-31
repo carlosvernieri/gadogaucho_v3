@@ -16,6 +16,7 @@ import { useUser } from '@/context/UserContext';
 import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
@@ -123,13 +124,29 @@ export default function MeusAnunciosPage() {
       }
 
       try {
+        let fileToUpload: File | Blob = file;
+        
+        if (type === 'images') {
+          try {
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              initialQuality: 0.8,
+            };
+            fileToUpload = await imageCompression(file, options);
+          } catch (error) {
+            console.error('Erro na compressão:', error);
+          }
+        }
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('gado_gaucho_media')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 

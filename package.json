@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@supabase/supabase-js": "^2.99.2",
     "autoprefixer": "^10.4.21",
+    "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.553.0",
