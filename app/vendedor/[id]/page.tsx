@@ -19,7 +19,7 @@ export default function VendedorPage() {
   const router = useRouter();
   const sellerId = params.id as string;
   const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
-  
+
   const [sellerName, setSellerName] = useState('Carregando...');
   const [sellerVerified, setSellerVerified] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
@@ -46,18 +46,18 @@ export default function VendedorPage() {
             return { ok: false, json: async () => [] } as Response;
           })
         ]);
-        
+
         if (sellerUser.ok) {
-           const sUser = await sellerUser.json();
-           setSellerName(sUser.name || 'Vendedor Desconhecido');
-           setSellerVerified(!!sUser.verified);
+          const sUser = await sellerUser.json();
+          setSellerName(sUser.name || 'Vendedor Desconhecido');
+          setSellerVerified(!!sUser.verified);
         } else {
-           setSellerName('Vendedor Desconhecido');
+          setSellerName('Vendedor Desconhecido');
         }
 
         const sellerData = sellerRes.ok ? await sellerRes.json() : [];
         setListings(Array.isArray(sellerData) ? sellerData : []);
-        
+
         const allData = allRes.ok ? await allRes.json() : [];
         setAllListings(Array.isArray(allData) ? allData : []);
 
@@ -122,7 +122,7 @@ export default function VendedorPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header 
+        <Header
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
@@ -145,7 +145,7 @@ export default function VendedorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
-      <Header 
+      <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
@@ -161,7 +161,7 @@ export default function VendedorPage() {
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
-        <Sidebar 
+        <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           selectedCategory={null}
@@ -170,42 +170,42 @@ export default function VendedorPage() {
             else router.push('/');
           }}
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           listingsCount={allListings.filter(l => !l.sold).length}
           getCategoryCount={(catName) => allListings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
-          onCitySearchChange={() => {}}
+          onCitySearchChange={() => { }}
           maxDistance={100}
-          onMaxDistanceChange={() => {}}
-          onUseMyLocation={() => {}}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
           citySuggestions={[]}
-          onSelectCity={() => {}}
+          onSelectCity={() => { }}
           showSuggestions={false}
-          setShowSuggestions={() => {}}
+          setShowSuggestions={() => { }}
         />
 
         <main className="flex-1">
           <div className="mb-8">
-            <button 
+            <button
               onClick={() => router.back()}
               className="flex items-center gap-2 text-sm text-[#666] hover:text-[#2D5A27] transition-colors mb-4 group"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               Voltar
             </button>
-            
-            <div className="bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm flex flex-col md:flex-row items-center gap-8">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-[#F8F9FA] shadow-md">
-                <Image 
-                  src={`https://picsum.photos/seed/${sellerId}/200/200`} 
-                  alt={sellerName} 
-                  fill 
-                  className="object-cover" 
+
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E9ECEF] shadow-sm flex flex-col md:flex-row items-center gap-4 md:gap-8">
+              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#F8F9FA] shadow-md">
+                <Image
+                  src={`https://picsum.photos/seed/${sellerId}/200/200`}
+                  alt={sellerName}
+                  fill
+                  className="object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-[#333] mb-2">{sellerName}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-[#333] mb-1 md:mb-2">{sellerName}</h1>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-[#666]">
                   <div className="flex items-center gap-1">
                     <MapPin size={16} className="text-[#2D5A27]" />
@@ -218,15 +218,15 @@ export default function VendedorPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-[#F8F9FA] px-6 py-4 rounded-2xl text-center">
-                <div className="text-2xl font-bold text-[#2D5A27]">{listings.length}</div>
+              <div className="bg-[#F8F9FA] w-full md:w-auto px-4 py-3 md:px-6 md:py-4 rounded-2xl text-center">
+                <div className="text-xl md:text-2xl font-bold text-[#2D5A27]">{listings.length}</div>
                 <div className="text-[10px] font-bold text-[#999] uppercase">Anúncios Ativos</div>
               </div>
             </div>
           </div>
 
           <h2 className="text-xl font-bold text-[#333] mb-6">Anúncios de {sellerName}</h2>
-          
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
@@ -236,9 +236,9 @@ export default function VendedorPage() {
           ) : listings.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {listings.map((l) => (
-                <ListingCard 
-                  key={l.id} 
-                  listing={l} 
+                <ListingCard
+                  key={l.id}
+                  listing={l}
                   onShare={handleShare}
                   isFavorite={favorites.map(Number).includes(Number(l.id))}
                   onToggleFavorite={handleToggleFavorite}
@@ -266,10 +266,10 @@ export default function VendedorPage() {
       )}
 
       {user && (
-        <BottomNav 
-          user={user} 
-          onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
+        <BottomNav
+          user={user}
+          onAdClick={() => router.push('/?ad=new')}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
         />
       )}
     </div>

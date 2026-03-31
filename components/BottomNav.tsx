@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, Heart, MessageSquare, PlusCircle, User } from 'lucide-react';
+import { Home, Heart, MessageSquare, PlusCircle, User, Megaphone } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface BottomNavProps {
@@ -19,11 +19,11 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
     { icon: Heart, label: 'Favoritos', path: '/favoritos', action: () => user ? router.push('/favoritos') : onAuthClick() },
     ...(user ? [{ icon: PlusCircle, label: 'Anunciar', path: null, action: onAdClick, primary: true }] : []),
     { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', action: () => user ? router.push('/mensagens') : onAuthClick() },
-    { icon: User, label: 'Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
+    { icon: Megaphone, label: 'Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] px-2 py-2 z-40 flex items-center justify-around pb-safe">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] px-2 pt-2 pb-6 z-40 flex items-center justify-around pb-safe">
       {navItems.map((item, index) => {
         const Icon = item.icon;
         const isActive = item.path === pathname;
