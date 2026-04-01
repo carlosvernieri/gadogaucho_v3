@@ -93,10 +93,10 @@ export const Header = ({
                   <Heart size={20} />
                   <span className="hidden xl:inline">Favoritos</span>
                 </button>
-                <button className="p-2 text-[#666] hover:text-[#333] relative cursor-pointer">
+                {/* <button className="p-2 text-[#666] hover:text-[#333] relative cursor-pointer">
                   <Bell size={20} />
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#DC3545] rounded-full border-2 border-white" />
-                </button>
+                </button> */}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">

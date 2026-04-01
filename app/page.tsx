@@ -94,15 +94,31 @@ function GadoGauchoContent() {
 
   const handleUseMyLocation = () => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setSelectedCityCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-        setCitySearch('Minha Localização');
-        setShowCitySuggestions(false);
+      setCitySearch('Obtendo localização...');
+      setShowCitySuggestions(false);
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        setSelectedCityCoords({ lat, lng });
+        
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Tenta pegar os campos comumente retornados no Brasil
+            const cityName = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || 'Sua Localização';
+            setCitySearch(cityName);
+          } else {
+            setCitySearch('Sua Localização');
+          }
+        } catch (err) {
+          console.error('Error fetching city name:', err);
+          setCitySearch('Sua Localização');
+        }
       }, (error) => {
         console.error('Error getting location:', error);
+        setCitySearch('');
         showToast('Não foi possível obter sua localização. Verifique as permissões do navegador.');
       });
     } else {
