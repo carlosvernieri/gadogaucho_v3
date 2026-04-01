@@ -226,8 +226,11 @@ export default function MensagensPage() {
                       </div>
 
                       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                        {msg.is_read && <span className="hidden sm:inline-block text-[12px] font-bold text-[#999] uppercase bg-[#F8F9FA] px-2 py-1 rounded-md">Lida</span>}
-                        {!msg.is_read && <span className="hidden sm:inline-block text-[12px] font-bold text-[#2D5A27] uppercase bg-[#E9F0E8] px-2 py-1 rounded-md">Nova</span>}
+                        {msg.is_read ? (
+                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#999] uppercase bg-[#F8F9FA] px-2 py-1 rounded-md">Lida</span>
+                        ) : (
+                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#2D5A27] uppercase bg-[#E9F0E8] px-2 py-1 rounded-md">Nova</span>
+                        )}
                         <div className={`p-1.5 sm:p-2 rounded-full transition-transform ${isExpanded ? 'rotate-180 bg-[#F8F9FA]' : ''}`}>
                           <ChevronDown size={18} className="text-[#999] sm:w-5 sm:h-5" />
                         </div>
