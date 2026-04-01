@@ -57,7 +57,11 @@ export default function AdminPage() {
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', city: '', password: '' });
   const [citySearchAuth, setCitySearchAuth] = useState('');
   const [showAuthSuggestions, setShowAuthSuggestions] = useState(false);
-  const [citySuggestionsAuth, setCitySuggestionsAuth] = useState<any[]>([]);
+  const citySuggestionsAuth = React.useMemo(() => {
+    if (!showAuthSuggestions) return [];
+    if (citySearchAuth.length < 3) return [];
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
+  }, [citySearchAuth, showAuthSuggestions]);
 
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
@@ -882,9 +886,30 @@ export default function AdminPage() {
                         setAuthForm({...authForm, city: e.target.value});
                         setShowAuthSuggestions(true);
                       }}
-                      placeholder="Cidade no RS" 
+                      onFocus={() => setShowAuthSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
+                      placeholder="Busque o município..." 
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
                     />
+                    {citySuggestionsAuth.length > 0 && (
+                      <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                        {citySuggestionsAuth.map((city: any) => (
+                          <button
+                            key={city.name}
+                            type="button"
+                            onMouseDown={() => {
+                              setAuthForm({ ...authForm, city: city.name });
+                              setCitySearchAuth(city.name);
+                              setShowAuthSuggestions(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
+                          >
+                            <span>{city.name}</span>
+                            <span className="text-[10px] text-[#999]">RS</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {!editingUser && (
                     <div>

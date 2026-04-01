@@ -229,11 +229,11 @@ export function AuthModal() {
                           }}
                           onFocus={() => setShowAuthSuggestions(true)}
                           onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
-                          placeholder="Sua cidade no RS"
+                          placeholder="Busque o município..."
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
                         />
                         {citySuggestionsAuth.length > 0 && (
-                          <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-10 overflow-hidden">
+                          <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
                             {citySuggestionsAuth.map((city: any) => (
                               <button
                                 key={city.name}

@@ -30,7 +30,7 @@ export default function MensagensPage() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   useEffect(() => {
@@ -101,6 +101,8 @@ export default function MensagensPage() {
         } catch (error) {
           console.error('Error deleting message:', error);
           showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
         }
       }
     });
@@ -108,7 +110,7 @@ export default function MensagensPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
-      <Header 
+      <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
@@ -124,7 +126,7 @@ export default function MensagensPage() {
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
-        <Sidebar 
+        <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           selectedCategory={null}
@@ -133,18 +135,18 @@ export default function MensagensPage() {
             else router.push('/');
           }}
           searchQuery=""
-          onSearchChange={() => {}}
+          onSearchChange={() => { }}
           listingsCount={listings.filter(l => !l.sold).length}
           getCategoryCount={(catName) => listings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch=""
-          onCitySearchChange={() => {}}
+          onCitySearchChange={() => { }}
           maxDistance={100}
-          onMaxDistanceChange={() => {}}
-          onUseMyLocation={() => {}}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
           citySuggestions={[]}
-          onSelectCity={() => {}}
+          onSelectCity={() => { }}
           showSuggestions={false}
-          setShowSuggestions={() => {}}
+          setShowSuggestions={() => { }}
         />
 
         <main className="flex-1">
@@ -182,10 +184,10 @@ export default function MensagensPage() {
                     {/* Listing Info */}
                     <div className="md:w-48 flex-shrink-0">
                       <div className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-gray-100">
-                        <Image 
-                          src={msg.listing_image || 'https://picsum.photos/seed/cow/400/400'} 
-                          alt={msg.listing_title} 
-                          fill 
+                        <Image
+                          src={msg.listing_image || 'https://picsum.photos/seed/cow/400/400'}
+                          alt={msg.listing_title}
+                          fill
                           className="object-cover"
                           referrerPolicy="no-referrer"
                         />
@@ -194,7 +196,7 @@ export default function MensagensPage() {
                         )}
                       </div>
                       <h4 className="text-xs font-bold text-[#333] line-clamp-2 mb-1">{msg.listing_title}</h4>
-                      <button 
+                      <button
                         onClick={() => router.push(`/anuncio/${msg.listing_id}`)}
                         className="text-[10px] font-bold text-[#2D5A27] flex items-center gap-1 hover:underline"
                       >
@@ -268,14 +270,14 @@ export default function MensagensPage() {
       </div>
 
       {user && (
-        <BottomNav 
-          user={user} 
-          onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
+        <BottomNav
+          user={user}
+          onAdClick={() => router.push('/?ad=new')}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
         />
       )}
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={confirmModal.onConfirm}
