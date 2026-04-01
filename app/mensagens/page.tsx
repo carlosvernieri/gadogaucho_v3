@@ -139,14 +139,14 @@ export default function MensagensPage() {
     });
   };
 
-  const handleEmailClick = (email: string, name: string) => {
+  const handleEmailClick = (email: string, name: string, subject: string) => {
     setConfirmModal({
       isOpen: true,
       title: 'Enviar E-mail',
       message: `Deseja abrir o aplicativo de e-mail padrão para escrever para ${name}?`,
       type: 'info',
       onConfirm: () => {
-        window.location.href = `mailto:${email}`;
+        window.location.href = `mailto:${email}&subject=${subject}`;
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
@@ -312,7 +312,7 @@ export default function MensagensPage() {
                                       </div>
                                     </button>
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); handleEmailClick(msg.sender_email, msg.sender_name); }}
+                                      onClick={(e) => { e.stopPropagation(); handleEmailClick(msg.sender_email, msg.sender_name, msg.listing_title); }}
                                       className="flex items-center gap-3 p-3 bg-white hover:bg-[#F8F9FA] rounded-xl border border-[#E9ECEF] transition-colors text-left group"
                                     >
                                       <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center group-hover:scale-105 transition-transform">
