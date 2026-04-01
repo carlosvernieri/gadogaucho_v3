@@ -23,20 +23,21 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] px-2 pt-2 pb-6 z-40 flex items-center justify-around pb-safe">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] pt-2 pb-6 z-40 flex items-center pb-safe">
       {navItems.map((item, index) => {
         const Icon = item.icon;
         const isActive = item.path === pathname;
 
         if (item.primary) {
           return (
-            <button
-              key={index}
-              onClick={item.action}
-              className="flex flex-col items-center justify-center -mt-8 bg-[#2D5A27] text-white w-14 h-14 rounded-full shadow-lg shadow-[#2D5A27]/30 cursor-pointer"
-            >
-              <Icon size={24} />
-            </button>
+            <div key={index} className="flex-1 flex justify-center">
+              <button
+                onClick={item.action}
+                className="flex flex-col items-center justify-center -mt-8 bg-[#2D5A27] text-white w-14 h-14 shrink-0 rounded-full shadow-lg shadow-[#2D5A27]/30 cursor-pointer"
+              >
+                <Icon size={24} />
+              </button>
+            </div>
           );
         }
 
@@ -44,10 +45,10 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
           <button
             key={index}
             onClick={item.action}
-            className={`flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-xl transition-colors cursor-pointer ${isActive ? 'text-[#2D5A27]' : 'text-[#999]'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-1 rounded-xl transition-colors cursor-pointer ${isActive ? 'text-[#2D5A27]' : 'text-[#999]'}`}
           >
             <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'} />
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter w-full text-center truncate px-1">{item.label}</span>
           </button>
         );
       })}
