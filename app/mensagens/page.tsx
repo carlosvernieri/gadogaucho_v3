@@ -125,6 +125,33 @@ export default function MensagensPage() {
     });
   };
 
+  const handlePhoneClick = (phone: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Abrir WhatsApp',
+      message: `Deseja abrir o WhatsApp para falar com ${name} no número ${phone}?`,
+      type: 'info',
+      onConfirm: () => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        window.open(`https://wa.me/55${cleanPhone}`, '_blank');
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const handleEmailClick = (email: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Enviar E-mail',
+      message: `Deseja abrir o aplicativo de e-mail padrão para escrever para ${name}?`,
+      type: 'info',
+      onConfirm: () => {
+        window.location.href = `mailto:${email}`;
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
       <Header
@@ -272,24 +299,30 @@ export default function MensagensPage() {
                               <div className="flex-1 min-w-0 flex flex-col justify-between">
                                 <div>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#E9ECEF]">
-                                      <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePhoneClick(msg.sender_phone, msg.sender_name); }}
+                                      className="flex items-center gap-3 p-3 bg-white hover:bg-[#F8F9FA] rounded-xl border border-[#E9ECEF] transition-colors text-left group"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center group-hover:scale-105 transition-transform">
                                         <Phone size={14} className="text-[#2D5A27]" />
                                       </div>
                                       <div className="flex flex-col min-w-0">
                                         <span className="text-[10px] font-bold text-[#999] uppercase">Telefone de Contato</span>
-                                        <span className="text-xs font-bold text-[#333] truncate">{msg.sender_phone}</span>
+                                        <span className="text-xs font-bold text-[#333] truncate group-hover:text-[#2D5A27] transition-colors">{msg.sender_phone}</span>
                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#E9ECEF]">
-                                      <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center">
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleEmailClick(msg.sender_email, msg.sender_name); }}
+                                      className="flex items-center gap-3 p-3 bg-white hover:bg-[#F8F9FA] rounded-xl border border-[#E9ECEF] transition-colors text-left group"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center group-hover:scale-105 transition-transform">
                                         <Mail size={14} className="text-[#2D5A27]" />
                                       </div>
                                       <div className="flex flex-col min-w-0">
                                         <span className="text-[10px] font-bold text-[#999] uppercase">E-mail de Contato</span>
-                                        <span className="text-xs font-bold text-[#333] truncate">{msg.sender_email}</span>
+                                        <span className="text-xs font-bold text-[#333] truncate group-hover:text-[#2D5A27] transition-colors">{msg.sender_email}</span>
                                       </div>
-                                    </div>
+                                    </button>
                                   </div>
 
                                   <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#E9ECEF] relative shadow-sm">
