@@ -146,7 +146,7 @@ export default function MensagensPage() {
       message: `Deseja abrir o aplicativo de e-mail padrão para escrever para ${name}?`,
       type: 'info',
       onConfirm: () => {
-        window.location.href = `mailto:${email}&subject=${subject}`;
+        window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
