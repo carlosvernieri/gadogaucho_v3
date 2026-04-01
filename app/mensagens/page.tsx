@@ -199,38 +199,37 @@ export default function MensagensPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className={`bg-white rounded-3xl overflow-hidden border transition-all ${msg.is_read ? 'border-[#E9ECEF] opacity-90' : 'border-[#2D5A27] shadow-sm ring-1 ring-[#2D5A27]/20'}`}
                   >
-                    {/* Header - Clickable for collapse */}
                     <div 
                       onClick={() => toggleMessage(msg.id, msg.is_read)}
-                      className={`p-4 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-[#F8F9FA] transition-colors gap-4 ${!msg.is_read ? 'bg-[#E9F0E8]/30' : ''}`}
+                      className={`p-3 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-[#F8F9FA] transition-colors gap-2 sm:gap-4 ${!msg.is_read ? 'bg-[#E9F0E8]/30' : ''}`}
                     >
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                         {/* Indicador de cor */}
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${msg.is_read ? 'bg-[#E9ECEF]' : 'bg-[#2D5A27] animate-pulse shadow-sm shadow-[#2D5A27]/50'}`} />
+                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${msg.is_read ? 'bg-[#E9ECEF]' : 'bg-[#2D5A27] animate-pulse shadow-sm shadow-[#2D5A27]/50'}`} />
                         
-                        <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${msg.is_read ? 'bg-[#F8F9FA] text-[#999]' : 'bg-[#E9F0E8] text-[#2D5A27]'}`}>
                             <User size={18} />
                           </div>
                         </div>
 
                         <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                            <span className={`font-bold truncate ${msg.is_read ? 'text-[#666]' : 'text-[#333]'}`}>{msg.sender_name}</span>
-                            <span className="text-[10px] sm:text-xs text-[#999] whitespace-nowrapflex items-center gap-1">
-                              <Clock size={12} className="inline mr-1" />
-                              {new Date(msg.created_at).toLocaleDateString('pt-BR')} às {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3">
+                            <span className={`font-bold truncate text-sm sm:text-base ${msg.is_read ? 'text-[#666]' : 'text-[#333]'}`}>{msg.sender_name}</span>
+                            <span className="text-[10px] sm:text-xs text-[#999] flex items-center gap-1 sm:truncate mt-0.5 sm:mt-0">
+                              <Clock size={10} className="flex-shrink-0" />
+                              <span className="truncate">{new Date(msg.created_at).toLocaleDateString('pt-BR')} às {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                             </span>
                           </div>
-                          <span className="text-xs text-[#666] truncate mt-1">Interesse em: <strong className="text-[#333]">{msg.listing_title}</strong></span>
+                          <span className="text-[10px] sm:text-xs text-[#666] truncate mt-1">Interesse em: <strong className="text-[#333]">{msg.listing_title}</strong></span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         {msg.is_read && <span className="hidden sm:inline-block text-[10px] font-bold text-[#999] uppercase bg-[#F8F9FA] px-2 py-1 rounded-md">Lida</span>}
                         {!msg.is_read && <span className="hidden sm:inline-block text-[10px] font-bold text-[#2D5A27] uppercase bg-[#E9F0E8] px-2 py-1 rounded-md">Nova</span>}
-                        <div className={`p-2 rounded-full transition-transform ${isExpanded ? 'rotate-180 bg-[#F8F9FA]' : ''}`}>
-                          <ChevronDown size={20} className="text-[#999]" />
+                        <div className={`p-1.5 sm:p-2 rounded-full transition-transform ${isExpanded ? 'rotate-180 bg-[#F8F9FA]' : ''}`}>
+                          <ChevronDown size={18} className="text-[#999] sm:w-5 sm:h-5" />
                         </div>
                       </div>
                     </div>
