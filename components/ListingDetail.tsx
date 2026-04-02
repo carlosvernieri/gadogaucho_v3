@@ -26,7 +26,7 @@ export const ListingDetail = ({
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Left: Gallery */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 w-full">
         <div className="relative aspect-[16/10] rounded-3xl overflow-hidden mb-4 shadow-lg bg-[#F8F9FA]">
           {activeMedia < (listing.images?.length || 0) ? (
             <Image
@@ -71,7 +71,7 @@ export const ListingDetail = ({
           </div>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {allMedia.map((media: string, idx: number) => (
             <button
               key={idx}

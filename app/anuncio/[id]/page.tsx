@@ -193,7 +193,7 @@ export default function AnuncioPage() {
           setShowSuggestions={() => {}}
         />
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0 w-full">
           <ListingDetail 
             listing={listing} 
             onShare={handleShare} 
