@@ -35,6 +35,8 @@ export function AuthModal() {
     confirmPassword: ''
   });
   
+  const [captchaAuth, setCaptchaAuth] = useState({ num1: 0, num2: 0, answer: '' });
+  
   const [citySearchAuth, setCitySearchAuth] = useState('');
   const [showAuthSuggestions, setShowAuthSuggestions] = useState(false);
 
@@ -43,6 +45,16 @@ export function AuthModal() {
     if (citySearchAuth.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearchAuth.toLowerCase()));
   }, [citySearchAuth, showAuthSuggestions]);
+
+  useEffect(() => {
+    if (showAuthModal && authMode === 'register') {
+      setCaptchaAuth({ 
+        num1: Math.floor(Math.random() * 10) + 1, 
+        num2: Math.floor(Math.random() * 10) + 1, 
+        answer: '' 
+      });
+    }
+  }, [showAuthModal, authMode]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -56,6 +68,7 @@ export function AuthModal() {
         name: '', phone: '', email: '', city: '', password: '', confirmPassword: ''
       });
       setCitySearchAuth('');
+      setCaptchaAuth({ num1: 0, num2: 0, answer: '' });
     }
     return () => {
       document.body.style.overflow = '';
@@ -66,6 +79,16 @@ export function AuthModal() {
     e.preventDefault();
     setAuthError(null);
     if (authMode === 'register') {
+      if (parseInt(captchaAuth.answer) !== captchaAuth.num1 + captchaAuth.num2) {
+        setAuthError('Verificação de segurança incorreta. Tente novamente.');
+        setCaptchaAuth({
+          num1: Math.floor(Math.random() * 10) + 1,
+          num2: Math.floor(Math.random() * 10) + 1,
+          answer: ''
+        });
+        return;
+      }
+
       if (authForm.password !== authForm.confirmPassword) {
         setAuthError('As senhas não coincidem. Verifique e tente novamente.');
         return;
@@ -295,6 +318,22 @@ export function AuthModal() {
                       onChange={(e) => setAuthForm({ ...authForm, confirmPassword: e.target.value })}
                       placeholder="••••••••"
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
+                    />
+                  </div>
+                )}
+
+                {authMode === 'register' && (
+                  <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#E9ECEF]">
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-2">
+                      Segurança: Quanto é {captchaAuth.num1} + {captchaAuth.num2}? <span className="text-[#DC3545]">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={captchaAuth.answer}
+                      onChange={(e) => setCaptchaAuth({ ...captchaAuth, answer: e.target.value })}
+                      placeholder="Digite o resultado"
+                      className="w-full bg-white border border-transparent focus:border-[#2D5A27] rounded-xl px-4 py-3 text-sm outline-none transition-all focus:shadow-sm"
                     />
                   </div>
                 )}
