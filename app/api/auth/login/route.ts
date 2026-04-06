@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -24,7 +25,14 @@ export async function POST(request: Request) {
 
     const userData = user as any;
 
-    if (userData.password !== password) {
+    let isPasswordValid = false;
+    if (userData.password && userData.password.startsWith('$2')) {
+      isPasswordValid = await bcrypt.compare(password, userData.password);
+    } else {
+      isPasswordValid = userData.password === password;
+    }
+
+    if (!isPasswordValid) {
       return NextResponse.json({ error: 'Senha incorreta' }, { status: 401 });
     }
 

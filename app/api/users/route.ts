@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +47,12 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { name, email, phone, city, password, is_admin } = data;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const { data: newUser, error } = await (supabaseAdmin
       .from('users') as any)
       .insert([
-        { name, email, phone, city, password, is_admin: !!is_admin }
+        { name, email, phone, city, password: hashedPassword, is_admin: !!is_admin }
       ])
       .select()
       .single();
