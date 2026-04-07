@@ -102,8 +102,7 @@ export function AuthModal() {
 
       const { confirmPassword, ...restAuthForm } = authForm;
       const newUser = {
-        ...restAuthForm,
-        is_admin: authForm.email === 'adriano.prog@gmail.com'
+        ...restAuthForm
       };
 
       try {

@@ -45,14 +45,14 @@ export async function POST(request: Request) {
   }
   try {
     const data = await request.json();
-    const { name, email, phone, city, password, is_admin } = data;
+    const { name, email, phone, city, password } = data;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const { data: newUser, error } = await (supabaseAdmin
       .from('users') as any)
       .insert([
-        { name, email, phone, city, password: hashedPassword, is_admin: !!is_admin }
+        { name, email, phone, city, password: hashedPassword }
       ])
       .select()
       .single();

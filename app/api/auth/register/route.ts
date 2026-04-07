@@ -25,12 +25,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
-    const isAdmin = email === 'admin@admin.com';
-
     const { data: newUser, error } = await (supabaseAdmin
       .from('users') as any)
       .insert([
-        { name, email, password, city, phone, is_admin: isAdmin }
+        { name, email, password, city, phone }
       ])
       .select()
       .single();
