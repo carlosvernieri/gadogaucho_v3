@@ -28,8 +28,8 @@ export const viewport = {
 import { LoadingProvider } from '@/components/LoadingProvider';
 import { UserProvider } from '@/context/UserContext';
 import { ToastContainer } from '@/components/ConfirmModal';
-
 import { AuthModal } from '@/components/AuthModal';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -42,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ToastContainer />
           </LoadingProvider>
         </UserProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );
