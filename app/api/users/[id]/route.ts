@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { safeJsonStringify } from '@/lib/utils';
+import { getSession } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -30,7 +31,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
+    
+    if (session.id !== Number(id) && !session.is_admin) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { error } = await (supabaseAdmin
       .from('users') as any)
       .delete()
@@ -50,14 +59,32 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
+
+    if (session.id !== Number(id) && !session.is_admin) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     
+    const allowedUpdates: any = {};
+    if (data.name !== undefined) allowedUpdates.name = data.name;
+    if (data.phone !== undefined) allowedUpdates.phone = data.phone;
+    if (data.city !== undefined) allowedUpdates.city = data.city;
+    if (data.email !== undefined) allowedUpdates.email = data.email;
+    
+    if (session.is_admin && data.verified !== undefined) {
+        allowedUpdates.verified = data.verified;
+    }
+
     const { data: updatedUser, error } = await (supabaseAdmin
       .from('users') as any)
-      .update(data)
+      .update(allowedUpdates)
       .eq('id', id)
-      .select()
+      .select('id, name, email, phone, city, is_admin, verified')
       .single();
 
     if (error) throw error;

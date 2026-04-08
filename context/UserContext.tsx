@@ -26,19 +26,40 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [favorites, setFavorites] = useState<number[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('gado_gaucho_user');
-    if (stored) {
-      const parsedUser = JSON.parse(stored);
-      setUserState(parsedUser);
-      // Fetch favorites if user exists
-      fetch(`/api/favorites?userId=${parsedUser.id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setFavorites(data);
-        })
-        .catch(err => console.error('Error fetching favorites:', err));
-    }
-    setIsAuthReady(true);
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setUserState(data.user);
+            localStorage.setItem('gado_gaucho_user', safeJsonStringify(data.user));
+            
+            fetch(`/api/favorites`)
+              .then(res => res.json())
+              .then(favData => {
+                if (Array.isArray(favData)) setFavorites(favData);
+              })
+              .catch(err => console.error('Error fetching favorites:', err));
+          } else {
+            setUserState(null);
+            localStorage.removeItem('gado_gaucho_user');
+          }
+        } else {
+          setUserState(null);
+          localStorage.removeItem('gado_gaucho_user');
+        }
+      } catch (err) {
+        console.error('Session fetch failed', err);
+        const stored = localStorage.getItem('gado_gaucho_user');
+        if (stored) {
+          setUserState(JSON.parse(stored));
+        }
+      } finally {
+        setIsAuthReady(true);
+      }
+    };
+    fetchSession();
   }, []);
 
   const setUser = (newUser: any) => {
@@ -51,10 +72,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUserState(null);
     localStorage.removeItem('gado_gaucho_user');
     setFavorites([]);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(e) {
+      console.error(e);
+    }
   };
 
   return (

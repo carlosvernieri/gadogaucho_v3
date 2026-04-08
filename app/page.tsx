@@ -317,43 +317,19 @@ function GadoGauchoContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [listingsRes, usersRes] = await Promise.all([
-          fetch('/api/listings').catch(err => {
-            console.error('Listings fetch failed:', err);
-            return { ok: false, json: async () => ({ error: 'Network error' }) } as Response;
-          }),
-          fetch('/api/users').catch(err => {
-            console.error('Users fetch failed:', err);
-            return { ok: false, json: async () => ({ error: 'Network error' }) } as Response;
-          })
-        ]);
+        const listingsRes = await fetch('/api/listings').catch(err => {
+          console.error('Listings fetch failed:', err);
+          return { ok: false, json: async () => ({ error: 'Network error' }) } as Response;
+        });
 
-        if (!listingsRes.ok || !usersRes.ok) {
-          const lErr = listingsRes.ok ? {} : await listingsRes.json().catch(() => ({ error: 'Failed to parse listings error' }));
-          const uErr = usersRes.ok ? {} : await usersRes.json().catch(() => ({ error: 'Failed to parse users error' }));
-          console.error('API Error Details:', { listings: lErr, users: uErr });
-
-          // Fallback to empty array if API fails
+        if (!listingsRes.ok) {
+          console.error('API Error Details: Failed to fetch listings');
           setListings([]);
         } else {
           const listingsData = await listingsRes.json();
-          const usersData = await usersRes.json();
 
           if (Array.isArray(listingsData)) {
             setListings(listingsData);
-          }
-          if (Array.isArray(usersData)) {
-            setAllUsers(usersData);
-          }
-
-          // Check local storage for session
-          const storedUser = localStorage.getItem('gado_gaucho_user');
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            const found = Array.isArray(usersData) ? usersData.find((u: any) => u.email === parsedUser.email) : null;
-            if (found) {
-              setUser(found);
-            }
           }
         }
       } catch (error: any) {

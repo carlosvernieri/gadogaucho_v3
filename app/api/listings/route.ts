@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { safeJsonStringify, parseJsonField } from '@/lib/utils';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,7 +86,10 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const { category, title, price, priceKg, avgWeight, quantity, location, lat, lng, image, description, images, videos } = data;
-    const userId = data.userId || data.user_id;
+    
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = session.id;
 
     const { data: newListing, error } = await (supabaseAdmin
       .from('listings') as any)
@@ -137,6 +141,9 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
     const { error } = await (supabaseAdmin
       .from('listings') as any)
       .delete()

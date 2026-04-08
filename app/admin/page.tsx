@@ -241,19 +241,24 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const storedUser = localStorage.getItem('gado_gaucho_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (!parsedUser.is_admin) {
-          router.push('/');
-          return;
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user && data.user.is_admin) {
+            setUser(data.user);
+            await fetchData();
+          } else {
+            router.push('/');
+          }
+        } else {
+            router.push('/');
         }
-        setUser(parsedUser);
-        await fetchData();
-      } else {
+      } catch (err) {
         router.push('/');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     checkAdmin();
   }, []);

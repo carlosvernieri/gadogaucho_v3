@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { data: users, error } = await (supabaseAdmin
       .from('users') as any)
       .select('id, name, email, phone, city, is_admin, verified');
@@ -44,6 +48,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const data = await request.json();
     const { name, email, phone, city, password } = data;
 

@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-
-  if (!userId) {
-    return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+  const session = await getSession();
+  if (!session || !session.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const userId = session.id;
 
   try {
     const { data: favorites, error } = await (supabaseAdmin
@@ -35,8 +35,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = session.id;
+
     const body = await request.json();
-    const { userId, listingId } = body;
+    const { listingId } = body;
 
     const { error } = await (supabaseAdmin
       .from('favorites') as any)
@@ -59,8 +63,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = session.id;
+
     const body = await request.json();
-    const { userId, listingId } = body;
+    const { listingId } = body;
 
     const { error } = await (supabaseAdmin
       .from('favorites') as any)

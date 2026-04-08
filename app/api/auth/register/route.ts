@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
+import { signToken, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -25,10 +27,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const { data: newUser, error } = await (supabaseAdmin
       .from('users') as any)
       .insert([
-        { name, email, password, city, phone }
+        { name, email, password: hashedPassword, city, phone }
       ])
       .select()
       .single();
@@ -36,11 +40,16 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const { password: _, ...userWithoutPassword } = newUser;
-
-    return NextResponse.json({
+    
+    const finalUser = {
       ...userWithoutPassword,
       is_admin: !!userWithoutPassword.is_admin
-    });
+    };
+
+    const token = await signToken({ id: finalUser.id, email: finalUser.email, is_admin: finalUser.is_admin });
+    await setSessionCookie(token);
+
+    return NextResponse.json(finalUser);
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json({ error: 'Failed to register' }, { status: 500 });

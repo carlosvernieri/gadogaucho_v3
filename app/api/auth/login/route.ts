@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { signToken, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -42,6 +43,9 @@ export async function POST(request: Request) {
       ...userWithoutPassword,
       is_admin: !!userWithoutPassword.is_admin
     };
+
+    const token = await signToken({ id: finalUser.id, email: finalUser.email, is_admin: finalUser.is_admin });
+    await setSessionCookie(token);
 
     return NextResponse.json(finalUser);
   } catch (error) {

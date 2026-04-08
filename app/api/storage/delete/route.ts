@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -7,6 +8,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { urls } = await request.json();
 
     if (!urls || !Array.isArray(urls) || urls.length === 0) {

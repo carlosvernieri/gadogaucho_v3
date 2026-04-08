@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { parseJsonField } from '@/lib/utils';
+import { getSession } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -83,11 +84,21 @@ export async function DELETE(
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
-    const { error } = await (supabaseAdmin
+    
+    let query = (supabaseAdmin
       .from('listings') as any)
       .delete()
       .eq('id', id);
+
+    if (!session.is_admin) {
+      query = query.eq('user_id', session.id);
+    }
+    
+    const { error } = await query;
 
     if (error) {
       console.error('Supabase error deleting listing:', error);
@@ -109,8 +120,15 @@ export async function PUT(
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
     const data = await request.json();
+
+    if (data.verified !== undefined && !session.is_admin) delete data.verified;
+    if (data.userId !== undefined) delete data.userId;
+    if (data.user_id !== undefined) delete data.user_id;
     
     // Map camelCase to snake_case for Supabase
     const updateData: any = {};
@@ -127,16 +145,20 @@ export async function PUT(
     if (data.description !== undefined) updateData.description = data.description;
     if (data.images !== undefined) updateData.images = data.images;
     if (data.videos !== undefined) updateData.videos = data.videos;
-    if (data.userId !== undefined) updateData.user_id = data.userId;
-    if (data.user_id !== undefined) updateData.user_id = data.user_id;
     if (data.verified !== undefined) updateData.verified = data.verified;
     if (data.verification_requested !== undefined) updateData.verification_requested = data.verification_requested;
     if (data.sold !== undefined) updateData.sold = data.sold;
 
-    const { data: updatedListing, error } = await (supabaseAdmin
+    let query = (supabaseAdmin
       .from('listings') as any)
       .update(updateData)
-      .eq('id', id)
+      .eq('id', id);
+
+    if (!session.is_admin) {
+      query = query.eq('user_id', session.id);
+    }
+
+    const { data: updatedListing, error } = await query
       .select('*')
       .single();
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -53,24 +54,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    // Get user ID from email
-    const { data: user, error: userError } = await (supabaseAdmin
-      .from('users') as any)
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (userError || !user) {
-      console.error('User not found for messages:', userError);
-      return NextResponse.json([]);
-    }
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: messages, error } = await (supabaseAdmin
       .from('messages') as any)
@@ -82,7 +67,7 @@ export async function GET(request: Request) {
           user_id
         )
       `)
-      .eq('listings.user_id', user.id)
+      .eq('listings.user_id', session.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -107,10 +92,22 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id, is_read } = await request.json();
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    const { data: messageCheck } = await (supabaseAdmin.from('messages') as any)
+      .select('listings(user_id)')
+      .eq('id', id)
+      .single();
+
+    if (!messageCheck || messageCheck.listings?.user_id !== session.id) {
+       if (!session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { error } = await (supabaseAdmin
@@ -135,11 +132,23 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const session = await getSession();
+    if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    const { data: messageCheck } = await (supabaseAdmin.from('messages') as any)
+      .select('listings(user_id)')
+      .eq('id', id)
+      .single();
+
+    if (!messageCheck || messageCheck.listings?.user_id !== session.id) {
+       if (!session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { error } = await (supabaseAdmin
