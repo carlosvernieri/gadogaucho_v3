@@ -561,7 +561,7 @@ export default function MeusAnunciosPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
               {(isUpdatingListing || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
@@ -569,17 +569,17 @@ export default function MeusAnunciosPage() {
                   <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
                     {isUploadingMedia ? 'Enviando mídias...' : 'Processando anúncio...'}
                   </h3>
-                  <p className="text-sm text-[#666] mt-2">
+                  <p className="text-sm text-[#666] mt-2 text-center px-4">
                     {isUploadingMedia ? 'Aguarde o carregamento das suas fotos e vídeos.' : 'Carregando dados e imagens, por favor aguarde.'}
                   </p>
                 </div>
               )}
-              <div className="p-8">
+              <div className="p-8 overflow-y-auto flex-1">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold text-[#333]">
                     {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}
                   </h2>
-                  <button onClick={() => { setShowAdModal(false); setEditingListingId(null); setMediaToDelete([]); }} className="text-[#999] hover:text-[#333] cursor-pointer">
+                  <button type="button" onClick={() => { setShowAdModal(false); setEditingListingId(null); setMediaToDelete([]); }} className="text-[#999] hover:text-[#333] cursor-pointer">
                     <X size={24} />
                   </button>
                 </div>
