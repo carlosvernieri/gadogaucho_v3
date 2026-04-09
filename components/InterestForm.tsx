@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, User, Phone, Mail, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { showToast } from './ConfirmModal';
 import { safeJsonStringify } from '@/lib/utils';
+import { Spinner } from './Spinner';
 
 interface InterestFormProps {
   isOpen: boolean;
@@ -198,7 +199,7 @@ export const InterestForm = ({ isOpen, onClose, listingId, listingTitle }: Inter
                     className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-2xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <Spinner size="sm" variant="white" />
                     ) : (
                       <>
                         <Send size={18} /> Enviar Mensagem

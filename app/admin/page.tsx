@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
+import { Spinner } from '@/components/Spinner';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
@@ -27,7 +28,8 @@ import {
   Heart,
   Loader2,
   Camera,
-  Video
+  Video,
+  HardDrive
 } from 'lucide-react';
 import Image from 'next/image';
 import { RS_CITIES } from '@/lib/data';
@@ -46,7 +48,8 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, setUser, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system'>('users');
+  const [isCleaningStorage, setIsCleaningStorage] = useState(false);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -238,6 +241,32 @@ export default function AdminPage() {
     message: '',
     onConfirm: () => { }
   });
+
+  const handleStorageCleanup = async () => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Limpar Storage?',
+      message: 'Esta ação varrerá o repositório de mídias e removerá definitivamente as imagens e vídeos que não estão mais atrelados a nenhum anúncio existente.',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setIsCleaningStorage(true);
+        try {
+          const res = await fetch('/api/admin/storage-cleanup', { method: 'POST' });
+          if (res.ok) {
+             const data = await res.json();
+             showToast(data.removed > 0 ? `Limpeza concluída! ${data.removed} arquivos removidos. (${data.checked} checados)` : `Nenhum arquivo órfão encontrado. (${data.checked} checados)`);
+          } else {
+             const err = await res.json();
+             showToast(err.error || 'Erro ao limpar storage.', 'error');
+          }
+        } catch (error) {
+          showToast('Erro ao contatar o servidor.', 'error');
+        } finally {
+          setIsCleaningStorage(false);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -564,6 +593,12 @@ export default function AdminPage() {
                     </span>
                   )}
                 </button>
+                <button
+                  onClick={() => setAdminTab('system')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'system' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Sistema
+                </button>
               </div>
             </div>
             <button
@@ -728,7 +763,7 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : adminTab === 'listings' ? (
               <div>
                 <div className="flex items-center gap-2 mb-6">
                   <LayoutGrid size={20} className="text-[#2D5A27]" />
@@ -807,6 +842,45 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-6">
+                  <HardDrive size={20} className="text-[#2D5A27]" />
+                  <h3 className="text-lg font-bold text-[#333]">Sistema e Manutenção</h3>
+                </div>
+                
+                <div className="bg-[#F8F9FA] rounded-2xl p-6 border border-[#E9ECEF]">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div>
+                      <h4 className="font-bold text-[#333] text-lg mb-2">Limpeza de Storage</h4>
+                      <p className="text-sm text-[#666] max-w-xl">
+                        Este processo varre o banco de dados em busca de imagens e vídeos órfãos (arquivos que estão no Supabase Storage mas não estão mais vinculados a nenhum anúncio ativo) e os remove permanentemente para liberar espaço.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleStorageCleanup}
+                      disabled={isCleaningStorage}
+                      className={`shrink-0 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 min-w-[200px] ${
+                        isCleaningStorage 
+                          ? 'bg-[#E9ECEF] text-[#999] cursor-not-allowed'
+                          : 'bg-[#DC3545] text-white hover:bg-[#C82333] shadow-md shadow-red-500/20 cursor-pointer'
+                      }`}
+                    >
+                      {isCleaningStorage ? (
+                        <>
+                          <Spinner size="sm" className="border-gray-300 border-t-gray-500" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={18} />
+                          Limpar Mídias Órfãs
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -963,7 +1037,7 @@ export default function AdminPage() {
             >
               {(isUpdatingListing || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <Spinner size="xl" className="mb-4" />
                   <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
                     {isUploadingMedia ? 'Enviando mídias...' : 'Salvando alterações...'}
                   </h3>
@@ -1115,7 +1189,7 @@ export default function AdminPage() {
                         onClick={() => imageInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Camera size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Camera size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
@@ -1134,7 +1208,7 @@ export default function AdminPage() {
                         onClick={() => videoInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Video size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Video size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
                     </div>
