@@ -10,6 +10,7 @@ import { ListingListItem } from '@/components/ListingListItem';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
+import { Spinner } from '@/components/Spinner';
 import { Megaphone, LayoutGrid, Menu as MenuIcon, Plus, X, Camera, Video, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
@@ -565,7 +566,7 @@ export default function MeusAnunciosPage() {
             >
               {(isUpdatingListing || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <Spinner size="xl" className="mb-4" />
                   <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
                     {isUploadingMedia ? 'Enviando mídias...' : 'Processando anúncio...'}
                   </h3>
@@ -708,7 +709,7 @@ export default function MeusAnunciosPage() {
                         onClick={() => imageInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Camera size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Camera size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
@@ -727,7 +728,7 @@ export default function MeusAnunciosPage() {
                         onClick={() => videoInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Video size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Video size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
                     </div>
