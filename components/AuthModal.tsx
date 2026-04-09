@@ -16,11 +16,11 @@ const formatPhone = (val: string) => {
 };
 
 export function AuthModal() {
-  const { 
-    showAuthModal, 
-    setShowAuthModal, 
-    authMode, 
-    setAuthMode, 
+  const {
+    showAuthModal,
+    setShowAuthModal,
+    authMode,
+    setAuthMode,
     setUser,
     setFavorites
   } = useUser();
@@ -34,9 +34,9 @@ export function AuthModal() {
     password: '',
     confirmPassword: ''
   });
-  
+
   const [captchaAuth, setCaptchaAuth] = useState({ num1: 0, num2: 0, answer: '' });
-  
+
   const [citySearchAuth, setCitySearchAuth] = useState('');
   const [showAuthSuggestions, setShowAuthSuggestions] = useState(false);
 
@@ -48,10 +48,10 @@ export function AuthModal() {
 
   useEffect(() => {
     if (showAuthModal && authMode === 'register') {
-      setCaptchaAuth({ 
-        num1: Math.floor(Math.random() * 10) + 1, 
-        num2: Math.floor(Math.random() * 10) + 1, 
-        answer: '' 
+      setCaptchaAuth({
+        num1: Math.floor(Math.random() * 10) + 1,
+        num2: Math.floor(Math.random() * 10) + 1,
+        answer: ''
       });
     }
   }, [showAuthModal, authMode]);
@@ -114,14 +114,14 @@ export function AuthModal() {
         if (res.ok) {
           const savedUser = await res.json();
           setUser(savedUser);
-          
+
           fetch(`/api/favorites?userId=${savedUser.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
             })
             .catch(err => console.error('Error fetching favorites:', err));
-            
+
           setShowAuthModal(false);
         } else {
           const error = await res.json();
@@ -147,14 +147,14 @@ export function AuthModal() {
         if (res.ok) {
           const foundUser = await res.json();
           setUser(foundUser);
-          
+
           fetch(`/api/favorites?userId=${foundUser.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
             })
             .catch(err => console.error('Error fetching favorites:', err));
-            
+
           setShowAuthModal(false);
         } else {
           const error = await res.json();
@@ -184,7 +184,7 @@ export function AuthModal() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl"
+            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl max-h-[90dvh] overflow-y-auto"
           >
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
