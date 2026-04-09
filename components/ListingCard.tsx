@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, Share2, MapPin, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Badge } from './Badge';
+import { Spinner } from './Spinner';
 
 export const ListingCard = ({ 
   listing, 
@@ -54,8 +55,7 @@ export const ListingCard = ({
     >
       {isNavigating && (
         <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center">
-          <div className="w-10 h-10 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
-          <Loader2 size={16} className="text-[#2D5A27] animate-pulse absolute" />
+          <Spinner size="md" />
           <span className="mt-3 text-[10px] font-bold text-[#2D5A27] uppercase tracking-wider">Carregando...</span>
         </div>
       )}
@@ -79,7 +79,7 @@ export const ListingCard = ({
       <div className="relative aspect-[4/3] bg-gray-100">
         {!isImageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
+            <Spinner size="md" className="opacity-50" />
           </div>
         )}
         <Image 

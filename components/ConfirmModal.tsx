@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, AlertTriangle, Loader2, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { Spinner } from './Spinner';
 
 // Simple toast implementation
 export const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -148,7 +149,7 @@ export const ConfirmModal = ({
                   disabled={loading}
                   className={`flex-1 py-3 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${colors.button}`}
                 >
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : confirmText}
+                  {loading ? <Spinner size="sm" variant="white" /> : confirmText}
                 </button>
               </div>
             </div>

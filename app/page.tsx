@@ -32,6 +32,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import { slugify, safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
+import { Spinner } from '@/components/Spinner';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
 import { supabase } from '@/lib/supabase';
@@ -99,9 +100,9 @@ function GadoGauchoContent() {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        
+
         setSelectedCityCoords({ lat, lng });
-        
+
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
           if (res.ok) {
@@ -349,7 +350,7 @@ function GadoGauchoContent() {
     const cityParam = searchParams.get('citySearch');
     const latParam = searchParams.get('lat');
     const lngParam = searchParams.get('lng');
-    
+
     setSelectedCategory(catParam);
     if (favParam === 'true') {
       setShowFavorites(true);
@@ -505,12 +506,12 @@ function GadoGauchoContent() {
           updatedFavs = [...favorites, listingIdNum];
           setFavoriteToastMessage('Adicionado aos favoritos!');
         }
-        
+
         // Wait, where is setFavorites? I need to get it from useUser().
         // Actually, it's missing from my destructured `useUser()` call in the first chunk, let me check. No, I exported it. I must grab it.
         // Let's assume I grabbed it in the first chunk wait: `const { ..., favorites, setFavorites } = useUser()`. Yes, I'll update the first chunk to include `setFavorites`.
         // I can just replace the logic here with a local setFavorites call.
-        
+
         // Let's just fix the function with setFavorites
         // However, I made a mistake in the first chunk? Let me write this raw and clean it in next step if necessary. Let me just put the same logic.
         setTimeout(() => setShowShareToast(false), 3000);
@@ -722,10 +723,7 @@ function GadoGauchoContent() {
               {loading ? (
                 <div className="col-span-full py-32 flex flex-col items-center justify-center">
                   <div className="relative">
-                    <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 size={24} className="text-[#2D5A27] animate-pulse" />
-                    </div>
+                    <Spinner size="xl" />
                   </div>
                   <h3 className="mt-6 text-lg font-bold text-[#333] animate-pulse">Carregando anúncios...</h3>
                   <p className="text-sm text-[#999] mt-2">Buscando as melhores ofertas do RS</p>
@@ -830,7 +828,7 @@ function GadoGauchoContent() {
       {/* Custom Full-Screen Loading States */}
       {isTogglingFavorite && (
         <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-          <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+          <Spinner size="xl" className="mb-4" />
           <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">Atualizando favoritos...</h3>
         </div>
       )}
@@ -865,11 +863,11 @@ function GadoGauchoContent() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl max-h-[90dvh] overflow-y-auto"
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[95dvh] flex flex-col"
             >
               {(isSubmittingAd || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+                  <Spinner size="xl" className="mb-4" />
                   <h3 className="text-lg font-bold text-[#2D5A27] animate-pulse">
                     {isUploadingMedia ? 'Enviando mídias...' : 'Processando anúncio...'}
                   </h3>
@@ -878,7 +876,7 @@ function GadoGauchoContent() {
                   </p>
                 </div>
               )}
-              <div className="p-8">
+              <div className="p-8 overflow-y-auto flex-1">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold text-[#333]">
                     {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}
@@ -1012,7 +1010,7 @@ function GadoGauchoContent() {
                         onClick={() => imageInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Camera size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Camera size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
@@ -1031,7 +1029,7 @@ function GadoGauchoContent() {
                         onClick={() => videoInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
                       >
-                        {isUploadingMedia ? <Loader2 size={24} className="animate-spin text-[#2D5A27]" /> : <Video size={24} />}
+                        {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Video size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
                     </div>
@@ -1127,7 +1125,7 @@ function GadoGauchoContent() {
       {isUpdatingListing && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center">
           <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin" />
+            <Spinner size="lg" />
             <p className="text-[#333] font-bold">Atualizando anúncio...</p>
           </div>
         </div>
@@ -1149,7 +1147,7 @@ export default function GadoGauchoApp() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-[#E9ECEF] border-t-[#2D5A27] rounded-full animate-spin mb-4" />
+          <Spinner size="lg" className="mb-4" />
           <p className="text-[#2D5A27] font-bold animate-pulse">Carregando Gado Gaúcho...</p>
         </div>
       </div>
