@@ -67,15 +67,18 @@ export const Sidebar = ({
 
   const [localCitySearch, setLocalCitySearch] = React.useState('');
   const [localSearchQuery, setLocalSearchQuery] = React.useState('');
+  const [localShowSuggestions, setLocalShowSuggestions] = React.useState(false);
 
   const activeCitySearch = pathname === '/' ? citySearch : localCitySearch;
   const activeSearchQuery = pathname === '/' ? searchQuery : localSearchQuery;
+  const activeShowSuggestions = pathname === '/' ? showSuggestions : localShowSuggestions;
+  const activeSetShowSuggestions = pathname === '/' ? setShowSuggestions : setLocalShowSuggestions;
 
   const activeCitySuggestions = pathname === '/' ? citySuggestions : React.useMemo(() => {
-    if (!showSuggestions) return [];
+    if (!activeShowSuggestions) return [];
     if (activeCitySearch.length < 3) return [];
     return RS_CITIES.filter(c => c.name.toLowerCase().includes(activeCitySearch.toLowerCase()));
-  }, [activeCitySearch, showSuggestions]);
+  }, [activeCitySearch, activeShowSuggestions]);
 
   const handleCityChange = (val: string) => {
     if (pathname === '/') onCitySearchChange(val);
@@ -123,27 +126,27 @@ export const Sidebar = ({
             <div className="flex items-center gap-2 text-sm font-bold text-[#333] mb-4">
               <MapPin size={18} className="text-[#2D5A27]" /> Localidade
             </div>
-            <button 
+            <button
               onClick={onUseMyLocation}
               className="w-full py-2.5 bg-[#E9F0E8] text-[#2D5A27] text-[11px] font-bold rounded-lg mb-3 hover:bg-[#D3E1D1] transition-all cursor-pointer"
             >
               Usar minha localização atual
             </button>
             <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Ou buscar município - RS..." 
+              <input
+                type="text"
+                placeholder="Ou buscar município - RS..."
                 value={activeCitySearch}
                 onChange={(e) => handleCityChange(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onFocus={() => activeSetShowSuggestions(true)}
+                onBlur={() => setTimeout(() => activeSetShowSuggestions(false), 200)}
                 suppressHydrationWarning
                 className="w-full bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
-              {activeCitySuggestions.length > 0 && showSuggestions && (
+              {activeCitySuggestions.length > 0 && activeShowSuggestions && (
                 <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-10 overflow-hidden">
                   {activeCitySuggestions.map((city: any) => (
-                    <button 
+                    <button
                       key={city.name}
                       type="button"
                       onClick={() => handleSelectCity(city)}
@@ -156,17 +159,17 @@ export const Sidebar = ({
                 </div>
               )}
             </div>
-            
+
             {citySearch && (
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold text-[#999] uppercase">Distância Máxima</span>
                   <span className="text-[10px] font-bold text-[#2D5A27]">{maxDistance} km</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="500" 
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
                   step="10"
                   value={maxDistance}
                   onChange={(e) => onMaxDistanceChange(Number(e.target.value))}
@@ -182,16 +185,16 @@ export const Sidebar = ({
               <Search size={18} className="text-[#2D5A27]" /> Filtrar por Código
             </div>
             <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Ex: 123" 
+              <input
+                type="text"
+                placeholder="Ex: 123"
                 value={activeSearchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmitClick()}
                 suppressHydrationWarning
                 className="flex-1 bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
-              <button 
+              <button
                 onClick={handleSearchSubmitClick}
                 className="w-10 h-10 bg-[#2D5A27] text-white rounded-lg flex items-center justify-center hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
@@ -206,7 +209,7 @@ export const Sidebar = ({
               <LayoutGrid size={18} className="text-[#2D5A27]" /> Categorias
             </div>
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={() => handleCategorySelect(null)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!selectedCategory ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
               >
@@ -216,7 +219,7 @@ export const Sidebar = ({
               {CATEGORIES_LIST.map((catName: string) => {
                 const count = getCategoryCount(catName);
                 return (
-                  <button 
+                  <button
                     key={catName}
                     onClick={() => handleCategorySelect(catName)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${selectedCategory?.toLowerCase() === catName.toLowerCase() ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
@@ -231,7 +234,7 @@ export const Sidebar = ({
 
           {/* Filtros Adicionais */}
           <div className="mb-7">
-            <div 
+            <div
               onClick={() => onShowVerifiedOnlyChange?.(!showVerifiedOnly)}
               className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
             >
@@ -245,13 +248,13 @@ export const Sidebar = ({
                     <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Verificados</span>
                   </div>
                 </div>
-                
+
                 {/* Toggle Switch */}
                 <div className={`min-w-[44px] h-6 rounded-full relative transition-all duration-300 mt-2 ${showVerifiedOnly ? 'bg-[#2D5A27]' : 'bg-[#D1D1D1]'}`}>
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${showVerifiedOnly ? 'left-6' : 'left-1'}`} />
                 </div>
               </div>
-              
+
               <p className="text-[12px] text-[#888] leading-tight font-medium">
                 Exibir apenas vendedores com identidade confirmada.
               </p>
