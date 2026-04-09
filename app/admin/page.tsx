@@ -10,15 +10,15 @@ import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  User, 
-  LayoutGrid, 
-  ShieldCheck, 
-  X, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Check, 
+import {
+  User,
+  LayoutGrid,
+  ShieldCheck,
+  X,
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
   MapPin,
   ChevronLeft,
   ChevronRight,
@@ -47,11 +47,11 @@ export default function AdminPage() {
   const { user, setUser, logout } = useUser();
   const [loading, setLoading] = useState(true);
   const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications'>('users');
-  
+
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
-  
+
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', city: '', password: '' });
@@ -80,7 +80,7 @@ export default function AdminPage() {
     images: [] as string[],
     videos: [] as string[]
   });
-  
+
   const [citySearchAd, setCitySearchAd] = useState('');
   const [showAdSuggestions, setShowAdSuggestions] = useState(false);
 
@@ -115,10 +115,10 @@ export default function AdminPage() {
         showToast('O vídeo é muito grande. Máximo 50MB.', 'error');
         continue;
       }
-      
+
       try {
         let fileToUpload: File | Blob = file;
-        
+
         if (type === 'images') {
           try {
             const options = {
@@ -156,14 +156,14 @@ export default function AdminPage() {
             const { error: thumbErr } = await supabase.storage
               .from('gado_gaucho_media')
               .upload(`images/${thumbName}`, thumbBlob);
-              
+
             if (!thumbErr) {
               const { data: thumbData } = supabase.storage
                 .from('gado_gaucho_media')
                 .getPublicUrl(`images/${thumbName}`);
               newImages.push(thumbData.publicUrl);
             }
-          } catch(err) {
+          } catch (err) {
             console.error('Failed to generate video thumbnail:', err);
           }
         }
@@ -189,7 +189,7 @@ export default function AdminPage() {
       }
     });
     e.target.value = '';
-    
+
     if (newFiles.length > 0) {
       showToast('Mídia atualizada com sucesso!');
     }
@@ -199,11 +199,11 @@ export default function AdminPage() {
   const removeFile = (index: number, type: 'images' | 'videos') => {
     const fileUrl = adForm[type][index];
     if (fileUrl) {
-       if (editingListingId) {
-          setMediaToDelete(prev => [...prev, fileUrl]);
-       } else {
-          deleteMediaFromStorage([fileUrl]);
-       }
+      if (editingListingId) {
+        setMediaToDelete(prev => [...prev, fileUrl]);
+      } else {
+        deleteMediaFromStorage([fileUrl]);
+      }
     }
     setAdForm(prev => ({
       ...prev,
@@ -236,7 +236,7 @@ export default function AdminPage() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   useEffect(() => {
@@ -252,7 +252,7 @@ export default function AdminPage() {
             router.push('/');
           }
         } else {
-            router.push('/');
+          router.push('/');
         }
       } catch (err) {
         router.push('/');
@@ -269,12 +269,12 @@ export default function AdminPage() {
         fetch('/api/users'),
         fetch('/api/listings')
       ]);
-      
+
       if (usersRes.ok) {
         const users = await usersRes.json();
         setAllUsers(users);
       }
-      
+
       if (listingsRes.ok) {
         const allListings = await listingsRes.json();
         setListings(allListings);
@@ -474,7 +474,7 @@ export default function AdminPage() {
     setIsUpdatingListing(true);
     try {
       const cityData = RS_CITIES.find(c => c.name.toLowerCase() === citySearchAd.toLowerCase());
-      
+
       const payload = {
         ...adForm,
         price: totalPrice,
@@ -516,12 +516,12 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
-      <Header 
+      <Header
         user={user}
-        onMenuClick={() => {}}
-        onAuthClick={() => {}}
-        onAdClick={() => {}}
-        onAdminClick={() => {}}
+        onMenuClick={() => { }}
+        onAuthClick={() => { }}
+        onAdClick={() => { }}
+        onAdminClick={() => { }}
         onLogout={() => {
           logout();
           router.push('/');
@@ -532,7 +532,7 @@ export default function AdminPage() {
       />
 
       <div className="flex-1 max-w-[1440px] mx-auto w-full px-4 lg:px-8 py-8">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm"
@@ -541,19 +541,19 @@ export default function AdminPage() {
             <div>
               <h2 className="text-2xl font-bold text-[#333]">Painel Administrativo</h2>
               <div className="flex items-center gap-4 mt-4">
-                <button 
+                <button
                   onClick={() => setAdminTab('users')}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'users' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Usuários
                 </button>
-                <button 
+                <button
                   onClick={() => setAdminTab('listings')}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'listings' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Anúncios
                 </button>
-                <button 
+                <button
                   onClick={() => setAdminTab('verifications')}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
@@ -566,7 +566,7 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => router.push('/')}
               className="text-[#666] hover:text-[#333] flex items-center gap-2 cursor-pointer"
             >
@@ -581,7 +581,7 @@ export default function AdminPage() {
                   <h3 className="text-lg font-bold text-[#333] flex items-center gap-2">
                     <User size={20} className="text-[#2D5A27]" /> Gerenciar Usuários
                   </h3>
-                  <button 
+                  <button
                     onClick={() => {
                       setEditingUser(null);
                       setAuthForm({ name: '', email: '', phone: '', city: '', password: '' });
@@ -628,14 +628,14 @@ export default function AdminPage() {
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <button 
+                              <button
                                 onClick={() => handleToggleUserVerified(u)}
                                 className={`p-2 rounded-lg transition-all cursor-pointer ${u.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
                                 title={u.verified ? "Remover Verificação" : "Marcar como Verificado"}
                               >
                                 <ShieldCheck size={16} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleEditUser(u)}
                                 className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all cursor-pointer"
                                 title="Editar Usuário"
@@ -643,7 +643,7 @@ export default function AdminPage() {
                                 <Pencil size={16} />
                               </button>
                               {!u.is_admin && (
-                                <button 
+                                <button
                                   onClick={() => handleDeleteUser(u.id)}
                                   className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                   title="Excluir Usuário"
@@ -665,7 +665,7 @@ export default function AdminPage() {
                   <ShieldCheck className="text-[#2D5A27]" size={20} />
                   <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação de Anúncios</h3>
                 </div>
-                
+
                 <div className="flex flex-col gap-4">
                   {verificationRequests.length > 0 ? (
                     <div className="overflow-x-auto">
@@ -698,14 +698,14 @@ export default function AdminPage() {
                               <td className="py-4 px-4 text-sm text-[#666]">{req.seller}</td>
                               <td className="py-4 px-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button 
+                                  <button
                                     onClick={() => handleApproveVerification(req.id)}
                                     className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
                                     title="Aprovar"
                                   >
                                     <Check size={14} />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => handleRejectVerification(req.id)}
                                     className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
                                     title="Rejeitar"
@@ -764,14 +764,14 @@ export default function AdminPage() {
                           <td className="py-4 px-4 text-[#2D5A27] font-bold">R$ {l.price.toLocaleString()}</td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <button 
+                              <button
                                 onClick={() => handleToggleListingVerified(l)}
                                 className={`p-2 rounded-lg transition-all cursor-pointer ${l.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
                                 title={l.verified ? "Remover Verificação" : "Marcar como Verificado"}
                               >
                                 <ShieldCheck size={16} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setEditingListingId(l.id);
                                   setAdForm({
@@ -794,7 +794,7 @@ export default function AdminPage() {
                               >
                                 <Pencil size={16} />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDeleteListing(l.id)}
                                 className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                 title="Excluir Anúncio"
@@ -817,14 +817,14 @@ export default function AdminPage() {
       <AnimatePresence>
         {showUserModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => { setShowUserModal(false); setEditingUser(null); }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -839,62 +839,62 @@ export default function AdminPage() {
                     <X size={24} />
                   </button>
                 </div>
-                
+
                 <form onSubmit={editingUser ? handleUpdateUser : handleAdminCreateUser} className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
                       Nome Completo
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={authForm.name}
-                      onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
-                      placeholder="Nome do usuário" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                      placeholder="Nome do usuário"
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
                       E-mail
                     </label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       required
                       value={authForm.email}
-                      onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                      placeholder="email@exemplo.com" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                      placeholder="email@exemplo.com"
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
                       Telefone
                     </label>
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       value={authForm.phone}
-                      onChange={(e) => setAuthForm({...authForm, phone: formatPhone(e.target.value)})}
-                      placeholder="(00) 0000 00000" 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      onChange={(e) => setAuthForm({ ...authForm, phone: formatPhone(e.target.value) })}
+                      placeholder="(00) 0000 00000"
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
                   </div>
                   <div className="relative">
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
                       Cidade
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={citySearchAuth}
                       onChange={(e) => {
                         setCitySearchAuth(e.target.value);
-                        setAuthForm({...authForm, city: e.target.value});
+                        setAuthForm({ ...authForm, city: e.target.value });
                         setShowAuthSuggestions(true);
                       }}
                       onFocus={() => setShowAuthSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
-                      placeholder="Busque o município..." 
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      placeholder="Busque o município..."
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
                     {citySuggestionsAuth.length > 0 && (
                       <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
@@ -921,18 +921,18 @@ export default function AdminPage() {
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
                         Senha
                       </label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         required
                         value={authForm.password}
-                        onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                        placeholder="••••••••" 
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                        placeholder="••••••••"
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
                     </div>
                   )}
-                  
-                  <button 
+
+                  <button
                     type="submit"
                     className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
                   >
@@ -948,18 +948,18 @@ export default function AdminPage() {
       <AnimatePresence>
         {showAdModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => { setShowAdModal(false); setEditingListingId(null); setMediaToDelete([]); }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col"
             >
               {(isUpdatingListing || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
@@ -978,27 +978,27 @@ export default function AdminPage() {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-8 overflow-y-auto">
                 <form onSubmit={handleUpdateListing} className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Título do Anúncio</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={adForm.title}
-                      onChange={(e) => setAdForm({...adForm, title: e.target.value})}
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                      onChange={(e) => setAdForm({ ...adForm, title: e.target.value })}
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
-                      <select 
+                      <select
                         required
                         value={adForm.category}
-                        onChange={(e) => setAdForm({...adForm, category: e.target.value})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none" 
+                        onChange={(e) => setAdForm({ ...adForm, category: e.target.value })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
                       >
                         <option value="Touro">Touro</option>
                         <option value="Vaca">Vaca</option>
@@ -1008,72 +1008,72 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Quantidade (Animais)</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         required min="1"
                         value={adForm.quantity}
-                        onChange={(e) => setAdForm({...adForm, quantity: Number(e.target.value)})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        onChange={(e) => setAdForm({ ...adForm, quantity: Number(e.target.value) })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Preço por Kg (R$)</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         step="0.01" required
                         value={adForm.priceKg}
-                        onChange={(e) => setAdForm({...adForm, priceKg: Number(e.target.value)})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        onChange={(e) => setAdForm({ ...adForm, priceKg: Number(e.target.value) })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Peso Médio (Kg)</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         step="0.1" required
                         value={adForm.avgWeight}
-                        onChange={(e) => setAdForm({...adForm, avgWeight: Number(e.target.value)})}
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        onChange={(e) => setAdForm({ ...adForm, avgWeight: Number(e.target.value) })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Preço Total (R$)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         readOnly
                         value={totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        className="w-full bg-[#E9F0E8] text-[#2D5A27] font-bold border border-transparent rounded-xl px-4 py-3 text-sm outline-none cursor-not-allowed" 
+                        className="w-full bg-[#E9F0E8] text-[#2D5A27] font-bold border border-transparent rounded-xl px-4 py-3 text-sm outline-none cursor-not-allowed"
                       />
                     </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Localização (Município RS)</label>
                     <div className="relative">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         required
                         value={citySearchAd}
                         onChange={(e) => {
                           setCitySearchAd(e.target.value);
-                          setAdForm({...adForm, location: e.target.value});
+                          setAdForm({ ...adForm, location: e.target.value });
                           setShowAdSuggestions(true);
                         }}
                         onFocus={() => setShowAdSuggestions(true)}
                         onBlur={() => setTimeout(() => setShowAdSuggestions(false), 200)}
                         placeholder="Nome da cidade..."
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all" 
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
                       {citySuggestionsAd.length > 0 && (
                         <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
                           {citySuggestionsAd.map((city: any) => (
-                            <button 
+                            <button
                               key={city.name}
                               type="button"
                               onClick={() => {
                                 const newLocation = `${city.name.toUpperCase()} - RS`;
-                                setAdForm({...adForm, location: newLocation});
+                                setAdForm({ ...adForm, location: newLocation });
                                 setCitySearchAd(city.name.toUpperCase());
                                 setShowAdSuggestions(false);
                               }}
@@ -1089,28 +1089,28 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Descrição</label>
-                    <textarea 
+                    <textarea
                       required rows={4}
                       value={adForm.description}
-                      onChange={(e) => setAdForm({...adForm, description: e.target.value})}
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none" 
+                      onChange={(e) => setAdForm({ ...adForm, description: e.target.value })}
+                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
                     />
                   </div>
 
                   <div className="space-y-4 border-t border-[#E9ECEF] pt-4 mt-4">
                     <label className="block text-sm font-bold text-[#333] mb-2">Fotos e Vídeos</label>
                     <div className="grid grid-cols-2 gap-4">
-                      <input 
-                        type="file" 
-                        ref={imageInputRef} 
-                        onChange={(e) => handleFileChange(e, 'images')} 
-                        multiple 
-                        accept="image/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        ref={imageInputRef}
+                        onChange={(e) => handleFileChange(e, 'images')}
+                        multiple
+                        accept="image/*"
+                        className="hidden"
                         disabled={isUploadingMedia}
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         disabled={isUploadingMedia}
                         onClick={() => imageInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
@@ -1119,17 +1119,17 @@ export default function AdminPage() {
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Fotos'}</span>
                       </button>
 
-                      <input 
-                        type="file" 
-                        ref={videoInputRef} 
-                        onChange={(e) => handleFileChange(e, 'videos')} 
-                        multiple 
-                        accept="video/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        ref={videoInputRef}
+                        onChange={(e) => handleFileChange(e, 'videos')}
+                        multiple
+                        accept="video/*"
+                        className="hidden"
                         disabled={isUploadingMedia}
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         disabled={isUploadingMedia}
                         onClick={() => videoInputRef.current?.click()}
                         className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#E9ECEF] rounded-2xl transition-all ${isUploadingMedia ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#2D5A27] hover:bg-[#F8F9FA] cursor-pointer text-[#999] hover:text-[#2D5A27]'}`}
@@ -1145,30 +1145,30 @@ export default function AdminPage() {
                           <div key={`img-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group border border-[#E9ECEF]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={img} alt="" className="w-full h-full object-cover" />
-                            
+
                             {/* Reorder Overlay */}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                               {idx > 0 && (
-                                  <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
-                                    <ChevronLeft size={16} />
-                                  </button>
-                               )}
-                               {idx < adForm.images.length - 1 && (
-                                  <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
-                                    <ChevronRight size={16} />
-                                  </button>
-                               )}
+                              {idx > 0 && (
+                                <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                  <ChevronLeft size={16} />
+                                </button>
+                              )}
+                              {idx < adForm.images.length - 1 && (
+                                <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                  <ChevronRight size={16} />
+                                </button>
+                              )}
                             </div>
 
                             {/* Delete Button */}
-                            <button 
+                            <button
                               type="button"
                               onClick={() => removeFile(idx, 'images')}
                               className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10 shadow-md"
                             >
                               <X size={12} />
                             </button>
-                            
+
                             {/* Capa Badge */}
                             {idx === 0 && (
                               <div className="absolute top-1 left-1 bg-[#2D5A27] text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full z-10 shadow-md">
@@ -1180,7 +1180,7 @@ export default function AdminPage() {
                         {adForm.videos.map((vid, idx) => (
                           <div key={`vid-${idx}`} className="relative aspect-square rounded-lg overflow-hidden group bg-black flex items-center justify-center border border-[#E9ECEF]">
                             <Video size={20} className="text-white" />
-                            <button 
+                            <button
                               type="button"
                               onClick={() => removeFile(idx, 'videos')}
                               className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
@@ -1192,8 +1192,8 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-                  
-                  <button 
+
+                  <button
                     type="submit"
                     className="w-full py-4 bg-[#2D5A27] text-white rounded-2xl font-bold hover:bg-[#1E3D1A] transition-all shadow-lg shadow-[#2D5A27]/20 cursor-pointer mt-4"
                   >
@@ -1207,14 +1207,14 @@ export default function AdminPage() {
       </AnimatePresence>
 
       {user && (
-        <BottomNav 
-          user={user} 
-          onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => router.push('/?auth=login')} 
+        <BottomNav
+          user={user}
+          onAdClick={() => router.push('/?ad=new')}
+          onAuthClick={() => router.push('/?auth=login')}
         />
       )}
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={confirmModal.onConfirm}
