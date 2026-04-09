@@ -346,9 +346,19 @@ function GadoGauchoContent() {
   useEffect(() => {
     const catParam = searchParams.get('category');
     const favParam = searchParams.get('favorites');
+    const cityParam = searchParams.get('citySearch');
+    const latParam = searchParams.get('lat');
+    const lngParam = searchParams.get('lng');
+    
     setSelectedCategory(catParam);
     if (favParam === 'true') {
       setShowFavorites(true);
+    }
+    if (cityParam) {
+      setCitySearch(cityParam);
+    }
+    if (latParam && lngParam) {
+      setSelectedCityCoords({ lat: parseFloat(latParam), lng: parseFloat(lngParam) });
     }
   }, [searchParams]);
 

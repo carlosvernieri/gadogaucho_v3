@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MapPin, Search, X, LayoutGrid, ShieldCheck, Plus } from 'lucide-react';
-import { CATEGORIES_LIST } from '@/lib/data';
+import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface SidebarProps {
@@ -65,6 +65,47 @@ export const Sidebar = ({
     }
   };
 
+  const [localCitySearch, setLocalCitySearch] = React.useState('');
+  const [localSearchQuery, setLocalSearchQuery] = React.useState('');
+
+  const activeCitySearch = pathname === '/' ? citySearch : localCitySearch;
+  const activeSearchQuery = pathname === '/' ? searchQuery : localSearchQuery;
+
+  const activeCitySuggestions = pathname === '/' ? citySuggestions : React.useMemo(() => {
+    if (!showSuggestions) return [];
+    if (activeCitySearch.length < 3) return [];
+    return RS_CITIES.filter(c => c.name.toLowerCase().includes(activeCitySearch.toLowerCase()));
+  }, [activeCitySearch, showSuggestions]);
+
+  const handleCityChange = (val: string) => {
+    if (pathname === '/') onCitySearchChange(val);
+    else setLocalCitySearch(val);
+  };
+
+  const handleSearchChange = (val: string) => {
+    if (pathname === '/') onSearchChange(val);
+    else setLocalSearchQuery(val);
+  };
+
+  const handleSelectCity = (city: any) => {
+    if (pathname === '/') {
+      onSelectCity(city);
+    } else {
+      router.push(`/?citySearch=${encodeURIComponent(city.name)}&lat=${city.lat}&lng=${city.lng}`);
+    }
+  };
+
+  const handleSearchSubmitClick = () => {
+    if (pathname === '/') {
+      onSearchSubmit?.();
+    } else {
+      const id = parseInt(activeSearchQuery);
+      if (!isNaN(id)) {
+        router.push(`/anuncio/${id}`);
+      }
+    }
+  };
+
   return (
     <aside className={`
       fixed inset-y-0 left-0 z-50 w-[280px] bg-white lg:bg-transparent lg:relative lg:block lg:translate-x-0 transition-transform duration-300 ease-in-out
@@ -92,20 +133,20 @@ export const Sidebar = ({
               <input 
                 type="text" 
                 placeholder="Ou buscar município - RS..." 
-                value={citySearch}
-                onChange={(e) => onCitySearchChange(e.target.value)}
+                value={activeCitySearch}
+                onChange={(e) => handleCityChange(e.target.value)}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 suppressHydrationWarning
                 className="w-full bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
-              {citySuggestions.length > 0 && showSuggestions && (
+              {activeCitySuggestions.length > 0 && showSuggestions && (
                 <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-10 overflow-hidden">
-                  {citySuggestions.map((city: any) => (
+                  {activeCitySuggestions.map((city: any) => (
                     <button 
                       key={city.name}
                       type="button"
-                      onClick={() => onSelectCity(city)}
+                      onClick={() => handleSelectCity(city)}
                       className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
                     >
                       <span className="text-xs">{city.name}</span>
@@ -144,14 +185,14 @@ export const Sidebar = ({
               <input 
                 type="text" 
                 placeholder="Ex: 123" 
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
+                value={activeSearchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmitClick()}
                 suppressHydrationWarning
                 className="flex-1 bg-white border border-[#E9ECEF] rounded-lg px-4 py-2.5 text-xs outline-none focus:border-[#2D5A27] transition-all"
               />
               <button 
-                onClick={onSearchSubmit}
+                onClick={handleSearchSubmitClick}
                 className="w-10 h-10 bg-[#2D5A27] text-white rounded-lg flex items-center justify-center hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 <Search size={18} />
