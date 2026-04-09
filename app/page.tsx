@@ -865,7 +865,7 @@ function GadoGauchoContent() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl max-h-[90dvh] overflow-y-auto"
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col"
             >
               {(isSubmittingAd || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
@@ -878,7 +878,7 @@ function GadoGauchoContent() {
                   </p>
                 </div>
               )}
-              <div className="p-8">
+              <div className="p-8 overflow-y-auto flex-1">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold text-[#333]">
                     {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}
