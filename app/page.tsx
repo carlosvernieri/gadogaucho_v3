@@ -99,9 +99,9 @@ function GadoGauchoContent() {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        
+
         setSelectedCityCoords({ lat, lng });
-        
+
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
           if (res.ok) {
@@ -349,7 +349,7 @@ function GadoGauchoContent() {
     const cityParam = searchParams.get('citySearch');
     const latParam = searchParams.get('lat');
     const lngParam = searchParams.get('lng');
-    
+
     setSelectedCategory(catParam);
     if (favParam === 'true') {
       setShowFavorites(true);
@@ -505,12 +505,12 @@ function GadoGauchoContent() {
           updatedFavs = [...favorites, listingIdNum];
           setFavoriteToastMessage('Adicionado aos favoritos!');
         }
-        
+
         // Wait, where is setFavorites? I need to get it from useUser().
         // Actually, it's missing from my destructured `useUser()` call in the first chunk, let me check. No, I exported it. I must grab it.
         // Let's assume I grabbed it in the first chunk wait: `const { ..., favorites, setFavorites } = useUser()`. Yes, I'll update the first chunk to include `setFavorites`.
         // I can just replace the logic here with a local setFavorites call.
-        
+
         // Let's just fix the function with setFavorites
         // However, I made a mistake in the first chunk? Let me write this raw and clean it in next step if necessary. Let me just put the same logic.
         setTimeout(() => setShowShareToast(false), 3000);
@@ -865,7 +865,7 @@ function GadoGauchoContent() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col"
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[95dvh] flex flex-col"
             >
               {(isSubmittingAd || isUploadingMedia) && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
