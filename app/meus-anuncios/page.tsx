@@ -73,7 +73,11 @@ export default function MeusAnunciosPage() {
 
   const fetchData = async () => {
     try {
-      const listingsRes = await fetch('/api/listings');
+      const storedUser = localStorage.getItem('gado_gaucho_user');
+      const userId = storedUser ? JSON.parse(storedUser).id : null;
+      if (!userId) return;
+
+      const listingsRes = await fetch(`/api/listings?userId=${userId}&limit=1000`);
       if (listingsRes.ok) {
         const data = await listingsRes.json();
         setListings(data);

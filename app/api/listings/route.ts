@@ -13,50 +13,75 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
     const userId = searchParams.get('userId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    const verified = searchParams.get('verified') === 'true';
+    const latStr = searchParams.get('lat');
+    const lngStr = searchParams.get('lng');
+    const radiusStr = searchParams.get('radius');
 
-    let query = (supabaseAdmin
-      .from('listings') as any)
-      .select('*, users(name, verified)');
+    const offset = (page - 1) * limit;
 
-    if (seller) {
-      // If seller is passed as a name, we might need to filter by users.name
-      // But usually it's better to filter by user_id if we have it.
-      // For now, let's assume if seller is passed, it's a name filter on the joined table.
-      query = query.eq('users.name', seller);
-    }
+    let listings = [];
+    let error = null;
 
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data: listings, error } = await query.order('id', { ascending: false });
-
-    if (error) {
-      // If the join fails, try a simple select
-      const { data: fallbackListings, error: fallbackError } = await (supabaseAdmin
+    if (latStr && lngStr && radiusStr) {
+      // Use RPC for geographic filtering
+      const { data, error: rpcError } = await (supabaseAdmin.rpc as any)('get_listings_within_radius', {
+        target_lat: parseFloat(latStr),
+        target_lng: parseFloat(lngStr),
+        max_distance_km: parseFloat(radiusStr),
+        category_filter: category || null,
+        search_filter: search || null,
+        offset_val: offset,
+        limit_val: limit
+      });
+      listings = data || [];
+      error = rpcError;
+    } else {
+      // Standard query
+      let query = (supabaseAdmin
         .from('listings') as any)
-        .select('*')
-        .order('id', { ascending: false });
-      
-      if (fallbackError) {
-        console.error('Supabase listings fetch failed completely:', fallbackError);
-        return NextResponse.json([]);
+        .select('*, users(name, verified)');
+
+      if (seller) {
+        query = query.eq('users.name', seller);
+      }
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else {
+        // If not looking for a specific user's listings, only show available (not sold)
+        query = query.or('sold.eq.false,sold.is.null');
+      }
+
+      if (category) {
+        query = query.ilike('category', category);
+      }
+      if (search) {
+        if (!isNaN(Number(search))) {
+           query = query.or(`title.ilike.%${search}%,id.eq.${search}`);
+        } else {
+           query = query.ilike('title', `%${search}%`);
+        }
       }
       
-      const mappedListings = (fallbackListings || []).map((l: any) => ({
-        ...l,
-        sold: !!l.sold,
-        verified: !!l.verified,
-        verification_requested: !!l.verification_requested,
-        priceKg: l.price_kg || l.priceKg,
-        avgWeight: l.avg_weight || l.avgWeight,
-        images: parseJsonField(l.images),
-        videos: parseJsonField(l.videos),
-        seller: 'Desconhecido',
-        sellerVerified: false,
-        sellerRating: 0,
-      }));
-      return NextResponse.json(mappedListings);
+      if (verified) {
+        query = query.eq('verified', true);
+      }
+
+      query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
+
+      const { data, error: qError } = await query;
+      listings = data || [];
+      error = qError;
+    }
+
+    if (error) {
+      console.error('Supabase listings fetch error:', error);
+      // Fallback
+      return NextResponse.json([]);
     }
 
     const mappedListings = listings.map((l: any) => ({
@@ -64,14 +89,16 @@ export async function GET(request: Request) {
       sold: !!l.sold,
       verified: !!l.verified,
       verification_requested: !!l.verification_requested,
-      priceKg: l.price_kg,
-      avgWeight: l.avg_weight,
+      priceKg: l.price_kg || l.priceKg, // fallback to camelCase if coming from RPC
+      avgWeight: l.avg_weight || l.avgWeight,
       images: parseJsonField(l.images),
       videos: parseJsonField(l.videos),
-      seller: l.users?.name || 'Desconhecido',
-      sellerVerified: !!l.users?.verified,
+      seller: l.seller_name || l.users?.name || 'Desconhecido',
+      sellerVerified: !!l.seller_verified || !!l.users?.verified,
       sellerRating: 0,
+      distanceKm: l.distance_km || null // From RPC
     }));
+
     return NextResponse.json(mappedListings);
   } catch (error: any) {
     console.error('Error fetching listings:', error.message || error);
