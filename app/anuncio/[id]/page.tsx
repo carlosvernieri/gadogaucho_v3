@@ -1,241 +1,100 @@
-'use client';
+import React, { Suspense } from 'react';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { parseJsonField } from '@/lib/utils';
+import { AnuncioPageClient } from '@/components/AnuncioPageClient';
+import { Spinner } from '@/components/Spinner';
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { ListingDetail } from '@/components/ListingDetail';
-import { Header } from '@/components/Header';
-import { Sidebar } from '@/components/Sidebar';
-import { ShareModal } from '@/components/ShareModal';
-import { BottomNav } from '@/components/BottomNav';
-import { LoadingScreen } from '@/components/LoadingScreen';
-import { Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useUser } from '@/context/UserContext';
-import { safeJsonStringify } from '@/lib/utils';
+export const dynamic = 'force-dynamic';
 
-export default function AnuncioPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id;
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
-  const [listing, setListing] = useState<any>(null);
-  const [listings, setListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showShareToast, setShowShareToast] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>([]);
-  const [toastMessage, setToastMessage] = useState('');
+async function fetchListingData(id: string) {
+  if (!isSupabaseConfigured()) {
+    return { listing: null, listings: [] };
+  }
+  
+  try {
+    // Fetch specifically requested listing
+    const { data: listingData, error } = await (supabaseAdmin
+      .from('listings') as any)
+      .select('*, users(name, verified)')
+      .eq('id', id)
+      .maybeSingle();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [listingRes, listingsRes] = await Promise.all([
-          fetch(`/api/listings/${id}`),
-          fetch('/api/listings')
-        ]);
-        
-        if (listingRes.ok) {
-          const data = await listingRes.json();
-          setListing(data);
-        }
-        
-        if (listingsRes.ok) {
-          const data = await listingsRes.json();
-          setListings(data);
-        }
-
-        const storedUser = localStorage.getItem('gado_gaucho_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          // Fetch favorites
-          const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
-          if (favRes.ok) {
-            const favData = await favRes.json();
-            setFavorites(favData);
-          }
-        }
-      } catch (error: any) {
-        console.error('Error fetching data:', error.message || error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id]);
-
-  const handleShare = (id: number) => {
-    setShowShareModal(true);
-  };
-
-  const handleToggleFavorite = async (listingId: number) => {
-    if (!user) {
-      setAuthMode('login');
-      setShowAuthModal(true);
-      return;
+    let listing = listingData;
+    
+    if (error && !listingData) {
+      const { data: fallbackListing } = await (supabaseAdmin
+        .from('listings') as any)
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      listing = fallbackListing;
     }
 
-    const listingIdNum = Number(listingId);
-    const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
-
-    try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
-        if (isFavorite) {
-          setFavorites(favorites.filter(id => id !== listingId));
-          setToastMessage('Removido dos favoritos');
-        } else {
-          setFavorites([...favorites, listingId]);
-          setToastMessage('Adicionado aos favoritos!');
-        }
-        setShowShareToast(true);
-        setTimeout(() => setShowShareToast(false), 3000);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
+    if (listing) {
+      listing = {
+        ...listing,
+        sold: !!listing.sold,
+        verified: !!listing.verified,
+        verification_requested: !!listing.verification_requested,
+        priceKg: listing.price_kg || listing.priceKg,
+        avgWeight: listing.avg_weight || listing.avgWeight,
+        images: parseJsonField(listing.images),
+        videos: parseJsonField(listing.videos),
+        seller: listing.users?.name || 'Desconhecido',
+        sellerVerified: !!listing.users?.verified,
+        sellerRating: 0,
+      };
     }
-  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header 
-          user={user}
-          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
-          onAdClick={() => router.push('/?ad=new')}
-          onAdminClick={() => router.push('/')}
-          onLogout={() => {
-            setUser(null);
-            localStorage.removeItem('gado_gaucho_user');
-            router.push('/');
-          }}
-          onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/favoritos')}
-          onMyAdsClick={() => router.push('/meus-anuncios')}
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <LoadingScreen fullScreen={false} message="Carregando anúncio..." />
-        </div>
-      </div>
-    );
-  }
+    // Fetch all listings for sidebar/recommendations
+    const { data: allListingsData, error: allErr } = await (supabaseAdmin
+      .from('listings') as any)
+      .select('*, users(name, verified)')
+      .order('id', { ascending: false });
 
-  if (!listing) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header 
-          user={user}
-          onMenuClick={() => {}}
-          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-          onAdClick={() => router.push('/')}
-          onAdminClick={() => router.push('/')}
-          onLogout={() => {}}
-          onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/favoritos')}
-          onMyAdsClick={() => router.push('/meus-anuncios')}
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-[#333] mb-4">Anúncio não encontrado</h1>
-            <button onClick={() => router.push('/')} className="text-[#2D5A27] font-bold hover:underline">Voltar para a página inicial</button>
-          </div>
-        </div>
-      </div>
-    );
+    let listings = allListingsData || [];
+    if (allErr) {
+      const { data: fallbackListings } = await (supabaseAdmin
+        .from('listings') as any)
+        .select('*')
+        .order('id', { ascending: false });
+      listings = fallbackListings || [];
+    }
+
+    const mappedListings = listings.map((l: any) => ({
+      ...l,
+      sold: !!l.sold,
+      verified: !!l.verified,
+      priceKg: l.price_kg || l.priceKg,
+      avgWeight: l.avg_weight || l.avgWeight,
+      images: parseJsonField(l.images),
+      videos: parseJsonField(l.videos),
+      seller: l.users?.name || 'Desconhecido',
+      sellerVerified: !!l.users?.verified,
+    }));
+
+    return { listing, listings: mappedListings };
+  } catch (err) {
+    console.error('Error fetching data in RSC:', err);
+    return { listing: null, listings: [] };
   }
+}
+
+export default async function AnuncioPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
+  const { listing, listings } = await fetchListingData(id);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
-      <Header 
-        user={user}
-        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
-        onAdClick={() => router.push('/?ad=new')}
-        onAdminClick={() => router.push('/')}
-        onLogout={() => {
-          logout();
-          router.push('/');
-        }}
-        onHomeClick={() => router.push('/')}
-        onFavoritesClick={() => router.push('/favoritos')}
-        onMyAdsClick={() => router.push('/meus-anuncios')}
-      />
-
-      <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 gap-8 relative">
-        <Sidebar 
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          selectedCategory={listing.category}
-          onSelectCategory={(cat) => {
-            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
-            else router.push('/');
-          }}
-          searchQuery=""
-          onSearchChange={() => {}}
-          listingsCount={listings.filter(l => !l.sold).length}
-          getCategoryCount={(catName) => listings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
-          citySearch=""
-          onCitySearchChange={() => {}}
-          maxDistance={100}
-          onMaxDistanceChange={() => {}}
-          onUseMyLocation={() => {}}
-          citySuggestions={[]}
-          onSelectCity={() => {}}
-          showSuggestions={false}
-          setShowSuggestions={() => {}}
-        />
-
-        <main className="flex-1 min-w-0 w-full">
-          <ListingDetail 
-            listing={listing} 
-            onShare={handleShare} 
-            onToggleFavorite={handleToggleFavorite}
-            isFavorite={favorites.map(Number).includes(Number(listing.id))}
-          />
-        </main>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+        <div className="flex flex-col items-center">
+          <Spinner size="lg" className="mb-4" />
+          <p className="text-[#2D5A27] font-bold animate-pulse">Carregando anúncio...</p>
+        </div>
       </div>
-
-      <ShareModal 
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        url={typeof window !== 'undefined' ? `${window.location.origin}/anuncio/${listing.id}` : ''}
-        title={listing.title}
-        onCopySuccess={() => {
-          setToastMessage('Link copiado!');
-          setShowShareToast(true);
-          setTimeout(() => setShowShareToast(false), 3000);
-        }}
-      />
-
-      {/* Share Toast */}
-      <AnimatePresence>
-        {showShareToast && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2"
-          >
-            <Check size={18} className="text-[#28A745]" /> {toastMessage || 'Link do anúncio copiado!'}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {user && (
-        <BottomNav 
-          user={user} 
-          onAdClick={() => router.push('/?ad=new')} 
-          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
-        />
-      )}
-    </div>
+    }>
+      <AnuncioPageClient initialListing={listing} initialListings={listings} />
+    </Suspense>
   );
 }

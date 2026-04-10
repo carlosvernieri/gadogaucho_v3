@@ -126,7 +126,7 @@ export default function MeusAnunciosPage() {
 
       try {
         let fileToUpload: File | Blob = file;
-        
+
         if (type === 'images') {
           try {
             const options = {
@@ -591,7 +591,7 @@ export default function MeusAnunciosPage() {
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
                       <select
                         value={adForm.category}
-                        onChange={(e) => setAdForm({...adForm, category: e.target.value})}
+                        onChange={(e) => setAdForm({ ...adForm, category: e.target.value })}
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
                       >
                         {CATEGORIES_LIST.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
@@ -606,7 +606,7 @@ export default function MeusAnunciosPage() {
                           value={citySearchAd}
                           onChange={(e) => {
                             setCitySearchAd(e.target.value);
-                            setAdForm({...adForm, city: e.target.value});
+                            setAdForm({ ...adForm, city: e.target.value });
                             setShowAdSuggestions(true);
                           }}
                           onFocus={() => setShowAdSuggestions(true)}
@@ -621,7 +621,7 @@ export default function MeusAnunciosPage() {
                                 key={city.name}
                                 type="button"
                                 onClick={() => {
-                                  setAdForm({...adForm, city: city.name});
+                                  setAdForm({ ...adForm, city: city.name });
                                   setCitySearchAd(city.name);
                                   setShowAdSuggestions(false);
                                 }}
@@ -644,7 +644,7 @@ export default function MeusAnunciosPage() {
                         type="number"
                         required
                         value={adForm.weight || ''}
-                        onChange={(e) => setAdForm({...adForm, weight: Number(e.target.value)})}
+                        onChange={(e) => setAdForm({ ...adForm, weight: Number(e.target.value) })}
                         placeholder="0"
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
@@ -656,7 +656,7 @@ export default function MeusAnunciosPage() {
                         step="0.01"
                         required
                         value={adForm.priceKg || ''}
-                        onChange={(e) => setAdForm({...adForm, priceKg: Number(e.target.value)})}
+                        onChange={(e) => setAdForm({ ...adForm, priceKg: Number(e.target.value) })}
                         placeholder="0,00"
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       />
@@ -675,7 +675,7 @@ export default function MeusAnunciosPage() {
                       type="number"
                       required
                       value={adForm.batchSize}
-                      onChange={(e) => setAdForm({...adForm, batchSize: Number(e.target.value)})}
+                      onChange={(e) => setAdForm({ ...adForm, batchSize: Number(e.target.value) })}
                       placeholder="1"
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     />
@@ -686,7 +686,7 @@ export default function MeusAnunciosPage() {
                     <textarea
                       rows={3}
                       value={adForm.description}
-                      onChange={(e) => setAdForm({...adForm, description: e.target.value})}
+                      onChange={(e) => setAdForm({ ...adForm, description: e.target.value })}
                       placeholder="Detalhes sobre o gado, genética, vacinação..."
                       className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
                     />
@@ -743,16 +743,16 @@ export default function MeusAnunciosPage() {
 
                             {/* Reorder Overlay */}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                               {idx > 0 && (
-                                  <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
-                                    <ChevronLeft size={16} />
-                                  </button>
-                               )}
-                               {idx < adForm.images.length - 1 && (
-                                  <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
-                                    <ChevronRight size={16} />
-                                  </button>
-                               )}
+                              {idx > 0 && (
+                                <button type="button" onClick={() => moveImage(idx, 'left')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                  <ChevronLeft size={16} />
+                                </button>
+                              )}
+                              {idx < adForm.images.length - 1 && (
+                                <button type="button" onClick={() => moveImage(idx, 'right')} className="p-1.5 bg-white text-[#333] rounded-full hover:bg-[#F8F9FA] transition-colors shadow">
+                                  <ChevronRight size={16} />
+                                </button>
+                              )}
                             </div>
 
                             {/* Delete Button */}
