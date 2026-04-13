@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
@@ -223,14 +224,41 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      if (type === 'images' && file.size > 5 * 1024 * 1024) {
+        showToast('A imagem é muito grande. Máximo 5MB.');
+        continue;
+      }
+      if (type === 'videos' && file.size > 20 * 1024 * 1024) {
+        showToast('O vídeo é muito grande. Máximo 20MB.');
+        continue;
+      }
+
       try {
-        const fileExt = file.name.split('.').pop();
+        let fileToUpload: File | Blob = file;
+        let fileExt = file.name.split('.').pop();
+
+        if (type === 'images') {
+          try {
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              initialQuality: 0.8,
+              fileType: 'image/webp',
+            };
+            fileToUpload = await imageCompression(file, options);
+            fileExt = 'webp';
+          } catch (error) {
+            console.error('Erro na compressão:', error);
+          }
+        }
+
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('gado_gaucho_media')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 
