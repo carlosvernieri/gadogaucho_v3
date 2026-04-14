@@ -9,13 +9,13 @@ import { Heart, Share2, MapPin, Loader2, CheckCircle, ShieldCheck } from 'lucide
 import { Badge } from './Badge';
 import { Spinner } from './Spinner';
 
-export const ListingCard = ({ 
-  listing, 
+export const ListingCard = ({
+  listing,
   onShare,
   isFavorite = false,
   onToggleFavorite
-}: { 
-  listing: any, 
+}: {
+  listing: any,
   onShare?: (id: number) => void,
   isFavorite?: boolean,
   onToggleFavorite?: (id: number) => void
@@ -47,7 +47,7 @@ export const ListingCard = ({
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={() => handleCardClick()}
@@ -56,19 +56,19 @@ export const ListingCard = ({
       {isNavigating && (
         <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center">
           <Spinner size="md" />
-          <span className="mt-3 text-[10px] font-bold text-[#2D5A27] uppercase tracking-wider">Carregando...</span>
+          <span className="mt-3 text-[11px] font-bold text-[#2D5A27] uppercase tracking-wider">Carregando...</span>
         </div>
       )}
-      
+
       {/* Action Buttons */}
       <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-        <button 
+        <button
           onClick={(e) => handleActionClick(e, 'heart')}
           className={`w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer ${isFavorite ? 'text-[#DC3545]' : 'text-[#666] hover:text-[#DC3545]'}`}
         >
           <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
         </button>
-        <button 
+        <button
           onClick={(e) => handleActionClick(e, 'share')}
           className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-[#666] hover:bg-white transition-colors cursor-pointer"
         >
@@ -82,10 +82,10 @@ export const ListingCard = ({
             <Spinner size="md" className="opacity-50" />
           </div>
         )}
-        <Image 
-          src={listing.image} 
-          alt={listing.title} 
-          fill 
+        <Image
+          src={listing.image}
+          alt={listing.title}
+          fill
           loading="lazy"
           onLoad={() => setIsImageLoaded(true)}
           className={`object-cover group-hover:scale-105 transition-all duration-700 ${isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
@@ -104,7 +104,7 @@ export const ListingCard = ({
           )}
         </div>
       </div>
-      
+
       <div className="p-4">
         <h3 className="text-lg font-bold text-[#333] mb-1">
           {listing.category} <span className="text-xs font-normal opacity-40">cod: {listing.id}</span>
@@ -112,21 +112,21 @@ export const ListingCard = ({
         <div className="text-2xl font-bold text-[#2D5A27] mb-2">
           R$ {listing.priceKg.toFixed(2)}/kg
         </div>
-        
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#666] mb-4">
+
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#666] mb-4">
           <span>{listing.avgWeight}kg méd.</span>
           <span>•</span>
           <span>{listing.quantity} animais</span>
           <span>•</span>
           <span>R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         </div>
-        
+
         <div className="flex items-center justify-between text-[10px] text-[#999] mb-4">
           <div className="flex items-center gap-1">
             <MapPin size={12} />
             <span className="uppercase">{listing.location}</span>
           </div>
-          <button 
+          <button
             onClick={handleSellerClick}
             className="font-bold text-[#2D5A27] hover:underline cursor-pointer relative z-10 flex items-center gap-1.5"
           >
@@ -138,7 +138,7 @@ export const ListingCard = ({
             )}
           </button>
         </div>
-        
+
         <div className="w-full py-2.5 rounded-lg border border-[#2D5A27] text-[#2D5A27] font-bold text-sm group-hover:bg-[#2D5A27] group-hover:text-white transition-all text-center">
           Ver Detalhes
         </div>

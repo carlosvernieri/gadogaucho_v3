@@ -206,6 +206,7 @@ export default function PrecoDoGadoPage() {
           onSelectCity={() => { }}
           showSuggestions={false}
           setShowSuggestions={() => { }}
+          isDesktopHidden={true}
         />
 
         <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">

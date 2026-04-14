@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, Heart, Share2, Video, CheckCircle, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Heart, Share2, Video, CheckCircle, ShieldCheck, MapPin } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
 import { InterestForm } from './InterestForm';
@@ -97,11 +97,11 @@ export const ListingDetail = ({
             <div className="flex flex-col gap-1">
               <Link
                 href={`/categoria/${slugify(listing.category)}`}
-                className="text-[10px] font-bold text-[#999] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
+                className="text-[11px] font-bold text-[#999] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
               >
-                {listing.category}
+                {listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()}
               </Link>
-              <span className="text-[10px] text-[#999]">Cód: #{listing.id}</span>
+              <span className="text-[11px] text-[#999]">Cód: #{listing.id}</span>
             </div>
             <div className="flex gap-2">
               <button
@@ -123,11 +123,11 @@ export const ListingDetail = ({
           </div>
 
           <div className="mb-6">
-            <span className="text-[10px] font-bold text-[#999] uppercase">Preço por kg</span>
+            <span className="text-[11px] font-bold text-[#999] uppercase">Preço por kg</span>
             <div className="text-4xl font-bold text-[#2D5A27] mb-2">
               R$ {listing.priceKg.toFixed(2)}/kg
             </div>
-            <div className="grid grid-cols-3 gap-4 text-[11px] text-[#666]">
+            <div className="grid grid-cols-3 gap-4 text-[12px] text-[#666]">
               <div>
                 <span className="block opacity-60">Peso Médio:</span>
                 <span className="font-bold">{listing.avgWeight}kg</span>
@@ -143,11 +143,14 @@ export const ListingDetail = ({
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-[#333] mb-4 leading-tight">{listing.category}</h1>
+          <h1 className="text-2xl font-bold text-[#333] mb-2 leading-tight">{listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()}</h1>
           <p className="text-sm text-[#666] leading-relaxed mb-8">
             {listing.description}
           </p>
-
+          <div className="flex items-center gap-2 text-[12px] text-[#666] mb-4">
+            <MapPin size={14} className="text-[#999]" />
+            <span className="uppercase">{listing.location}</span>
+          </div>
           <div className="bg-[#F8F9FA] rounded-2xl p-4 mb-6 flex items-center gap-4">
             <Link
               href={`/vendedor/${listing.user_id}`}
@@ -169,7 +172,7 @@ export const ListingDetail = ({
                   </Badge>
                 )}
               </div>
-              <div className="text-[10px] text-[#999]">
+              <div className="text-[11px] text-[#999]">
                 Membro desde 2024
               </div>
             </div>
