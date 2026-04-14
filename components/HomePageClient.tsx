@@ -371,6 +371,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   // Ad Form State
   const [adForm, setAdForm] = useState({
     category: 'Touro',
+    breed: '',
     weight: 0,
     priceKg: 0,
     batchSize: 1,
@@ -543,6 +544,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
     const newAd = {
       category: adForm.category.toUpperCase(),
+      breed: adForm.breed || null,
       title: `${adForm.category} em ${adForm.city}`,
       price: totalPrice,
       priceKg: adForm.priceKg,
@@ -587,6 +589,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         setCitySearchAd('');
         setAdForm({
           category: 'Touro',
+          breed: '',
           weight: 0,
           priceKg: 0,
           batchSize: 1,
@@ -611,6 +614,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     setEditingListingId(listing.id);
     setAdForm({
       category: listing.category,
+      breed: listing.breed || '',
       weight: listing.avgWeight,
       priceKg: listing.priceKg,
       batchSize: listing.quantity,
@@ -974,6 +978,27 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Raça</label>
+                      <select
+                        value={adForm.breed}
+                        onChange={(e) => setAdForm({ ...adForm, breed: e.target.value })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
+                      >
+                        <option value="">Selecione a raça...</option>
+                        <option value="Angus">Angus</option>
+                        <option value="Brangus">Brangus</option>
+                        <option value="Braford">Braford</option>
+                        <option value="Hereford">Hereford</option>
+                        <option value="Cruza Angus">Cruza Angus</option>
+                        <option value="Cruza Braford">Cruza Braford</option>
+                        <option value="Jersey">Jersey</option>
+                        <option value="Holandesa">Holandesa</option>
+                        <option value="Nelore">Nelore</option>
+                      </select>
                     </div>
                   </div>
 

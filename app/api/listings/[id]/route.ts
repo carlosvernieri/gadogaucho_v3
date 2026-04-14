@@ -133,6 +133,7 @@ export async function PUT(
     // Map camelCase to snake_case for Supabase
     const updateData: any = {};
     if (data.category !== undefined) updateData.category = data.category;
+    if (data.breed !== undefined) updateData.breed = data.breed;
     if (data.title !== undefined) updateData.title = data.title;
     if (data.price !== undefined) updateData.price = data.price;
     if (data.priceKg !== undefined) updateData.price_kg = data.priceKg;

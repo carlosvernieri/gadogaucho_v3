@@ -74,6 +74,7 @@ export default function AdminPage() {
   const [adForm, setAdForm] = useState({
     title: '',
     category: '',
+    breed: '',
     price: 0,
     priceKg: 0,
     avgWeight: 0,
@@ -812,6 +813,7 @@ export default function AdminPage() {
                                   setAdForm({
                                     title: l.title || '',
                                     category: l.category || '',
+                                    breed: l.breed || '',
                                     price: l.price || 0,
                                     priceKg: l.priceKg || 0,
                                     avgWeight: l.avgWeight || 0,
