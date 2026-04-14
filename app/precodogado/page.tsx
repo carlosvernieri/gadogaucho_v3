@@ -184,31 +184,29 @@ export default function PrecoDoGadoPage() {
         onMessagesClick={() => router.push('/mensagens')}
       />
 
-      <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 lg:gap-0 gap-8 relative">
-        <div className="lg:hidden">
-          <Sidebar
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            selectedCategory={null}
-            onSelectCategory={(cat) => {
-              if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
-              else router.push('/');
-            }}
-            searchQuery=""
-            onSearchChange={() => { }}
-            listingsCount={0}
-            getCategoryCount={() => 0}
-            citySearch=""
-            onCitySearchChange={() => { }}
-            maxDistance={100}
-            onMaxDistanceChange={() => { }}
-            onUseMyLocation={() => { }}
-            citySuggestions={[]}
-            onSelectCity={() => { }}
-            showSuggestions={false}
-            setShowSuggestions={() => { }}
-          />
-        </div>
+      <div className="flex-1 max-w-[1440px] mx-auto w-full px-4 lg:px-8 py-8 relative">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          selectedCategory={null}
+          onSelectCategory={(cat) => {
+            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+            else router.push('/');
+          }}
+          searchQuery=""
+          onSearchChange={() => { }}
+          listingsCount={0}
+          getCategoryCount={() => 0}
+          citySearch=""
+          onCitySearchChange={() => { }}
+          maxDistance={100}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
+          citySuggestions={[]}
+          onSelectCity={() => { }}
+          showSuggestions={false}
+          setShowSuggestions={() => { }}
+        />
 
         <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">
 
