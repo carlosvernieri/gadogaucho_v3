@@ -15,14 +15,18 @@ async function fetchListings() {
     const { data: listings, error } = await (supabaseAdmin
       .from('listings') as any)
       .select('*, users(name, verified)')
-      .order('id', { ascending: false });
+      .or('sold.eq.false,sold.is.null')
+      .order('id', { ascending: false })
+      .range(0, 19);
 
     if (error) {
       // Fallback if users join fails
       const { data: fallbackListings, error: fallbackError } = await (supabaseAdmin
         .from('listings') as any)
         .select('*')
-        .order('id', { ascending: false });
+        .or('sold.eq.false,sold.is.null')
+        .order('id', { ascending: false })
+        .range(0, 19);
         
       if (fallbackError) return [];
       

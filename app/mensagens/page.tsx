@@ -193,16 +193,14 @@ export default function MensagensPage() {
           setShowSuggestions={() => { }}
         />
 
-        <main className="flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#333]">Mensagens Recebidas</h1>
-              <p className="text-[#999] mt-1 text-sm sm:text-base">Gerencie os contatos interessados em seus anúncios</p>
-            </div>
-            <div className="bg-white px-4 py-2 rounded-2xl border border-[#E9ECEF] inline-flex w-fit items-center gap-2">
-              <Mail size={18} className="text-[#2D5A27]" />
-              <span className="text-sm font-bold text-[#333]">{messages.length} mensagens</span>
-            </div>
+        <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">
+          <div className="mb-8">
+            <h1 className="text-3xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight mb-2">
+              Mensagens Recebidas
+            </h1>
+            <p className="text-[#666] leading-relaxed">
+              Gerencie os contatos interessados em seus anúncios
+            </p>
           </div>
 
           {loading ? (
@@ -216,26 +214,35 @@ export default function MensagensPage() {
               <p className="text-[#999] max-w-md mx-auto">Quando alguém se interessar por seus animais, as mensagens aparecerão aqui.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {sortedMessages.map((msg) => {
-                const isExpanded = expandedMessageId === msg.id;
-                return (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`bg-white rounded-3xl overflow-hidden border transition-all ${msg.is_read ? 'border-[#E9ECEF] opacity-90' : 'border-[#2D5A27] shadow-sm ring-1 ring-[#2D5A27]/20'}`}
-                  >
+            <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-[#E9ECEF] flex flex-col md:flex-row md:items-center justify-between bg-[#FDFDFD] gap-2">
+                <h2 className="text-xl font-bold text-[#2D5A27] flex items-center gap-2">
+                  <Mail size={24} /> Caixa de Entrada
+                </h2>
+                <div className="text-sm font-medium text-[#999] flex items-center gap-1">
+                  <span>Total de {messages.length} mensagens</span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                {sortedMessages.map((msg, idx) => {
+                  const isExpanded = expandedMessageId === msg.id;
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex flex-col bg-white transition-all ${idx !== sortedMessages.length - 1 ? 'border-b border-[#E9ECEF]' : ''} ${!msg.is_read ? 'bg-[#FFF5F5]/30' : ''}`}
+                    >
                     <div
                       onClick={() => toggleMessage(msg.id, msg.is_read)}
                       className={`p-3 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-[#F8F9FA] transition-colors gap-2 sm:gap-4 ${!msg.is_read ? 'bg-[#E9F0E8]/30' : ''}`}
                     >
                       <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                         {/* Indicador de cor */}
-                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${msg.is_read ? 'bg-[#E9ECEF]' : 'bg-[#2D5A27] animate-pulse shadow-sm shadow-[#2D5A27]/50'}`} />
+                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${msg.is_read ? 'bg-[#2D5A27] shadow-sm shadow-[#2D5A27]/30' : 'bg-[#DC3545] animate-pulse shadow-sm shadow-[#DC3545]/40'}`} title={msg.is_read ? 'Mensagem lida' : 'Mensagem não lida'} />
 
                         <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${msg.is_read ? 'bg-[#F8F9FA] text-[#999]' : 'bg-[#E9F0E8] text-[#2D5A27]'}`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${msg.is_read ? 'bg-[#F8F9FA] text-[#999]' : 'bg-[#FFF0F0] text-[#DC3545]'}`}>
                             <User size={18} />
                           </div>
                         </div>
@@ -254,9 +261,9 @@ export default function MensagensPage() {
 
                       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         {msg.is_read ? (
-                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#999] uppercase bg-[#F8F9FA] px-2 py-1 rounded-md">Lida</span>
+                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#2D5A27] uppercase bg-[#E9F0E8] px-2 py-1 rounded-md">Lida</span>
                         ) : (
-                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#2D5A27] uppercase bg-[#E9F0E8] px-2 py-1 rounded-md">Nova</span>
+                          <span className="hidden sm:inline-block text-[12px] font-bold text-[#DC3545] uppercase bg-[#FFF0F0] px-2 py-1 rounded-md">Nova</span>
                         )}
                         <div className={`p-1.5 sm:p-2 rounded-full transition-transform ${isExpanded ? 'rotate-180 bg-[#F8F9FA]' : ''}`}>
                           <ChevronDown size={18} className="text-[#999] sm:w-5 sm:h-5" />
@@ -273,7 +280,7 @@ export default function MensagensPage() {
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <div className="p-4 sm:p-6 border-t border-[#E9ECEF] bg-[#F8F9FA]/50">
+                          <div className="p-4 sm:p-6 bg-[#FDFDFD] border-t border-[#E9ECEF]">
                             <div className="flex flex-col md:flex-row gap-6">
                               {/* Listing Info */}
                               <div className="md:w-56 flex-shrink-0 bg-white p-3 rounded-2xl border border-[#E9ECEF]">
@@ -360,6 +367,7 @@ export default function MensagensPage() {
                   </motion.div>
                 );
               })}
+              </div>
             </div>
           )}
         </main>

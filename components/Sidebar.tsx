@@ -213,8 +213,7 @@ export const Sidebar = ({
                 onClick={() => handleCategorySelect(null)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!selectedCategory ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
               >
-                <span>Todos as Categorias</span>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] ${!selectedCategory ? 'bg-white/20' : 'bg-[#E9ECEF]'}`}>{listingsCount}</span>
+                <span>Todas as Categorias</span>
               </button>
               {CATEGORIES_LIST.map((catName: string) => {
                 const count = getCategoryCount(catName);
@@ -225,7 +224,6 @@ export const Sidebar = ({
                     className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${selectedCategory?.toLowerCase() === catName.toLowerCase() ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
                   >
                     <span>{catName}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] ${selectedCategory?.toLowerCase() === catName.toLowerCase() ? 'bg-white/20' : 'bg-[#E9ECEF]'}`}>{count}</span>
                   </button>
                 );
               })}

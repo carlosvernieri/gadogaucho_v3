@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -32,7 +32,7 @@ export const Header = ({
 }: HeaderProps) => {
   const router = useRouter();
   return (
-    <header className="z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -50,19 +50,32 @@ export const Header = ({
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Cotações - sempre visível */}
+          <button
+            onClick={() => router.push('/precodogado')}
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            title="Cotações R$/kg"
+          >
+            <TrendingUp size={20} />
+            <span className="hidden sm:inline">Cotações</span>
+          </button>
+
           {user ? (
             <div className="flex items-center gap-4">
               <button
                 onClick={onAdClick}
-                className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-emerald-100 text-[#2D5A27] rounded-lg text-sm font-bold hover:bg-emerald-200 transition-all shadow-md shadow-emerald-800/10 cursor-pointer"
+                className="hidden sm:flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-white rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 <Megaphone size={18} /> Anuncie aqui
               </button>
+
               <div className="hidden lg:flex items-center gap-2">
+
+
                 {user.is_admin && (
                   <button
                     onClick={() => router.push('/admin')}
-                    className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                    className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-bold"
                     title="Painel Administrativo"
                   >
                     <ShieldCheck size={20} />
@@ -71,7 +84,7 @@ export const Header = ({
                 )}
                 <button
                   onClick={onMyAdsClick}
-                  className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Meus Anúncios"
                 >
                   <Megaphone size={20} />
@@ -79,7 +92,7 @@ export const Header = ({
                 </button>
                 <button
                   onClick={onMessagesClick || (() => router.push('/mensagens'))}
-                  className="p-2 text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Mensagens"
                 >
                   <MessageSquare size={20} />
@@ -87,7 +100,7 @@ export const Header = ({
                 </button>
                 <button
                   onClick={onFavoritesClick}
-                  className="p-2 text-[#666] hover:text-[#DC3545] transition-colors cursor-pointer flex items-center gap-1 text-sm font-medium"
+                  className="p-2 text-[#666] hover:bg-red-50 hover:text-[#DC3545] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Meus Favoritos"
                 >
                   <Heart size={20} />
@@ -98,13 +111,7 @@ export const Header = ({
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#DC3545] rounded-full border-2 border-white" />
                 </button> */}
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <div className="text-sm font-bold text-[#333]">{user.name.split(' ')[0]}</div>
-                  <div className="text-[10px] text-[#999] uppercase tracking-wider font-bold">
-                    {user.is_admin ? 'Administrador' : 'Usuário'}
-                  </div>
-                </div>
+              <div className="flex flex-row-reverse sm:flex-row items-center gap-3">
                 <button
                   onClick={onLogout}
                   className="p-2 text-[#999] hover:text-[#333] transition-colors cursor-pointer"
@@ -117,7 +124,7 @@ export const Header = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onAuthClick('register')}
-                className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-emerald-100 text-[#2D5A27] rounded-lg text-sm font-bold hover:bg-emerald-200 transition-all shadow-md shadow-emerald-800/10 cursor-pointer"
+                className="hidden sm:flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-white rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 <Megaphone size={18} /> Anuncie aqui
               </button>
@@ -131,6 +138,6 @@ export const Header = ({
           )}
         </div>
       </div>
-    </header>
+    </header >
   );
 };

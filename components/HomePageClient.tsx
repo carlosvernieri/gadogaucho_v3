@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, useRef } from 'react';
+import { useInView } from 'react-intersection-observer';
 import {
   Search,
   MapPin,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
@@ -61,6 +63,10 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   const [listings, setListings] = useState<any[]>(initialListings);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(initialListings.length === 20);
+  const { ref: observerRef, inView } = useInView();
+  const isInitialFilterState = useRef(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
@@ -218,14 +224,41 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      if (type === 'images' && file.size > 5 * 1024 * 1024) {
+        showToast('A imagem é muito grande. Máximo 5MB.');
+        continue;
+      }
+      if (type === 'videos' && file.size > 20 * 1024 * 1024) {
+        showToast('O vídeo é muito grande. Máximo 20MB.');
+        continue;
+      }
+
       try {
-        const fileExt = file.name.split('.').pop();
+        let fileToUpload: File | Blob = file;
+        let fileExt = file.name.split('.').pop();
+
+        if (type === 'images') {
+          try {
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              initialQuality: 0.8,
+              fileType: 'image/webp',
+            };
+            fileToUpload = await imageCompression(file, options);
+            fileExt = 'webp';
+          } catch (error) {
+            console.error('Erro na compressão:', error);
+          }
+        }
+
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('gado_gaucho_media')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload);
 
         if (uploadError) throw uploadError;
 
@@ -591,36 +624,65 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     setShowAdModal(true);
   };
 
-  const filteredListings = useMemo(() => {
-    return listings.filter(item => {
-      // My Ads and Favorites should show sold items
-      if (showMyAds) {
-        return Number(item.user_id) === Number(user?.id);
+  useEffect(() => {
+    const fetchFiltered = async () => {
+      setLoading(true);
+      try {
+        let url = `/api/listings?page=1&limit=20`;
+        if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
+        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (showVerifiedOnly) url += `&verified=true`;
+        if (selectedCityCoords && maxDistance) {
+          url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
+        }
+        
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setListings(data);
+          setPage(1);
+          setHasMore(data.length === 20);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-      if (showFavorites) {
-        return favorites.map(Number).includes(Number(item.id));
-      }
+    };
+    
+    if (isInitialFilterState.current) {
+      isInitialFilterState.current = false;
+      if (!selectedCategory && !searchQuery && !selectedCityCoords) return;
+    }
+    
+    fetchFiltered();
+  }, [selectedCategory, searchQuery, showVerifiedOnly, selectedCityCoords, maxDistance]);
 
-      // Home screen search/filter logic
-      // Exclude sold items from home screen
-      if (item.sold) return false;
-
-      const matchesCategory = !selectedCategory || item.category.toLowerCase() === selectedCategory.toLowerCase();
-      const matchesSearch = !searchQuery ||
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toString().includes(searchQuery);
-
-      const matchesVerified = !showVerifiedOnly || item.verified;
-
-      let matchesDistance = true;
-      if (selectedCityCoords && item.lat && item.lng) {
-        const dist = calculateDistance(selectedCityCoords.lat, selectedCityCoords.lng, item.lat, item.lng);
-        matchesDistance = dist <= maxDistance;
-      }
-
-      return matchesCategory && matchesSearch && matchesVerified && matchesDistance;
-    });
-  }, [listings, selectedCategory, searchQuery, showVerifiedOnly, showMyAds, showFavorites, user, favorites, selectedCityCoords, maxDistance, calculateDistance]);
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      const fetchNextPage = async () => {
+         const nextPage = page + 1;
+         let url = `/api/listings?page=${nextPage}&limit=20`;
+         if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
+         if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+         if (showVerifiedOnly) url += `&verified=true`;
+         if (selectedCityCoords && maxDistance) {
+            url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
+         }
+         
+         try {
+           const res = await fetch(url);
+           if (res.ok) {
+             const data = await res.json();
+             setListings(prev => [...prev, ...data]);
+             setPage(nextPage);
+             setHasMore(data.length === 20);
+           }
+         } catch(e) {}
+      };
+      fetchNextPage();
+    }
+  }, [inView, hasMore, loading, page, selectedCategory, searchQuery, selectedCityCoords, maxDistance]);
 
   return (
     <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
@@ -738,8 +800,8 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
                       </div>
                     </div>
                   )}
-                  {filteredListings.length > 0 ? (
-                    filteredListings.map(listing => (
+                  {listings.length > 0 ? (
+                    listings.map(listing => (
                       (showMyAds || showFavorites) ? (
                         <ListingListItem
                           key={listing.id}
@@ -777,6 +839,11 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
                     </div>
                   )}
                 </>
+              )}
+              {hasMore && listings.length > 0 && !loading && (
+                <div ref={observerRef} className="col-span-full py-8 text-center flex justify-center">
+                  <Spinner size="md" />
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

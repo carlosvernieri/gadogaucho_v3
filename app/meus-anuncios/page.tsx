@@ -73,7 +73,11 @@ export default function MeusAnunciosPage() {
 
   const fetchData = async () => {
     try {
-      const listingsRes = await fetch('/api/listings');
+      const storedUser = localStorage.getItem('gado_gaucho_user');
+      const userId = storedUser ? JSON.parse(storedUser).id : null;
+      if (!userId) return;
+
+      const listingsRes = await fetch(`/api/listings?userId=${userId}&limit=1000`);
       if (listingsRes.ok) {
         const data = await listingsRes.json();
         setListings(data);
@@ -127,6 +131,8 @@ export default function MeusAnunciosPage() {
       try {
         let fileToUpload: File | Blob = file;
 
+        let fileExt = file.name.split('.').pop();
+
         if (type === 'images') {
           try {
             const options = {
@@ -134,14 +140,15 @@ export default function MeusAnunciosPage() {
               maxWidthOrHeight: 1920,
               useWebWorker: true,
               initialQuality: 0.8,
+              fileType: 'image/webp',
             };
             fileToUpload = await imageCompression(file, options);
+            fileExt = 'webp';
           } catch (error) {
             console.error('Erro na compressão:', error);
           }
         }
 
-        const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 

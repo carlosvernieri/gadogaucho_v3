@@ -34,7 +34,7 @@ export default function FavoritosPage() {
 
       try {
         const [listingsRes, favRes] = await Promise.all([
-          fetch('/api/listings').catch(err => {
+          fetch('/api/listings?limit=1000').catch(err => {
             console.error('Listings fetch failed:', err);
             return { ok: false, json: async () => [] } as Response;
           }),
