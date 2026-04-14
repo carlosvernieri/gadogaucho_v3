@@ -23,7 +23,7 @@ export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E9ECEF] pt-2 pb-6 z-40 flex items-center pb-safe">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-[#E9ECEF] pt-2 pb-5 z-[100] flex items-center transform-gpu shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-[calc(env(safe-area-inset-bottom)+12px)]">
       {navItems.map((item, index) => {
         const Icon = item.icon;
         const isActive = item.path === pathname;

@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { RS_CITIES } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { ShareModal } from '@/components/ShareModal';
+import { Sidebar } from '@/components/Sidebar';
 
 const formatPhone = (val: string) => {
   const digits = val.replace(/\D/g, '').slice(0, 11);
@@ -23,72 +24,72 @@ const formatPhone = (val: string) => {
 const mockPraças = [
   {
     cidade: 'Glorinha (Sta Ursula)',
-    boiGordo: 10.50,
-    vacaGorda: 9.20,
-    terneiro: 13.80,
+    vaca: 9.20,
     novilha: 9.80,
+    terneira: 12.50,
+    terneiro: 13.80,
     tendencia: 'up',
     history: [
-      { name: 'Semana 1', boi: 10.10, vaca: 8.80 },
-      { name: 'Semana 2', boi: 10.30, vaca: 8.90 },
-      { name: 'Semana 3', boi: 10.40, vaca: 9.10 },
-      { name: 'Atual', boi: 10.50, vaca: 9.20 }
+      { name: 'Semana 1', vaca: 8.80, novilha: 9.40, terneira: 12.00, terneiro: 13.50 },
+      { name: 'Semana 2', vaca: 8.90, novilha: 9.50, terneira: 12.10, terneiro: 13.60 },
+      { name: 'Semana 3', vaca: 9.10, novilha: 9.70, terneira: 12.30, terneiro: 13.75 },
+      { name: 'Atual', vaca: 9.20, novilha: 9.80, terneira: 12.50, terneiro: 13.80 }
     ]
   },
   {
     cidade: 'Mostardas',
-    boiGordo: 10.20,
-    vacaGorda: 8.90,
-    terneiro: 13.50,
+    vaca: 8.90,
     novilha: 9.50,
+    terneira: 12.20,
+    terneiro: 13.50,
     tendencia: 'stable',
     history: [
-      { name: 'Semana 1', boi: 10.30, vaca: 8.90 },
-      { name: 'Semana 2', boi: 10.25, vaca: 8.85 },
-      { name: 'Semana 3', boi: 10.20, vaca: 8.80 },
-      { name: 'Atual', boi: 10.20, vaca: 8.90 }
+      { name: 'Semana 1', vaca: 8.90, novilha: 9.40, terneira: 12.20, terneiro: 13.40 },
+      { name: 'Semana 2', vaca: 8.85, novilha: 9.45, terneira: 12.10, terneiro: 13.45 },
+      { name: 'Semana 3', vaca: 8.80, novilha: 9.50, terneira: 12.15, terneiro: 13.50 },
+      { name: 'Atual', vaca: 8.90, novilha: 9.50, terneira: 12.20, terneiro: 13.50 }
     ]
   },
   {
     cidade: 'Butiá',
-    boiGordo: 10.10,
-    vacaGorda: 8.80,
-    terneiro: 13.20,
+    vaca: 8.80,
     novilha: 9.40,
+    terneira: 11.90,
+    terneiro: 13.20,
     tendencia: 'down',
     history: [
-      { name: 'Semana 1', boi: 10.50, vaca: 9.20 },
-      { name: 'Semana 2', boi: 10.40, vaca: 9.10 },
-      { name: 'Semana 3', boi: 10.20, vaca: 8.90 },
-      { name: 'Atual', boi: 10.10, vaca: 8.80 }
+      { name: 'Semana 1', vaca: 9.20, novilha: 9.70, terneira: 12.40, terneiro: 13.70 },
+      { name: 'Semana 2', vaca: 9.10, novilha: 9.60, terneira: 12.20, terneiro: 13.50 },
+      { name: 'Semana 3', vaca: 8.90, novilha: 9.50, terneira: 12.00, terneiro: 13.30 },
+      { name: 'Atual', vaca: 8.80, novilha: 9.40, terneira: 11.90, terneiro: 13.20 }
     ]
   },
   {
     cidade: 'Guaíba',
-    boiGordo: 10.40,
-    vacaGorda: 9.10,
-    terneiro: 13.70,
+    vaca: 9.10,
     novilha: 9.70,
+    terneira: 12.40,
+    terneiro: 13.70,
     tendencia: 'up',
     history: [
-      { name: 'Semana 1', boi: 9.90, vaca: 8.60 },
-      { name: 'Semana 2', boi: 10.10, vaca: 8.80 },
-      { name: 'Semana 3', boi: 10.30, vaca: 9.00 },
-      { name: 'Atual', boi: 10.40, vaca: 9.10 }
+      { name: 'Semana 1', vaca: 8.60, novilha: 9.20, terneira: 11.80, terneiro: 13.20 },
+      { name: 'Semana 2', vaca: 8.80, novilha: 9.40, terneira: 12.00, terneiro: 13.40 },
+      { name: 'Semana 3', vaca: 9.00, novilha: 9.60, terneira: 12.20, terneiro: 13.60 },
+      { name: 'Atual', vaca: 9.10, novilha: 9.70, terneira: 12.40, terneiro: 13.70 }
     ]
   },
   {
     cidade: 'São Sepé',
-    boiGordo: 10.00,
-    vacaGorda: 8.70,
-    terneiro: 13.10,
+    vaca: 8.70,
     novilha: 9.30,
+    terneira: 11.80,
+    terneiro: 13.10,
     tendencia: 'stable',
     history: [
-      { name: 'Semana 1', boi: 10.00, vaca: 8.70 },
-      { name: 'Semana 2', boi: 9.90, vaca: 8.60 },
-      { name: 'Semana 3', boi: 10.10, vaca: 8.80 },
-      { name: 'Atual', boi: 10.00, vaca: 8.70 }
+      { name: 'Semana 1', vaca: 8.70, novilha: 9.30, terneira: 11.80, terneiro: 13.10 },
+      { name: 'Semana 2', vaca: 8.60, novilha: 9.20, terneira: 11.75, terneiro: 13.00 },
+      { name: 'Semana 3', vaca: 8.80, novilha: 9.40, terneira: 11.90, terneiro: 13.20 },
+      { name: 'Atual', vaca: 8.70, novilha: 9.30, terneira: 11.80, terneiro: 13.10 }
     ]
   }
 ];
@@ -106,6 +107,9 @@ export default function PrecoDoGadoPage() {
 
   // State for Share Modal
   const [showShareModal, setShowShareModal] = useState(false);
+  
+  // State for Global Navigation Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // States for City Autocomplete inside Modal
   const [citySearch, setCitySearch] = useState('');
@@ -156,8 +160,10 @@ export default function PrecoDoGadoPage() {
             contentStyle={{ borderRadius: '8px', border: '1px solid #E9ECEF', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
           />
           <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-          <Line type="monotone" dataKey="boi" name="Boi Gordo" stroke="#2D5A27" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-          <Line type="monotone" dataKey="vaca" name="Vaca Gorda" stroke="#87C036" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="vaca" name="Vaca" stroke="#2D5A27" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="novilha" name="Novilha" stroke="#87C036" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="terneira" name="Terneira" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="terneiro" name="Terneiro" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -167,7 +173,7 @@ export default function PrecoDoGadoPage() {
     <div className="flex-1 flex flex-col pb-24 lg:pb-0 bg-[#F8F9FA]">
       <Header
         user={user}
-        onMenuClick={() => { }}
+        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
         onAdminClick={() => router.push('/')}
@@ -177,7 +183,34 @@ export default function PrecoDoGadoPage() {
         onMyAdsClick={() => router.push('/meus-anuncios')}
         onMessagesClick={() => router.push('/mensagens')}
       />
-      <main className="max-w-5xl mx-auto px-4 lg:px-8 py-8 w-full mt-4">
+
+      <div className="flex-1 max-w-[1440px] mx-auto w-full flex px-4 lg:px-8 py-8 lg:gap-0 gap-8 relative">
+        <div className="lg:hidden">
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            selectedCategory={null}
+            onSelectCategory={(cat) => {
+              if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+              else router.push('/');
+            }}
+            searchQuery=""
+            onSearchChange={() => { }}
+            listingsCount={0}
+            getCategoryCount={() => 0}
+            citySearch=""
+            onCitySearchChange={() => { }}
+            maxDistance={100}
+            onMaxDistanceChange={() => { }}
+            onUseMyLocation={() => { }}
+            citySuggestions={[]}
+            onSelectCity={() => { }}
+            showSuggestions={false}
+            setShowSuggestions={() => { }}
+          />
+        </div>
+
+        <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">
 
         {/* Header Section */}
         <div className="mb-8">
@@ -223,10 +256,10 @@ export default function PrecoDoGadoPage() {
               <thead>
                 <tr className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[11px] uppercase tracking-wider text-[#666]">
                   <th className="p-4 font-bold">Praça Geográfica</th>
-                  <th className="p-4 font-bold text-center">Boi Gordo</th>
-                  <th className="p-4 font-bold text-center">Vaca Gorda</th>
-                  <th className="p-4 font-bold text-center">Terneiro</th>
+                  <th className="p-4 font-bold text-center">Vaca</th>
                   <th className="p-4 font-bold text-center">Novilha</th>
+                  <th className="p-4 font-bold text-center">Terneira</th>
+                  <th className="p-4 font-bold text-center">Terneiro</th>
                   <th className="p-4 text-center font-bold">Tendência</th>
                   <th className="p-4 text-center font-bold w-12"></th>
                 </tr>
@@ -242,16 +275,16 @@ export default function PrecoDoGadoPage() {
                         {praca.cidade}
                       </td>
                       <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.boiGordo.toFixed(2)}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.vacaGorda.toFixed(2)}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.terneiro.toFixed(2)}
+                        R$ {praca.vaca.toFixed(2)}
                       </td>
                       <td className="p-4 text-center text-[#666] font-medium">
                         R$ {praca.novilha.toFixed(2)}
+                      </td>
+                      <td className="p-4 text-center text-[#666] font-medium">
+                        R$ {praca.terneira.toFixed(2)}
+                      </td>
+                      <td className="p-4 text-center text-[#666] font-medium">
+                        R$ {praca.terneiro.toFixed(2)}
                       </td>
                       <td className="p-4 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center shadow-sm">
@@ -304,20 +337,20 @@ export default function PrecoDoGadoPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-y-4 gap-x-4">
                     <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Boi Gordo</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.boiGordo.toFixed(2)}</span>
-                    </div>
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca Gorda</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vacaGorda.toFixed(2)}</span>
-                    </div>
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
+                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca</span>
+                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vaca.toFixed(2)}</span>
                     </div>
                     <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
                       <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilha</span>
                       <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilha.toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneira</span>
+                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneira.toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
+                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -346,6 +379,7 @@ export default function PrecoDoGadoPage() {
         </div>
 
       </main>
+      </div>
 
       {/* Newsletter Modal */}
       <AnimatePresence>
