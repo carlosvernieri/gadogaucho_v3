@@ -178,10 +178,10 @@ export const ListingDetail = ({
           <p className="text-sm text-[#666] leading-relaxed mb-6">
             {listing.description}
           </p>
-          <div className="flex items-center gap-2 text-[12px] text-[#666] mb-8 pb-8 border-b border-[#F1F3F5]">
+          {/* <div className="flex items-center gap-2 text-[12px] text-[#666] mb-8 pb-8 border-b border-[#F1F3F5]">
             <MapPin size={14} className="text-[#999]" />
             <span className="uppercase">{listing.location}</span>
-          </div>
+          </div> */}
 
           {/* Market Intelligence Chart */}
           <div className="mb-10">

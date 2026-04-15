@@ -51,15 +51,29 @@ export async function GET() {
       .gte('auctions.auction_date', fourteenDaysAgo.toISOString())
       .lt('auctions.auction_date', sevenDaysAgo.toISOString());
 
-    // 4. Aggregate Platform Data (Last 7 days)
+    // 4. Aggregate Platform Data (Last 30 days to have more significance)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
     const { data: platformOffers } = await (supabaseAdmin
       .from('listings') as any)
       .select('price_kg, category, created_at')
-      .gte('created_at', sevenDaysAgo.toISOString());
+      .gte('created_at', thirtyDaysAgo.toISOString());
 
     // Helper to calculate average
     const calcAvg = (data: any[], cat: string) => {
-      const filtered = data?.filter(item => item.category === cat) || [];
+      // Map common market names to database categories
+      const categoryMap: Record<string, string[]> = {
+        'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo'],
+        'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte'],
+        'Novilha': ['Novilha'],
+        'Terneiro': ['Terneiro'],
+        'Terneira': ['Terneira']
+      };
+
+      const targetCategories = categoryMap[cat] || [cat];
+      const filtered = data?.filter(item => targetCategories.includes(item.category)) || [];
+      
       if (filtered.length === 0) return 0;
       return filtered.reduce((acc, curr) => acc + curr.price_kg, 0) / filtered.length;
     };

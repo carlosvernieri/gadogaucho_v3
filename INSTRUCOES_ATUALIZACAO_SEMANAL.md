@@ -46,12 +46,22 @@ Os dados devem ser inseridos no arquivo da API:
     ];
     ```
 
-## 4. Verificação
+## 4. Funcionamento Automático (Premissas)
 
-Após salvar o arquivo, acesse a página `/relatorio-preco-do-gado` no seu navegador para garantir que:
-1.  Os novos preços estão sendo exibidos corretamente.
-2.  As variações percentuais (deltas) foram recalculadas automaticamente.
-3.  O gráfico de Mercado Futuro reflete a nova curva de preços.
+O sistema foi configurado com as seguintes premissas para garantir a precisão dos dados sem necessidade de intervenção manual:
+
+*   **Janela de Dados (Site)**: Para o comparativo "Média Gado Gaúcho", o sistema agora busca anúncios dos últimos **30 dias**. Isso fornece uma base estatística mais robusta do que a janela semanal de leilões.
+*   **Mapeamento Inteligente de Categorias**: O sistema traduz automaticamente os termos de mercado para as categorias do banco de dados:
+    *   **"Boi Gordo"**: Agrega anúncios de *Boi Castrado* e *Novilho*.
+    *   **"Vaca"**: Agrega anúncios de *Vaca, Vaca Gorda e Vaca Descarte*.
+*   **Atualização Automática**: Os dados de leilões (últimos 7 dias) e ofertas do site são recalculados toda vez que a página é carregada, refletindo o estado atual do banco de dados.
+
+## 5. Verificação
+
+Após salvar o arquivo de API, acesse a página `/relatorio-preco-do-gado` no seu navegador para garantir que:
+1.  Os novos preços externos (Scot/B3) estão sendo exibidos corretamente.
+2.  As variações percentuais (deltas) foram recalculadas.
+3.  A coluna "Média Gado Gaúcho" está populada com base na nova janela de 30 dias.
 
 ---
 **Nota**: Não é necessário mexer nos dados de Leilões ou Ofertas do site, pois a API faz a busca no banco de dados em tempo real considerando sempre os últimos 7 dias.
