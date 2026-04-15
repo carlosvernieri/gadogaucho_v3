@@ -4,6 +4,7 @@ import React from 'react';
 import { MapPin, Search, X, LayoutGrid, ShieldCheck, Plus } from 'lucide-react';
 import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
+import { slugify } from '@/lib/utils';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface SidebarProps {
   onSelectCity: (city: any) => void;
   showSuggestions: boolean;
   setShowSuggestions: (show: boolean) => void;
+  isDesktopHidden?: boolean;
 }
 
 export const Sidebar = ({
@@ -48,7 +50,8 @@ export const Sidebar = ({
   citySuggestions,
   onSelectCity,
   showSuggestions,
-  setShowSuggestions
+  setShowSuggestions,
+  isDesktopHidden = false
 }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -56,7 +59,7 @@ export const Sidebar = ({
   const handleCategorySelect = (catName: string | null) => {
     if (pathname !== '/') {
       if (catName) {
-        router.push(`/?category=${encodeURIComponent(catName)}`);
+        router.push(`/categoria/${slugify(catName)}`);
       } else {
         router.push('/');
       }
@@ -111,8 +114,9 @@ export const Sidebar = ({
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 z-50 w-[280px] bg-white lg:bg-transparent lg:relative lg:block lg:translate-x-0 transition-transform duration-300 ease-in-out
+      fixed inset-y-0 left-0 z-50 w-[280px] bg-white transition-transform duration-300 ease-in-out
       ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+      ${!isDesktopHidden ? 'lg:bg-transparent lg:relative lg:block lg:translate-x-0' : 'lg:hidden'}
     `}>
       <div className="p-6 lg:p-0 h-full overflow-y-auto lg:sticky lg:top-8">
         <div className="mb-7">

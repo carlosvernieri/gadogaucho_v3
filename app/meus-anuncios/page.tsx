@@ -40,6 +40,7 @@ export default function MeusAnunciosPage() {
 
   const [adForm, setAdForm] = useState({
     category: 'Touro',
+    breed: '',
     weight: 0,
     priceKg: 0,
     batchSize: 1,
@@ -257,6 +258,7 @@ export default function MeusAnunciosPage() {
 
       const newAd = {
         category: adForm.category.toUpperCase(),
+        breed: adForm.breed || null,
         title: `${adForm.category} em ${adForm.city}`,
         price: totalPrice,
         priceKg: adForm.priceKg,
@@ -382,6 +384,7 @@ export default function MeusAnunciosPage() {
     setCitySearchAd('');
     setAdForm({
       category: 'Touro',
+      breed: '',
       weight: 0,
       priceKg: 0,
       batchSize: 1,
@@ -469,7 +472,7 @@ export default function MeusAnunciosPage() {
                 <Megaphone size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#333]">Meus Anúncios</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meus Anúncios</h1>
                 <p className="text-sm text-[#999]">Gerencie suas ofertas no Gado Gaúcho</p>
               </div>
             </div>
@@ -517,6 +520,7 @@ export default function MeusAnunciosPage() {
                         setEditingListingId(l.id);
                         setAdForm({
                           category: l.category || 'Touro',
+                          breed: l.breed || '',
                           weight: l.avgWeight || 0,
                           priceKg: l.priceKg || 0,
                           batchSize: l.quantity || 1,
@@ -641,6 +645,28 @@ export default function MeusAnunciosPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Raça</label>
+                      <select
+                        value={adForm.breed}
+                        onChange={(e) => setAdForm({ ...adForm, breed: e.target.value })}
+                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
+                      >
+                        <option value="">Selecione a raça...</option>
+                        <option value="Angus">Angus</option>
+                        <option value="Brangus">Brangus</option>
+                        <option value="Braford">Braford</option>
+                        <option value="Hereford">Hereford</option>
+                        <option value="Cruza Angus">Cruza Angus</option>
+                        <option value="Cruza Braford">Cruza Braford</option>
+                        <option value="Jersey">Jersey</option>
+                        <option value="Holandesa">Holandesa</option>
+                        <option value="Nelore">Nelore</option>
+                      </select>
                     </div>
                   </div>
 

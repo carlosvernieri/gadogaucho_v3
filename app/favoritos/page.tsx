@@ -146,7 +146,7 @@ export default function FavoritosPage() {
                 <Heart size={24} fill="currentColor" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#333]">Meus Favoritos</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meus Favoritos</h1>
                 <p className="text-sm text-[#999]">Seus anúncios salvos para acompanhar</p>
               </div>
             </div>

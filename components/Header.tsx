@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -58,6 +58,15 @@ export const Header = ({
           >
             <TrendingUp size={20} />
             <span className="hidden sm:inline">Cotações</span>
+          </button>
+
+          <button
+            onClick={() => router.push('/relatorio-preco-do-gado')}
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            title="Boletim de Inteligência"
+          >
+            <BarChart3 size={20} />
+            <span className="hidden sm:inline">Boletim</span>
           </button>
 
           {user ? (

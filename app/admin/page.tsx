@@ -29,8 +29,10 @@ import {
   Loader2,
   Camera,
   Video,
-  HardDrive
+  HardDrive,
+  Calendar
 } from 'lucide-react';
+import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import Image from 'next/image';
 import { RS_CITIES } from '@/lib/data';
 import imageCompression from 'browser-image-compression';
@@ -48,7 +50,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, setUser, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions'>('users');
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -74,6 +76,7 @@ export default function AdminPage() {
   const [adForm, setAdForm] = useState({
     title: '',
     category: '',
+    breed: '',
     price: 0,
     priceKg: 0,
     avgWeight: 0,
@@ -594,6 +597,12 @@ export default function AdminPage() {
                   )}
                 </button>
                 <button
+                  onClick={() => setAdminTab('auctions')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'auctions' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Leilões
+                </button>
+                <button
                   onClick={() => setAdminTab('system')}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'system' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
@@ -812,6 +821,7 @@ export default function AdminPage() {
                                   setAdForm({
                                     title: l.title || '',
                                     category: l.category || '',
+                                    breed: l.breed || '',
                                     price: l.price || 0,
                                     priceKg: l.priceKg || 0,
                                     avgWeight: l.avgWeight || 0,
@@ -844,6 +854,8 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+            ) : adminTab === 'auctions' ? (
+              <AdminAuctionManager />
             ) : (
               <div>
                 <div className="flex items-center gap-2 mb-6">

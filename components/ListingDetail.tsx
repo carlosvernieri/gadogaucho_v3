@@ -1,9 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, Heart, Share2, Video, CheckCircle, ShieldCheck } from 'lucide-react';
+import {
+  ChevronLeft, Heart, Share2, Video, CheckCircle,
+  MapPin, TrendingUp, Info, BarChart3
+} from 'lucide-react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Legend
+} from 'recharts';
 import { slugify } from '@/lib/utils';
 import { Badge } from './Badge';
 import { InterestForm } from './InterestForm';
@@ -21,7 +28,31 @@ export const ListingDetail = ({
 }) => {
   const [activeMedia, setActiveMedia] = useState(0);
   const [showInterestForm, setShowInterestForm] = useState(false);
+  const [insightData, setInsightData] = useState<any>(null);
+  const [loadingInsight, setLoadingInsight] = useState(true);
+
   const allMedia = [...(listing.images || []), ...(listing.videos || [])];
+
+  useEffect(() => {
+    const fetchInsight = async () => {
+      try {
+        setLoadingInsight(true);
+        const res = await fetch(`/api/listings/${listing.id}/price-insight`);
+        const data = await res.json();
+        if (data) {
+          setInsightData(data);
+        }
+      } catch (err) {
+        console.error('Error fetching price insights:', err);
+      } finally {
+        setLoadingInsight(false);
+      }
+    };
+
+    if (listing.id) {
+      fetchInsight();
+    }
+  }, [listing.id]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -95,13 +126,13 @@ export const ListingDetail = ({
         <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col gap-1">
-              <Link
+              {<Link
                 href={`/categoria/${slugify(listing.category)}`}
-                className="text-[10px] font-bold text-[#999] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
+                className="text-[11px] font-bold text-[#999] uppercase tracking-wider hover:text-[#2D5A27] transition-colors"
               >
-                {listing.category}
-              </Link>
-              <span className="text-[10px] text-[#999]">Cód: #{listing.id}</span>
+                {listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()}
+              </Link>}
+              <span className="text-[11px] text-[#999]">Cód: #{listing.id}</span>
             </div>
             <div className="flex gap-2">
               <button
@@ -123,11 +154,11 @@ export const ListingDetail = ({
           </div>
 
           <div className="mb-6">
-            <span className="text-[10px] font-bold text-[#999] uppercase">Preço por kg</span>
+            <span className="text-[11px] font-bold text-[#999] uppercase">Preço por kg</span>
             <div className="text-4xl font-bold text-[#2D5A27] mb-2">
               R$ {listing.priceKg.toFixed(2)}/kg
             </div>
-            <div className="grid grid-cols-3 gap-4 text-[11px] text-[#666]">
+            <div className="grid grid-cols-3 gap-4 text-[12px] text-[#666]">
               <div>
                 <span className="block opacity-60">Peso Médio:</span>
                 <span className="font-bold">{listing.avgWeight}kg</span>
@@ -143,12 +174,168 @@ export const ListingDetail = ({
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-[#333] mb-4 leading-tight">{listing.category}</h1>
-          <p className="text-sm text-[#666] leading-relaxed mb-8">
+          <h1 className="text-2xl font-bold text-[#333] mb-2 leading-tight">{listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()} em {listing.location.charAt(0).toUpperCase() + listing.location.slice(1).toLowerCase()}</h1>
+          <p className="text-sm text-[#666] leading-relaxed mb-6">
             {listing.description}
           </p>
+          <div className="flex items-center gap-2 text-[12px] text-[#666] mb-8 pb-8 border-b border-[#F1F3F5]">
+            <MapPin size={14} className="text-[#999]" />
+            <span className="uppercase">{listing.location}</span>
+          </div>
 
-          <div className="bg-[#F8F9FA] rounded-2xl p-4 mb-6 flex items-center gap-4">
+          {/* Market Intelligence Chart */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#2D5A27]/10 flex items-center justify-center">
+                  <BarChart3 size={18} className="text-[#2D5A27]" />
+                </div>
+                <h3 className="font-bold text-[#333]">Inteligência de Mercado</h3>
+              </div>
+              <Badge variant="default" className="bg-[#E9F0E8] text-[#2D5A27] text-[10px] px-2 py-1">
+                8 SEMANAS
+              </Badge>
+            </div>
+
+            <p className="text-[12px] text-[#666] mb-6 leading-relaxed">
+              Evolução do preço médio para <strong className="text-[#333]">{listing.category}</strong>. Compare os valores das praças de leilão com a média do Gado Gaúcho.
+            </p>
+
+            {loadingInsight ? (
+              <div className="h-[250px] flex items-center justify-center bg-[#F8F9FA] rounded-2xl border border-dashed border-[#E9ECEF]">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 border-2 border-[#2D5A27] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-[#999] font-medium">Carregando dados...</span>
+                </div>
+              </div>
+            ) : insightData.chartData && insightData.chartData.length > 0 ? (
+              <div className="space-y-6">
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={insightData.chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: '#999' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: '#999' }}
+                        axisLine={false}
+                        tickLine={false}
+                        domain={['auto', 'auto']}
+                        tickFormatter={(value) => `R$${value}`}
+                      />
+                      <RechartsTooltip
+                        formatter={(value: any, name: any) => [`R$ ${Number(value).toFixed(2)}/kg`, String(name)]}
+                        contentStyle={{
+                          borderRadius: '12px',
+                          border: 'none',
+                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                          fontSize: '11px',
+                          fontWeight: '600'
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="right"
+                        height={45}
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '10px' }}
+                      />
+                      {insightData.closestPlazas?.[0] && (
+                        <Line
+                          type="monotone"
+                          dataKey="plaza1"
+                          name={insightData.closestPlazas[0].name}
+                          stroke="#1E3D1A"
+                          strokeWidth={2.5}
+                          dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
+                          activeDot={{ r: 5 }}
+                        />
+                      )}
+                      {insightData.closestPlazas?.[1] && (
+                        <Line
+                          type="monotone"
+                          dataKey="plaza2"
+                          name={insightData.closestPlazas[1].name}
+                          stroke="#2D5A27"
+                          strokeWidth={2}
+                          dot={{ r: 2, strokeWidth: 2, fill: '#fff' }}
+                          activeDot={{ r: 4 }}
+                        />
+                      )}
+                      {insightData.closestPlazas?.[2] && (
+                        <Line
+                          type="monotone"
+                          dataKey="plaza3"
+                          name={insightData.closestPlazas[2].name}
+                          stroke="#5A8D53"
+                          strokeWidth={2}
+                          dot={{ r: 2, strokeWidth: 2, fill: '#fff' }}
+                          activeDot={{ r: 4 }}
+                        />
+                      )}
+                      <Line
+                        type="monotone"
+                        dataKey="platformPrice"
+                        name="Gado Gaúcho"
+                        stroke="#87C036"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Summary Table */}
+                <div className="overflow-hidden rounded-2xl border border-[#E9ECEF] bg-white shadow-sm">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[#999] font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="px-3 py-2">Semana</th>
+                        {insightData.closestPlazas?.map((p: any) => (
+                          <th key={p.id} className="px-3 py-2 truncate max-w-[80px]">{p.name}</th>
+                        ))}
+                        <th className="px-3 py-2 text-[#2D5A27]">Gado Gaúcho</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F3F5]">
+                      {insightData.tableData?.map((row: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-[#FDFDFD] transition-colors">
+                          <td className="px-3 py-2 font-bold text-[#666]">{row.week}</td>
+                          {row.plazas.map((pPrice: any, pIdx: number) => (
+                            <td key={pIdx} className="px-3 py-2 font-medium text-[#333]">
+                              {pPrice.price ? `R$ ${pPrice.price.toFixed(2)}` : '-'}
+                            </td>
+                          ))}
+                          <td className="px-3 py-2 font-bold text-[#2D5A27] bg-[#E9F0E8]/20">
+                            {row.platformPrice ? `R$ ${row.platformPrice.toFixed(2)}` : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[100px] flex items-center justify-center bg-[#F8F9FA] rounded-2xl border border-dashed border-[#E9ECEF]">
+                <span className="text-xs text-[#999]">Sem dados suficientes para o gráfico.</span>
+              </div>
+            )}
+
+            <div className="mt-6 p-4 bg-[#F8F9FA] border border-[#E9ECEF] rounded-2xl flex gap-3 italic">
+              <Info size={16} className="text-[#2D5A27] shrink-0 mt-0.5" />
+              <p className="text-[10px] text-[#666] leading-relaxed">
+                As praças selecionadas são as <strong className="text-[#333]">3 mais próximas</strong> do município deste anúncio. Valores referem-se estritamente à categoria <strong className="text-[#333]">{listing.category}</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-[#F8F9FA] rounded-2xl p-5 mb-8 flex items-center gap-4">
             <Link
               href={`/vendedor/${listing.user_id}`}
               className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm hover:opacity-80 transition-opacity"
@@ -169,7 +356,7 @@ export const ListingDetail = ({
                   </Badge>
                 )}
               </div>
-              <div className="text-[10px] text-[#999]">
+              <div className="text-[11px] text-[#999]">
                 Membro desde 2024
               </div>
             </div>
@@ -192,6 +379,6 @@ export const ListingDetail = ({
         listingId={listing.id}
         listingTitle={listing.title}
       />
-    </div>
+    </div >
   );
 };
