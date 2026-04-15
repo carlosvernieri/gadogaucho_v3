@@ -114,11 +114,11 @@ export const Sidebar = ({
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 z-50 w-[280px] bg-white transition-transform duration-300 ease-in-out
+      fixed inset-y-0 left-0 z-50 lg:z-30 w-[280px] bg-white transition-transform duration-300 ease-in-out
       ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
       ${!isDesktopHidden ? 'lg:bg-transparent lg:relative lg:block lg:translate-x-0' : 'lg:hidden'}
     `}>
-      <div className="p-6 lg:p-0 h-full overflow-y-auto lg:sticky lg:top-8">
+      <div className="p-6 lg:p-0 h-full overflow-y-auto lg:sticky lg:top-24">
         <div className="mb-7">
           <div className="flex items-center justify-between mb-7 lg:hidden">
             <span className="text-xl font-bold text-[#2D5A27]">Filtros</span>

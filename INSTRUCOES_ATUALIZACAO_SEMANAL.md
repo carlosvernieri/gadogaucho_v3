@@ -19,32 +19,31 @@ Consulte as expectativas do mercado financeiro para os meses seguintes:
 *   **Fonte**: [Cotações B3 Boi Gordo](https://www.noticiasagricolas.com.br/cotacoes/boi-gordo) ou sites financeiros (Infomoney/Agrolink).
 *   **O que coletar**: O valor do último fechamento em R$ por arroba (@) para o mês atual e os próximos 4 a 6 meses de maior liquidez (geralmente meses como Abril, Maio, Junho e Outubro).
 
-## 3. Atualização no Código
+## 3. Coleta de Dados do Indicador CEPEA
+
+O Indicador CEPEA/B3 (São Paulo) é a principal referência nacional e serve como benchmark de base:
+
+*   **Fonte**: [Indicador do Boi Gordo CEPEA](https://www.cepea.esalq.usp.br/br/indicador/boi-gordo.aspx) ou sites de notícias agrícolas.
+*   **O que coletar**: O valor do indicador em R$/arroba (@) e a variação percentual do dia/semana.
+
+## 4. Atualização no Código
 
 Os dados devem ser inseridos no arquivo da API:
 `app/api/market-report/route.ts`
 
 ### Passo a Passo no Arquivo:
 
-1.  Localize o objeto `scotData` e atualize os valores numéricos de `price`:
+1.  Localize o objeto `scotData` e atualize os valores de Pelotas e Oeste.
+2.  Localize o objeto `cepeaData` e atualize o preço e o delta:
     ```typescript
-    const scotData = {
-      pelotas: [
-        { category: 'Boi Gordo', price: [NOVO_VALOR] },
-        { category: 'Vaca Gorda', price: [NOVO_VALOR] },
-        { category: 'Novilha', price: [NOVO_VALOR] },
-      ],
-      oeste: [ ... ]
+    const cepeaData = {
+      price: [VALOR_CEPEA],
+      priceKg: ([VALOR_CEPEA] / 30).toFixed(2),
+      trend: '[up/down]',
+      delta: [VALOR_VARIACAO]
     };
     ```
-
-2.  Localize o array `b3Futures` e atualize os preços das arrobas. O sistema calculará o equivalente em Kg Vivo automaticamente:
-    ```typescript
-    const b3Futures = [
-      { month: 'Abril/26', price: [VALOR_ROUBA], priceKg: ([VALOR_ROUBA] / 30).toFixed(2) },
-      ...
-    ];
-    ```
+3.  Localize o array `b3Futures` e atualize as cotações futuras.
 
 ## 4. Funcionamento Automático (Premissas)
 

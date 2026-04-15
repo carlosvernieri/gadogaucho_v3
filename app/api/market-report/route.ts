@@ -37,6 +37,14 @@ export async function GET() {
       { month: 'Outubro/26', price: 349.50, priceKg: (349.50 / 30).toFixed(2) },
     ];
 
+    // 3. Indicador CEPEA (Mocked from research)
+    const cepeaData = {
+      price: 367.05,
+      priceKg: (367.05 / 30).toFixed(2),
+      trend: 'up',
+      delta: 0.23
+    };
+
     const categories = ['Vaca', 'Novilha', 'Boi Gordo', 'Terneiro', 'Terneira'];
 
     // 3. Aggregate Auction Data (Last 7 days vs Previous 7 days)
@@ -99,6 +107,7 @@ export async function GET() {
     return NextResponse.json({
       reportDate: today.toISOString(),
       scotData,
+      cepeaData,
       b3Futures,
       categoryStats
     });

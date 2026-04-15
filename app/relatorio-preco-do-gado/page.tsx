@@ -108,29 +108,44 @@ export default function MercadoReportPage() {
           </div>
         </div>
 
-        {/* Resumo Executivo */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Resumo Executivo e Indicadores Rápidos */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="md:col-span-2 bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#2D5A27]/5 rounded-bl-full -mr-8 -mt-8" />
             <h2 className="text-xl font-bold text-[#333] mb-4 flex items-center gap-2">
               <Info className="text-[#2D5A27]" size={22} /> Resumo do Comportamento
             </h2>
-            <p className="text-[#666] leading-relaxed relative z-10">
-              O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais, indicando uma janela de oportunidade para compradores de reposição nas categorias de <strong>Terneiro</strong> e <strong>Terneira</strong>.
+            <p className="text-[#666] leading-relaxed relative z-10 text-sm">
+              O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais.
             </p>
           </div>
           
-          <div className="bg-[#2D5A27] rounded-3xl p-8 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
+          <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm flex flex-col justify-between">
             <div>
-              <TrendingUp size={32} className="mb-4 text-[#87C036]" />
-              <h3 className="text-lg font-bold mb-1">Destaque da Semana</h3>
-              <p className="text-sm text-white/80 leading-snug">
-                Novilha RS Oeste registrou a maior valorização entre as praças Scot Consultoria, com média de R$ 11,40/kg.
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest">Indicador CEPEA</span>
+                <div className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold">
+                  SP/B3
+                </div>
+              </div>
+              <div className="text-2xl font-black text-[#333]">R$ {reportData?.cepeaData?.price.toFixed(2)}</div>
+              <div className="text-xs text-[#2D5A27] font-bold">Eq. R$ {reportData?.cepeaData?.priceKg}/kg</div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-[#F8F9FA] flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+              <TrendingUp size={14} /> +{reportData?.cepeaData?.delta}% na semana
+            </div>
+          </div>
+
+          <div className="bg-[#2D5A27] rounded-3xl p-6 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
+              <p className="text-xs text-white leading-snug font-medium">
+                Novilha RS Oeste registrou a maior valorização, com média de R$ 11,40/kg.
               </p>
             </div>
-            <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between">
-              <span className="text-2xl font-bold">+2.2%</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white/60">Variação Novilha</span>
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="text-xl font-black">+2.2%</span>
+              <TrendingUp size={18} className="text-[#87C036]" />
             </div>
           </div>
         </div>
