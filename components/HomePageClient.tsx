@@ -894,7 +894,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
       {/* Ad Creation Modal */}
       <AnimatePresence>
         {showAdModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -919,7 +919,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
                   </p>
                 </div>
               )}
-              <div className="p-8 pb-24 lg:pb-8 overflow-y-auto flex-1">
+              <div className="p-8 overflow-y-auto flex-1">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold text-[#333]">
                     {editingListingId ? 'Editar Anúncio' : 'Novo Anúncio'}

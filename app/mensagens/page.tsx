@@ -194,13 +194,18 @@ export default function MensagensPage() {
         />
 
         <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">
-          <div className="mb-8">
-            <h1 className="text-3xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight mb-2">
-              Mensagens Recebidas
-            </h1>
-            <p className="text-[#666] leading-relaxed">
-              Gerencie os contatos interessados em seus anúncios
-            </p>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-2xl bg-[#E9F0E8] flex items-center justify-center text-[#2D5A27]">
+              <MessageSquare size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight mb-0.5">
+                Mensagens Recebidas
+              </h1>
+              <p className="text-sm text-[#666] leading-relaxed">
+                Gerencie os contatos interessados em seus anúncios
+              </p>
+            </div>
           </div>
 
           {loading ? (

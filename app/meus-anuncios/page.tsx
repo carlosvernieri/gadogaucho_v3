@@ -472,7 +472,7 @@ export default function MeusAnunciosPage() {
                 <Megaphone size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#333]">Meus Anúncios</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meus Anúncios</h1>
                 <p className="text-sm text-[#999]">Gerencie suas ofertas no Gado Gaúcho</p>
               </div>
             </div>
