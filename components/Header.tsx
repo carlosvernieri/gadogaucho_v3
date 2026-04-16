@@ -53,7 +53,7 @@ export const Header = ({
           {/* Cotações - sempre visível */}
           <button
             onClick={() => router.push('/precodogado')}
-            className="p-1.5 sm:p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
             title="Cotações R$/kg"
           >
             <TrendingUp size={20} />
@@ -62,7 +62,7 @@ export const Header = ({
 
           <button
             onClick={() => router.push('/relatorio-preco-do-gado')}
-            className="p-1.5 sm:p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
             title="Boletim de Inteligência"
           >
             <BarChart3 size={20} />
@@ -71,7 +71,7 @@ export const Header = ({
 
           <button
             onClick={() => router.push('/calculadoras/gmd')}
-            className="p-1.5 sm:p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
             title="Calculadora de GMD & Rentabilidade"
           >
             <Calculator size={20} />
