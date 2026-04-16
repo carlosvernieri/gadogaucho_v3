@@ -19,15 +19,15 @@ export default function GMDCalculatorPage() {
   const [marketPrices, setMarketPrices] = useState<any>(null);
   const [loadingPrices, setLoadingPrices] = useState(true);
 
-  // Form State
-  const [inputs, setInputs] = useState({
-    animalCount: 50,
-    initialWeight: 320,
-    finalWeight: 440,
-    days: 120,
-    purchasePriceKg: 10.50,
-    dailyCostHead: 3.50,
-    expectedSalePriceKg: 11.80
+  // Form State - Using strings to allow empty inputs in UI
+  const [inputs, setInputs] = useState<Record<string, string>>({
+    animalCount: '50',
+    initialWeight: '320',
+    finalWeight: '440',
+    days: '120',
+    purchasePriceKg: '10.50',
+    dailyCostHead: '3.50',
+    expectedSalePriceKg: '11.80'
   });
 
   // Fetch Market Prices for Suggestion
@@ -42,7 +42,7 @@ export default function GMDCalculatorPage() {
         // Suggest sale price based on Boi Gordo avg if available
         const boiAvg = data.categoryStats?.find((s: any) => s.category === 'Boi Gordo')?.auctionAvg;
         if (boiAvg > 0) {
-          setInputs(prev => ({ ...prev, expectedSalePriceKg: boiAvg }));
+          setInputs(prev => ({ ...prev, expectedSalePriceKg: boiAvg.toString() }));
         }
       } catch (err) {
         console.error('Error fetching market prices:', err);
@@ -55,28 +55,34 @@ export default function GMDCalculatorPage() {
 
   // Performance Calculations
   const calculations = useMemo(() => {
-    const totalGain = inputs.finalWeight - inputs.initialWeight;
-    const gmd = totalGain / inputs.days;
+    const numInputs = {
+      animalCount: parseFloat(inputs.animalCount) || 0,
+      initialWeight: parseFloat(inputs.initialWeight) || 0,
+      finalWeight: parseFloat(inputs.finalWeight) || 0,
+      days: parseFloat(inputs.days) || 0,
+      purchasePriceKg: parseFloat(inputs.purchasePriceKg) || 0,
+      dailyCostHead: parseFloat(inputs.dailyCostHead) || 0,
+      expectedSalePriceKg: parseFloat(inputs.expectedSalePriceKg) || 0,
+    };
+
+    const totalGain = numInputs.finalWeight - numInputs.initialWeight;
+    const gmd = numInputs.days > 0 ? totalGain / numInputs.days : 0;
     
-    // Financials per Head
-    const costPurchase = inputs.initialWeight * inputs.purchasePriceKg;
-    const costOperational = inputs.days * inputs.dailyCostHead;
+    const costPurchase = numInputs.initialWeight * numInputs.purchasePriceKg;
+    const costOperational = numInputs.days * numInputs.dailyCostHead;
     const totalCostPerHead = costPurchase + costOperational;
     
-    const revenuePerHead = inputs.finalWeight * inputs.expectedSalePriceKg;
+    const revenuePerHead = numInputs.finalWeight * numInputs.expectedSalePriceKg;
     const profitPerHead = revenuePerHead - totalCostPerHead;
     
-    const profitDay = profitPerHead / inputs.days;
+    const profitDay = numInputs.days > 0 ? profitPerHead / numInputs.days : 0;
     const profitMonth = profitDay * 30;
     
-    const roi = (profitPerHead / totalCostPerHead) * 100;
+    const roi = totalCostPerHead > 0 ? (profitPerHead / totalCostPerHead) * 100 : 0;
     
-    // Break-even Analysis
-    // Zero Profit = FinalWeight * SalePrice - (PurchasePrice + Days * DailyCost)
-    // If FinalWeight = InitialWeight + GMD * Days
-    // SalePrice * (InitialWeight + GMD_BE * Days) = CostPurchase + Days * DailyCost
-    // GMD_BE = [(CostPurchase + Days * DailyCost) / SalePrice - InitialWeight] / Days
-    const breakEvenGmd = ((totalCostPerHead / inputs.expectedSalePriceKg) - inputs.initialWeight) / inputs.days;
+    const breakEvenGmd = (numInputs.days > 0 && numInputs.expectedSalePriceKg > 0) 
+      ? ((totalCostPerHead / numInputs.expectedSalePriceKg) - numInputs.initialWeight) / numInputs.days 
+      : 0;
 
     return {
       totalGain,
@@ -89,13 +95,15 @@ export default function GMDCalculatorPage() {
       profitDay,
       profitMonth,
       roi,
+      monthlyProfitability: numInputs.days > 0 ? (roi / numInputs.days) * 30 : 0,
       breakEvenGmd,
-      totalBatchProfit: profitPerHead * inputs.animalCount,
-      totalBatchInvestment: totalCostPerHead * inputs.animalCount
+      totalBatchProfit: profitPerHead * numInputs.animalCount,
+      totalBatchInvestment: totalCostPerHead * numInputs.animalCount,
+      totalBatchProfitMonth: profitMonth * numInputs.animalCount
     };
   }, [inputs]);
 
-  const handleInputChange = (field: string, value: number) => {
+  const handleInputChange = (field: string, value: string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
   };
 
@@ -158,8 +166,9 @@ export default function GMDCalculatorPage() {
                   <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Qtd de Animais</label>
                   <input 
                     type="number" 
+                    inputMode="numeric"
                     value={inputs.animalCount}
-                    onChange={(e) => handleInputChange('animalCount', Number(e.target.value))}
+                    onChange={(e) => handleInputChange('animalCount', e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                 </div>
@@ -168,8 +177,9 @@ export default function GMDCalculatorPage() {
                     <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Peso Entrada (kg)</label>
                     <input 
                       type="number" 
+                      inputMode="decimal"
                       value={inputs.initialWeight}
-                      onChange={(e) => handleInputChange('initialWeight', Number(e.target.value))}
+                      onChange={(e) => handleInputChange('initialWeight', e.target.value)}
                       className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
@@ -177,8 +187,9 @@ export default function GMDCalculatorPage() {
                     <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Peso Final (kg)</label>
                     <input 
                       type="number" 
+                      inputMode="decimal"
                       value={inputs.finalWeight}
-                      onChange={(e) => handleInputChange('finalWeight', Number(e.target.value))}
+                      onChange={(e) => handleInputChange('finalWeight', e.target.value)}
                       className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
@@ -187,8 +198,9 @@ export default function GMDCalculatorPage() {
                   <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Período (dias)</label>
                   <input 
                     type="number" 
+                    inputMode="numeric"
                     value={inputs.days}
-                    onChange={(e) => handleInputChange('days', Number(e.target.value))}
+                    onChange={(e) => handleInputChange('days', e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                 </div>
@@ -206,9 +218,10 @@ export default function GMDCalculatorPage() {
                   <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Preço Compra (R$/kg)</label>
                   <input 
                     type="number" 
+                    inputMode="decimal"
                     step="0.01"
                     value={inputs.purchasePriceKg}
-                    onChange={(e) => handleInputChange('purchasePriceKg', Number(e.target.value))}
+                    onChange={(e) => handleInputChange('purchasePriceKg', e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                 </div>
@@ -216,9 +229,10 @@ export default function GMDCalculatorPage() {
                   <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Custo Diário/Cabeça (R$)</label>
                   <input 
                     type="number" 
+                    inputMode="decimal"
                     step="0.10"
                     value={inputs.dailyCostHead}
-                    onChange={(e) => handleInputChange('dailyCostHead', Number(e.target.value))}
+                    onChange={(e) => handleInputChange('dailyCostHead', e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                   <p className="text-[10px] text-[#999] mt-2 italic">Inclui ração, manejo e sanidade.</p>
@@ -228,9 +242,10 @@ export default function GMDCalculatorPage() {
                   <div className="relative">
                     <input 
                       type="number" 
+                      inputMode="decimal"
                       step="0.01"
                       value={inputs.expectedSalePriceKg}
-                      onChange={(e) => handleInputChange('expectedSalePriceKg', Number(e.target.value))}
+                      onChange={(e) => handleInputChange('expectedSalePriceKg', e.target.value)}
                       className="w-full bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-xl px-4 py-3 text-sm font-black text-[#2D5A27] outline-none focus:border-[#2D5A27]"
                     />
                     {loadingPrices && <Loader2 className="absolute right-4 top-3.5 animate-spin text-[#2D5A27]/40" size={16} />}
@@ -283,34 +298,47 @@ export default function GMDCalculatorPage() {
                   <h2 className="text-xl font-bold text-[#1A1A1A] flex items-center gap-2">
                     <PieChart className="text-[#2D5A27]" size={24} /> Resumo Financeiro do Lote
                   </h2>
-                  <div className="px-4 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-full text-xs font-black uppercase tracking-wider">
-                    ROI: {calculations.roi.toFixed(1)}%
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1.5 bg-[#F8F9FA] border border-[#E9ECEF] text-[#666] rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      ROI: {calculations.roi.toFixed(1)}%
+                    </div>
+                    <div className="px-4 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-full text-xs font-black uppercase tracking-wider border border-[#2D5A27]/10">
+                      Rent. Mensal: {calculations.monthlyProfitability.toFixed(2)}%
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-10">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Lucro/Prejuízo Líquido</span>
-                    <div className={`text-3xl font-black ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Lucro p/ Cabeça</span>
+                    <div className={`text-2xl font-black ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                       R$ {calculations.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <span className="text-[11px] text-[#999] font-medium">Por Cabeça</span>
+                    <span className="text-[11px] text-[#999] font-medium">Margem Líquida</span>
                   </div>
 
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Diário</span>
-                    <div className={`text-3xl font-black ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                    <div className={`text-2xl font-black ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                       R$ {calculations.profitDay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <span className="text-[11px] text-[#999] font-medium">Porteira p/ dia</span>
+                    <span className="text-[11px] text-[#999] font-medium">Por animal/dia</span>
                   </div>
 
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Mensal</span>
-                    <div className={`text-3xl font-black ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                    <div className={`text-2xl font-black ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                       R$ {calculations.profitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                    <span className="text-[11px] text-[#999] font-medium">Expectativa p/ mês</span>
+                    <span className="text-[11px] text-[#999] font-medium">Por animal/mês</span>
+                  </div>
+
+                  <div className="space-y-1 bg-[#2D5A27]/5 p-4 rounded-2xl border border-[#2D5A27]/10 -m-4">
+                    <span className="text-[10px] font-bold text-[#2D5A27] uppercase tracking-widest block mb-2">Lucro Mensal Lote</span>
+                    <div className={`text-2xl font-black ${calculations.totalBatchProfitMonth >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                      R$ {calculations.totalBatchProfitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    </div>
+                    <span className="text-[11px] text-[#2D5A27]/70 font-medium">Total do lote/mês</span>
                   </div>
                 </div>
 
@@ -338,7 +366,7 @@ export default function GMDCalculatorPage() {
                <div>
                   <h4 className="font-bold text-[#2171B5] text-sm mb-1 uppercase tracking-tight">Análise de Viabilidade</h4>
                   <p className="text-xs text-[#666] leading-relaxed">
-                    Com um preço de venda de <strong>R$ {inputs.expectedSalePriceKg.toFixed(2)}/kg</strong>, o seu ponto de equilíbrio é de <strong>{calculations.breakEvenGmd.toFixed(3)}kg/dia</strong>. 
+                    Com um preço de venda de <strong>R$ {(parseFloat(inputs.expectedSalePriceKg) || 0).toFixed(2)}/kg</strong>, o seu ponto de equilíbrio é de <strong>{calculations.breakEvenGmd.toFixed(3)}kg/dia</strong>. 
                     {calculations.gmd > calculations.breakEvenGmd 
                       ? " O seu GMD planejado está acima do equilíbrio, o que indica uma operação lucrativa." 
                       : " Atenção: seu GMD planejado está abaixo do equilíbrio. Verifique os custos diários ou negocie melhor a venda."}
@@ -356,7 +384,7 @@ export default function GMDCalculatorPage() {
                Gado Gaúcho <span className="text-[#999] font-normal text-sm">| Análise Estratégica de Lote</span>
             </h3>
             <p className="text-xs text-[#999] max-w-2xl mx-auto">
-              Este relatório é uma simulação matemática baseada nos parâmetros fornecidos e referências de mercado capturadas em {new Date().toLocaleDateString('pt-BR')}. O Gado Gaúcho não garante rentabilidade futura, servindo apenas como ferramenta de apoio à tomada de decisão legislada pelo produtor.
+              Este relatório é uma simulação matemática baseada nos parâmetros fornecidos e referências de mercado capturadas. O Gado Gaúcho não garante rentabilidade futura, servindo apenas como ferramenta de apoio à tomada de decisão legislada pelo produtor.
             </p>
         </div>
 
@@ -374,9 +402,13 @@ export default function GMDCalculatorPage() {
 
       <style jsx global>{`
         @media print {
-          body { background: white !important; }
+          html, body { 
+            background: white !important; 
+            height: 297mm; /* A4 height approx */
+            overflow: hidden !important;
+          }
           .print\\:hidden { display: none !important; }
-          main { padding: 0 !important; max-width: 100% !important; }
+          main { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
           .rounded-[2.5rem], .rounded-[2rem] { border-radius: 12px !important; }
           .shadow-sm, .shadow-xl { box-shadow: none !important; border: 1px solid #E9ECEF !important; }
         }

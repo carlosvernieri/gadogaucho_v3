@@ -45,7 +45,7 @@ export const Header = ({
             <div className="hidden sm:flex w-10 h-10 bg-[#2D5A27] rounded-xl items-center justify-center text-white">
               <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[22px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
+            <span className="text-[24.5px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
           </div>
         </div>
 

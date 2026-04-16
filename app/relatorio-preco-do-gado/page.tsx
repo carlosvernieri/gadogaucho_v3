@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Info, 
   BarChart3, Globe, MapPin, Printer, 
   ChevronRight, Calendar, ArrowRightLeft,
-  Loader2, Share2, Mail, LayoutGrid
+  Share2, Mail
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -19,6 +19,7 @@ import {
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
 import { NewsletterModal } from '@/components/NewsletterModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function MercadoReportPage() {
   const router = useRouter();
@@ -45,20 +46,9 @@ export default function MercadoReportPage() {
     fetchReport();
   }, []);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <div className="w-16 h-16 bg-[#2D5A27]/10 rounded-2xl flex items-center justify-center mb-4 animate-pulse">
-           <LayoutGrid className="text-[#2D5A27]" size={32} />
-        </div>
-        <Loader2 className="animate-spin text-[#2D5A27] mb-2" size={24} />
-        <p className="text-[#666] font-medium animate-pulse">Consolidando dados do mercado...</p>
-      </div>
-    );
+    return <LoadingScreen message="Consolidando dados do mercado..." />;
   }
 
   return (
@@ -97,13 +87,6 @@ export default function MercadoReportPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 print:hidden">
-            <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#E9ECEF] text-[#333] rounded-xl hover:bg-[#F8F9FA] transition-all font-bold text-sm shadow-sm"
-            >
-              <Printer size={18} /> Imprimir PDF
-            </button>
             <button 
               onClick={() => setShowShareModal(true)}
               className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
@@ -111,7 +94,6 @@ export default function MercadoReportPage() {
             >
               <Share2 size={18} />
             </button>
-          </div>
         </div>
 
         {/* Resumo Executivo e Indicadores Rápidos */}
