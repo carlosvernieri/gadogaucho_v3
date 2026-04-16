@@ -17,6 +17,8 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { Sidebar } from '@/components/Sidebar';
+import { ShareModal } from '@/components/ShareModal';
+import { NewsletterModal } from '@/components/NewsletterModal';
 
 export default function MercadoReportPage() {
   const router = useRouter();
@@ -24,6 +26,8 @@ export default function MercadoReportPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -101,9 +105,11 @@ export default function MercadoReportPage() {
               <Printer size={18} /> Imprimir PDF
             </button>
             <button 
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#2D5A27] text-white rounded-xl hover:bg-[#1E3D1A] transition-all font-bold text-sm shadow-lg shadow-[#2D5A27]/20"
+              onClick={() => setShowShareModal(true)}
+              className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
+              title="Compartilhar Relatório"
             >
-              <Share2 size={18} /> Compartilhar
+              <Share2 size={18} />
             </button>
           </div>
         </div>
@@ -339,7 +345,7 @@ export default function MercadoReportPage() {
                  <h3 className="font-bold">Receba este relatório por E-mail</h3>
                  <p className="text-xs text-white/60">Assine nosso informativo semanal e receba estas cotações toda segunda-feira.</p>
                  <button 
-                  onClick={() => router.push('/precodogado')}
+                  onClick={() => setShowNewsletterModal(true)}
                   className="w-full py-2.5 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-colors"
                  >
                    Assinar Newsletter
@@ -367,6 +373,19 @@ export default function MercadoReportPage() {
           />
         )}
       </div>
+
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        title="Boletim Semanal de Preços - Gado Gaúcho"
+        onCopySuccess={() => {}}
+      />
+
+      <NewsletterModal 
+        isOpen={showNewsletterModal} 
+        onClose={() => setShowNewsletterModal(false)} 
+      />
 
       <style jsx global>{`
         @media print {
