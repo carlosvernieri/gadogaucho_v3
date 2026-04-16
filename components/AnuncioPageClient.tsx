@@ -29,24 +29,22 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
   useEffect(() => {
     const fetchData = async () => {
       try {
-
-        const storedUser = localStorage.getItem('gado_gaucho_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          // Fetch favorites
-          const favRes = await fetch(`/api/favorites?userId=${parsedUser.id}`);
-          if (favRes.ok) {
-            const favData = await favRes.json();
-            setFavorites(favData);
-          }
-        }
+        // Os favoritos agora são gerenciados centralmente pelo UserContext
+        // Não precisamos mais carregar eles manualmente aqui via localStorage
       } catch (error: any) {
         console.error('Error fetching favorites:', error.message || error);
       }
     };
     fetchData();
   }, []);
+
+  // Sincronizar favoritos do contexto
+  const { favorites: userFavorites } = useUser();
+  useEffect(() => {
+    if (userFavorites) {
+      setFavorites(userFavorites);
+    }
+  }, [userFavorites]);
 
   const handleShare = (id: number) => {
     setShowShareModal(true);

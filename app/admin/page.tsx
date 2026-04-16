@@ -48,7 +48,7 @@ const formatPhone = (val: string) => {
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, setUser, logout } = useUser();
+  const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
   const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions'>('users');
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
@@ -272,28 +272,16 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user && data.user.is_admin) {
-            setUser(data.user);
-            await fetchData();
-          } else {
-            router.push('/');
-          }
-        } else {
-          router.push('/');
-        }
-      } catch (err) {
+    if (isAuthReady) {
+      if (!user || !user.is_admin) {
+        console.log('AdminPage: Acesso negado ou não autenticado. Redirecionando...');
         router.push('/');
-      } finally {
-        setLoading(false);
+      } else {
+        fetchData();
       }
-    };
-    checkAdmin();
-  }, []);
+      setLoading(false);
+    }
+  }, [user, isAuthReady, router]);
 
   const fetchData = async () => {
     try {

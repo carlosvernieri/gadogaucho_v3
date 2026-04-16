@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
-import bcrypt from 'bcryptjs';
-import { signToken, setSessionCookie } from '@/lib/auth';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
+
   try {
     const body = await request.json();
     const { name, email, password, city, phone } = body;
@@ -16,42 +15,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
 
-    // Check if user exists
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
+    // O Supabase Auth cuidará de verificar se o usuário existe e de hashear a senha.
+    // Enviamos os dados extras no 'options.data' para que o Trigger SQL os pegue.
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          city,
+          phone
+        }
+      }
+    });
 
-    if (existingUser) {
-      return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+    if (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!authData.user) {
+      return NextResponse.json({ error: 'Erro ao criar usuário' }, { status: 500 });
+    }
 
-    const { data: newUser, error } = await (supabaseAdmin
-      .from('users') as any)
-      .insert([
-        { name, email, password: hashedPassword, city, phone }
-      ])
-      .select()
-      .single();
+    // O usuário é retornado. Note que a sincronização com a tabela 'public.users' 
+    // acontecerá de forma assíncrona via Trigger no banco de dados.
+    return NextResponse.json({
+      id: authData.user.id,
+      email: authData.user.email,
+      name: authData.user.user_metadata.name
+    });
 
-    if (error) throw error;
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    
-    const finalUser = {
-      ...userWithoutPassword,
-      is_admin: !!userWithoutPassword.is_admin
-    };
-
-    const token = await signToken({ id: finalUser.id, email: finalUser.email, is_admin: finalUser.is_admin });
-    await setSessionCookie(token);
-
-    return NextResponse.json(finalUser);
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json({ error: 'Failed to register' }, { status: 500 });
   }
 }
+

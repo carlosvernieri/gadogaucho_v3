@@ -15,7 +15,7 @@ import { safeJsonStringify } from '@/lib/utils';
 
 export default function MensagensPage() {
   const router = useRouter();
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -51,21 +51,21 @@ export default function MensagensPage() {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('gado_gaucho_user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      fetchMessages(parsedUser.email);
-    } else {
-      router.push('/');
+    if (isAuthReady) {
+      if (!user) {
+        console.log('MensagensPage: Usuário não autenticado. Redirecionando...');
+        router.push('/');
+      } else {
+        fetchMessages(user.email);
+      }
     }
 
     // Fetch listings for sidebar
     fetch('/api/listings')
       .then(res => res.json())
-      .then(data => setListings(data))
+      .then(data => setListings(data || []))
       .catch(err => console.error('Error fetching listings:', err));
-  }, [router]);
+  }, [user, isAuthReady, router]);
 
   const fetchMessages = async (email: string) => {
     try {

@@ -15,48 +15,48 @@ import { safeJsonStringify } from '@/lib/utils';
 
 export default function FavoritosPage() {
   const router = useRouter();
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  const fetchData = async (userId: string) => {
+    try {
+      const [listingsRes, favRes] = await Promise.all([
+        fetch('/api/listings?limit=1000').catch(err => {
+          console.error('Listings fetch failed:', err);
+          return { ok: false, json: async () => [] } as Response;
+        }),
+        fetch(`/api/favorites?userId=${userId}`).catch(err => {
+          console.error('Favorites fetch failed:', err);
+          return { ok: false, json: async () => [] } as Response;
+        })
+      ]);
+
+      const listingsData = listingsRes.ok ? await listingsRes.json() : [];
+      setListings(Array.isArray(listingsData) ? listingsData : []);
+
+      const favData = favRes.ok ? await favRes.json() : [];
+      setFavorites(Array.isArray(favData) ? favData : []);
+    } catch (error) {
+      console.error('Error in fetchData:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const storedUser = localStorage.getItem('gado_gaucho_user');
-      if (!storedUser) {
+    if (isAuthReady) {
+      if (!user) {
+        console.log('FavoritosPage: Usuário não autenticado. Redirecionando...');
         router.push('/?auth=login');
-        return;
+      } else {
+        fetchData(user.id);
       }
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-
-      try {
-        const [listingsRes, favRes] = await Promise.all([
-          fetch('/api/listings?limit=1000').catch(err => {
-            console.error('Listings fetch failed:', err);
-            return { ok: false, json: async () => [] } as Response;
-          }),
-          fetch(`/api/favorites?userId=${parsedUser.id}`).catch(err => {
-            console.error('Favorites fetch failed:', err);
-            return { ok: false, json: async () => [] } as Response;
-          })
-        ]);
-
-        const listingsData = listingsRes.ok ? await listingsRes.json() : [];
-        setListings(Array.isArray(listingsData) ? listingsData : []);
-
-        const favData = favRes.ok ? await favRes.json() : [];
-        setFavorites(Array.isArray(favData) ? favData : []);
-      } catch (error) {
-        console.error('Error in fetchData:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [router]);
+    }
+  }, [user, isAuthReady, router]);
 
   const favoriteListings = listings.filter(l => favorites.map(Number).includes(Number(l.id)));
 
@@ -85,8 +85,7 @@ export default function FavoritosPage() {
           onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
-            setUser(null);
-            localStorage.removeItem('gado_gaucho_user');
+            logout();
             router.push('/');
           }}
           onHomeClick={() => router.push('/')}

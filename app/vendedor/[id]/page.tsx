@@ -61,18 +61,6 @@ export default function VendedorPage() {
         const allData = allRes.ok ? await allRes.json() : [];
         setAllListings(Array.isArray(allData) ? allData : []);
 
-        const storedUser = localStorage.getItem('gado_gaucho_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          // Fetch favorites
-          fetch(`/api/favorites?userId=${parsedUser.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
-            })
-            .catch(err => console.error('Error fetching favorites:', err));
-        }
       } catch (error) {
         console.error('Error in fetchData:', error);
       } finally {
@@ -81,6 +69,14 @@ export default function VendedorPage() {
     };
     fetchData();
   }, [sellerId]);
+
+  // Sincronizar favoritos do contexto se o usuário estiver logado
+  const { favorites: userFavorites } = useUser();
+  useEffect(() => {
+    if (userFavorites) {
+      setFavorites(userFavorites);
+    }
+  }, [userFavorites]);
 
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {

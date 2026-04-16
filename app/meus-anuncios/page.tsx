@@ -21,7 +21,7 @@ import imageCompression from 'browser-image-compression';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -72,12 +72,8 @@ export default function MeusAnunciosPage() {
   }, [citySearchAd, showAdSuggestions]);
 
 
-  const fetchData = async () => {
+  const fetchData = async (userId: string) => {
     try {
-      const storedUser = localStorage.getItem('gado_gaucho_user');
-      const userId = storedUser ? JSON.parse(storedUser).id : null;
-      if (!userId) return;
-
       const listingsRes = await fetch(`/api/listings?userId=${userId}&limit=1000`);
       if (listingsRes.ok) {
         const data = await listingsRes.json();
@@ -91,20 +87,17 @@ export default function MeusAnunciosPage() {
   };
 
   useEffect(() => {
-    const init = async () => {
-      const storedUser = localStorage.getItem('gado_gaucho_user');
-      if (!storedUser) {
+    if (isAuthReady) {
+      if (!user) {
+        console.log('MeusAnunciosPage: Usuário não autenticado. Redirecionando...');
         setAuthMode('login');
         setShowAuthModal(true);
         router.push('/');
-        return;
+      } else {
+        fetchData(user.id);
       }
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      await fetchData();
-    };
-    init();
-  }, [router]);
+    }
+  }, [user, isAuthReady, router]);
 
   const totalPrice = React.useMemo(() => {
     return adForm.weight * adForm.priceKg;
@@ -287,7 +280,7 @@ export default function MeusAnunciosPage() {
         }
         setShowAdModal(false);
         setEditingListingId(null);
-        await fetchData();
+        await fetchData(user.id);
         showToast(isNew ? 'Anúncio criado com sucesso!' : 'Anúncio atualizado com sucesso!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
@@ -318,7 +311,7 @@ export default function MeusAnunciosPage() {
           }
           const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' });
           if (res.ok) {
-            await fetchData();
+            await fetchData(user.id);
             showToast('Anúncio excluído com sucesso!', 'success');
           } else {
             showToast('Erro ao excluir anúncio.', 'error');
@@ -342,7 +335,7 @@ export default function MeusAnunciosPage() {
         body: safeJsonStringify({ sold: !currentStatus })
       });
       if (res.ok) {
-        await fetchData();
+        await fetchData(user.id);
         showToast(currentStatus ? 'Anúncio reativado com sucesso!' : 'Anúncio marcado como VENDIDO!', 'success');
       } else {
         showToast('Erro ao atualizar status do anúncio.', 'error');
@@ -364,7 +357,7 @@ export default function MeusAnunciosPage() {
         body: safeJsonStringify({ verification_requested: true })
       });
       if (res.ok) {
-        await fetchData();
+        await fetchData(user.id);
         showToast('Solicitação de verificação enviada!', 'success');
       } else {
         showToast('Erro ao solicitar verificação.', 'error');
@@ -407,8 +400,7 @@ export default function MeusAnunciosPage() {
           onAdClick={openNewAdModal}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
-            setUser(null);
-            localStorage.removeItem('gado_gaucho_user');
+            logout();
             router.push('/');
           }}
           onHomeClick={() => router.push('/')}

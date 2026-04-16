@@ -1,45 +1,31 @@
-import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import { createClientServer } from './supabase-server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_gado_gaucho_key_change_me_in_prod';
-const encodedSecret = new TextEncoder().encode(JWT_SECRET);
-
-export async function signToken(payload: any) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(encodedSecret);
-}
-
-export async function verifyToken(token: string) {
+/**
+ * Função de compatibilidade para manter as rotas de API funcionando
+ * sem precisar refatorar todos os arquivos individualmente.
+ */
+export async function getSession() {
   try {
-    const { payload } = await jwtVerify(token, encodedSecret);
-    return payload;
+    const supabase = await createClientServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return null;
+    
+    // Mapeia o formato do novo 'user' para o formato antigo do payload JWT
+    // que o restante do sistema espera.
+    return {
+      id: user.id,
+      email: user.email,
+      is_admin: user.user_metadata?.is_admin || false
+    };
   } catch (error) {
+    console.error('Error in bridge getSession:', error);
     return null;
   }
 }
 
-export async function setSessionCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set('auth_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-}
-
-export async function getSession() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value;
-  if (!token) return null;
-  return await verifyToken(token);
-}
-
-export async function clearSessionCookie() {
-  const cookieStore = await cookies();
-  cookieStore.delete('auth_token');
-}
+// Funções legadas que não são mais necessárias mas exportadas para evitar erros de importação
+export async function signToken() { return ''; }
+export async function verifyToken() { return null; }
+export async function setSessionCookie() {}
+export async function clearSessionCookie() {}

@@ -36,7 +36,7 @@ export async function DELETE(
 
     const { id } = await params;
     
-    if (session.id !== Number(id) && !session.is_admin) {
+    if (String(session.id) !== String(id) && !session.is_admin) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -64,7 +64,7 @@ export async function PUT(
 
     const { id } = await params;
 
-    if (session.id !== Number(id) && !session.is_admin) {
+    if (String(session.id) !== String(id) && !session.is_admin) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
