@@ -42,7 +42,7 @@ export const Header = ({
             <Menu size={22} className="sm:w-6 sm:h-6" />
           </button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={onHomeClick}>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#2D5A27] rounded-xl flex items-center justify-center text-white">
+            <div className="hidden sm:flex w-10 h-10 bg-[#2D5A27] rounded-xl items-center justify-center text-white">
               <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
             <span className="text-[22px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
