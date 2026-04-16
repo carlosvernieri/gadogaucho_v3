@@ -1,0 +1,68 @@
+{
+  "cepea": {
+    "price": 367.3,
+    "priceKg": "12.24",
+    "delta": 0.07,
+    "trend": "up",
+    "unit": "R$/@"
+  },
+  "scot": {
+    "pelotas": [
+      {
+        "category": "Boi Gordo",
+        "price": 11.7
+      },
+      {
+        "category": "Vaca Gorda",
+        "price": 10.85
+      },
+      {
+        "category": "Novilha",
+        "price": 11.25
+      }
+    ],
+    "oeste": [
+      {
+        "category": "Boi Gordo",
+        "price": 11.7
+      },
+      {
+        "category": "Vaca Gorda",
+        "price": 11.15
+      },
+      {
+        "category": "Novilha",
+        "price": 11.4
+      }
+    ]
+  },
+  "b3": [
+    {
+      "month": "Abril/2026",
+      "price": 362.55,
+      "priceKg": "12.09"
+    },
+    {
+      "month": "Maio/2026",
+      "price": 350.15,
+      "priceKg": "11.67"
+    },
+    {
+      "month": "Junho/2026",
+      "price": 340.65,
+      "priceKg": "11.35"
+    },
+    {
+      "month": "Julho/2026",
+      "price": 337.6,
+      "priceKg": "11.25"
+    },
+    {
+      "month": "Agosto/2026",
+      "price": 337.95,
+      "priceKg": "11.26"
+    }
+  ],
+  "timestamp": "2026-04-16T18:52:15.060Z",
+  "updatedAt": "2026-04-16T18:52:15.062Z"
+}

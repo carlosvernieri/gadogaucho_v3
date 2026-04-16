@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getMarketData } from '@/lib/market-scraper';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,11 @@ export async function GET() {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(today.getDate() - 14);
 
-    // 1. Scot Consultoria Reference Data (Mocked from research)
-    const scotData = {
+    // 0. Load Dynamic Data from Cache/Disk
+    const dynamicMarketData = await getMarketData();
+
+    // 1. Scot Consultoria Reference Data
+    const scotData = dynamicMarketData?.scot || {
       pelotas: [
         { category: 'Boi Gordo', price: 11.70 },
         { category: 'Vaca Gorda', price: 10.85 },
@@ -25,9 +29,9 @@ export async function GET() {
         { category: 'Novilha', price: 11.40 },
       ]
     };
-
-    // 2. B3 Futures Data (Mocked from research)
-    const b3Futures = [
+    
+    // 2. B3 Futures Data
+    const b3Futures = dynamicMarketData?.b3 || [
       { month: 'Abril/26', price: 363.00, priceKg: (363.00 / 30).toFixed(2) },
       { month: 'Maio/26', price: 351.60, priceKg: (351.60 / 30).toFixed(2) },
       { month: 'Junho/26', price: 341.40, priceKg: (341.40 / 30).toFixed(2) },
@@ -37,8 +41,8 @@ export async function GET() {
       { month: 'Outubro/26', price: 349.50, priceKg: (349.50 / 30).toFixed(2) },
     ];
 
-    // 3. Indicador CEPEA (Mocked from research)
-    const cepeaData = {
+    // 3. Indicador CEPEA
+    const cepeaData = dynamicMarketData?.cepea || {
       price: 367.05,
       priceKg: (367.05 / 30).toFixed(2),
       trend: 'up',

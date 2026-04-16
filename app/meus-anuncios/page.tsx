@@ -370,7 +370,7 @@ export default function MeusAnunciosPage() {
     }
   };
 
-  const myAds = listings.filter(l => Number(l.user_id) === Number(user?.id));
+  const myAds = listings.filter(l => String(l.user_id) === String(user?.id));
 
   const openNewAdModal = () => {
     setEditingListingId(null);
