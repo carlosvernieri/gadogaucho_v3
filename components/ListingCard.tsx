@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, Share2, MapPin, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Badge } from './Badge';
 import { Spinner } from './Spinner';
+import { getListingUrl } from '@/lib/utils';
 
 export const ListingCard = ({
   listing,
@@ -27,7 +28,7 @@ export const ListingCard = ({
 
   const handleCardClick = () => {
     setIsNavigating(true);
-    router.push(`/anuncio/${listing.id}`);
+    router.push(getListingUrl(listing));
   };
 
   const handleSellerClick = (e: React.MouseEvent) => {

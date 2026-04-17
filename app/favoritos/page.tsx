@@ -11,7 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Heart, LayoutGrid, Menu as MenuIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 
 export default function FavoritosPage() {
   const router = useRouter();
@@ -206,7 +206,7 @@ export default function FavoritosPage() {
                             listing={item} 
                             isOwner={false}
                             onRemoveFavorite={() => handleToggleFavorite(item.id)}
-                            onView={(id) => router.push(`/anuncio/${id}`)}
+                            onView={() => router.push(getListingUrl(item))}
                           />
                         </div>
                       </>
@@ -215,7 +215,7 @@ export default function FavoritosPage() {
                         listing={item} 
                         isOwner={false}
                         onRemoveFavorite={() => handleToggleFavorite(item.id)}
-                        onView={(id) => router.push(`/anuncio/${id}`)}
+                        onView={() => router.push(getListingUrl(item))}
                       />
                     )}
                   </motion.div>

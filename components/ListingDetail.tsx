@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   ChevronLeft, Heart, Share2, Video, CheckCircle,
-  MapPin, TrendingUp, Info, BarChart3
+  MapPin, TrendingUp, Info, BarChart3, User
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -155,7 +155,7 @@ export const ListingDetail = ({
 
           <div className="mb-6">
             <span className="text-[11px] font-bold text-[#999] uppercase">Preço por kg</span>
-            <div className="text-4xl font-bold text-[#2D5A27] mb-2">
+            <div className="text-3xl font-bold text-[#2D5A27] mb-2">
               R$ {listing.priceKg.toFixed(2)}/kg
             </div>
             <div className="grid grid-cols-3 gap-4 text-[12px] text-[#666]">
@@ -175,7 +175,7 @@ export const ListingDetail = ({
           </div>
 
           <h1 className="text-2xl font-bold text-[#333] mb-2 leading-tight">{listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()} em {listing.location.charAt(0).toUpperCase() + listing.location.slice(1).toLowerCase()}</h1>
-          <p className="text-sm text-[#666] leading-relaxed mb-6">
+          <p className="text-sm text-[#666] leading-relaxed mb-10">
             {listing.description}
           </p>
           {/* <div className="flex items-center gap-2 text-[12px] text-[#666] mb-8 pb-8 border-b border-[#F1F3F5]">
@@ -309,11 +309,11 @@ export const ListingDetail = ({
                           <td className="px-3 py-2 font-bold text-[#666]">{row.week}</td>
                           {row.plazas.map((pPrice: any, pIdx: number) => (
                             <td key={pIdx} className="px-3 py-2 font-medium text-[#333]">
-                              {pPrice.price ? `R$ ${pPrice.price.toFixed(2)}` : '-'}
+                              {pPrice.price ? `${pPrice.price.toFixed(2)}` : '-'}
                             </td>
                           ))}
                           <td className="px-3 py-2 font-bold text-[#2D5A27] bg-[#E9F0E8]/20">
-                            {row.platformPrice ? `R$ ${row.platformPrice.toFixed(2)}` : '-'}
+                            {row.platformPrice ? `${row.platformPrice.toFixed(2)}` : '-'}
                           </td>
                         </tr>
                       ))}
@@ -338,9 +338,9 @@ export const ListingDetail = ({
           <div className="bg-[#F8F9FA] rounded-2xl p-5 mb-8 flex items-center gap-4">
             <Link
               href={`/vendedor/${listing.user_id}`}
-              className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm hover:opacity-80 transition-opacity"
+              className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#2D5A27] border-2 border-[#E9F0E8] shadow-sm hover:opacity-80 transition-opacity"
             >
-              <Image src={`https://picsum.photos/seed/${listing.user_id}/100/100`} alt="" fill className="object-cover" referrerPolicy="no-referrer" />
+              <User size={24} />
             </Link>
             <div className="flex-1">
               <div className="flex items-center gap-2">

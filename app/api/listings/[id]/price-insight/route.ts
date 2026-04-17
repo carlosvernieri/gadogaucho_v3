@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    const listingCat = (listing as any).category;
+    const listingCat = (listing as any).category?.trim();
     const listingLat = (listing as any).lat;
     const listingLng = (listing as any).lng;
 
@@ -65,12 +65,12 @@ export async function GET(
       .select(`
         price_kg,
         auction_id,
-        auctions (
+        auctions!inner (
           auction_date,
           plaza_id
         )
       `)
-      .eq('category', listingCat)
+      .ilike('category', listingCat)
       .in('auctions.plaza_id', plazaIds)
       .gte('auctions.auction_date', sixtyDaysAgo.toISOString());
 
