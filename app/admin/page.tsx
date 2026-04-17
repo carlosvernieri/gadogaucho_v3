@@ -48,10 +48,12 @@ const formatPhone = (val: string) => {
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, setUser, logout } = useUser();
+  const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
   const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions'>('users');
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
+  const [isSyncingMarket, setIsSyncingMarket] = useState(false);
+  const [marketData, setMarketData] = useState<any>(null);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -271,29 +273,46 @@ export default function AdminPage() {
     });
   };
 
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user && data.user.is_admin) {
-            setUser(data.user);
-            await fetchData();
-          } else {
-            router.push('/');
-          }
-        } else {
-          router.push('/');
-        }
-      } catch (err) {
-        router.push('/');
-      } finally {
-        setLoading(false);
+  const handleSyncMarket = async () => {
+    setIsSyncingMarket(true);
+    try {
+      const res = await fetch('/api/admin/market-sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Indicadores sincronizados!');
+        setMarketData(data.data);
+      } else {
+        showToast(data.error || 'Erro na sincronização.', 'error');
       }
-    };
-    checkAdmin();
-  }, []);
+    } catch (error) {
+      showToast('Erro ao conectar com a API.', 'error');
+    } finally {
+      setIsSyncingMarket(false);
+    }
+  };
+
+  const fetchMarketStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/market-sync');
+      if (res.ok) {
+        const data = await res.json();
+        setMarketData(data);
+      }
+    } catch (e) { }
+  };
+
+  useEffect(() => {
+    if (isAuthReady) {
+      if (!user || !user.is_admin) {
+        console.log('AdminPage: Acesso negado ou não autenticado. Redirecionando...');
+        router.push('/');
+      } else {
+        fetchData();
+        fetchMarketStatus();
+      }
+      setLoading(false);
+    }
+  }, [user, isAuthReady, router]);
 
   const fetchData = async () => {
     try {
@@ -863,7 +882,7 @@ export default function AdminPage() {
                   <h3 className="text-lg font-bold text-[#333]">Sistema e Manutenção</h3>
                 </div>
                 
-                <div className="bg-[#F8F9FA] rounded-2xl p-6 border border-[#E9ECEF]">
+                <div className="bg-[#F8F9FA] rounded-2xl p-6 border border-[#E9ECEF] mb-6">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
                       <h4 className="font-bold text-[#333] text-lg mb-2">Limpeza de Storage</h4>
@@ -893,6 +912,73 @@ export default function AdminPage() {
                       )}
                     </button>
                   </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 border border-[#E9ECEF] shadow-sm">
+                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+                    <div>
+                      <h4 className="font-bold text-[#333] text-lg mb-1">Boletim Semanal de Preços</h4>
+                      <p className="text-sm text-[#666]">
+                        Sincronize indicadores do CEPEA, B3 e Scot Consultoria automaticamente.
+                      </p>
+                      {marketData?.timestamp && (
+                        <p className="text-[10px] text-[#2D5A27] font-bold mt-2 uppercase">
+                          Última Sincronização: {new Date(marketData.timestamp).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleSyncMarket}
+                      disabled={isSyncingMarket}
+                      className={`shrink-0 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 min-w-[200px] ${
+                        isSyncingMarket 
+                          ? 'bg-[#F1F3F5] text-[#999] cursor-not-allowed'
+                          : 'bg-[#2D5A27] text-white hover:bg-[#23461E] shadow-lg shadow-[#2D5A27]/20 cursor-pointer'
+                      }`}
+                    >
+                      {isSyncingMarket ? (
+                        <>
+                          <Spinner size="sm" className="border-gray-300 border-t-gray-500" />
+                          Sincronizando...
+                        </>
+                      ) : (
+                        <>
+                          <LayoutGrid size={18} />
+                          Sincronizar Agora
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {marketData && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                         <span className="text-[10px] font-bold text-[#999] uppercase">CEPEA (Boi Gordo)</span>
+                         <div className="text-xl font-bold text-[#333] mt-1">
+                           R$ {marketData.cepea?.price?.toFixed(2) || '---'}
+                         </div>
+                         <div className={`text-[11px] font-bold mt-1 ${marketData.cepea?.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                           {marketData.cepea?.delta > 0 ? '+' : ''}{marketData.cepea?.delta}% {marketData.cepea?.trend === 'up' ? '↑' : '↓'}
+                         </div>
+                      </div>
+                      
+                      <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                         <span className="text-[10px] font-bold text-[#999] uppercase">Scot (Pelotas)</span>
+                         <div className="text-xl font-bold text-[#333] mt-1">
+                           R$ {marketData.scot?.pelotas?.[0]?.price?.toFixed(2) || '---'}
+                         </div>
+                         <span className="text-[10px] text-[#666]">R$/kg vivo</span>
+                      </div>
+
+                      <div className="p-4 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                         <span className="text-[10px] font-bold text-[#999] uppercase">B3 Futuro (Próximo)</span>
+                         <div className="text-xl font-bold text-[#333] mt-1">
+                           R$ {marketData.b3?.[0]?.price?.toFixed(2) || '---'}
+                         </div>
+                         <span className="text-[10px] text-[#666]">{marketData.b3?.[0]?.month || '---'}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

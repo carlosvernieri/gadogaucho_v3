@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getMarketData } from '@/lib/market-scraper';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,11 @@ export async function GET() {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(today.getDate() - 14);
 
-    // 1. Scot Consultoria Reference Data (Mocked from research)
-    const scotData = {
+    // 0. Load Dynamic Data from Cache/Disk
+    const dynamicMarketData = await getMarketData();
+
+    // 1. Scot Consultoria Reference Data
+    const scotData = dynamicMarketData?.scot || {
       pelotas: [
         { category: 'Boi Gordo', price: 11.70 },
         { category: 'Vaca Gorda', price: 10.85 },
@@ -25,9 +29,9 @@ export async function GET() {
         { category: 'Novilha', price: 11.40 },
       ]
     };
-
-    // 2. B3 Futures Data (Mocked from research)
-    const b3Futures = [
+    
+    // 2. B3 Futures Data
+    const b3Futures = dynamicMarketData?.b3 || [
       { month: 'Abril/26', price: 363.00, priceKg: (363.00 / 30).toFixed(2) },
       { month: 'Maio/26', price: 351.60, priceKg: (351.60 / 30).toFixed(2) },
       { month: 'Junho/26', price: 341.40, priceKg: (341.40 / 30).toFixed(2) },
@@ -36,6 +40,14 @@ export async function GET() {
       { month: 'Setembro/26', price: 341.50, priceKg: (341.50 / 30).toFixed(2) },
       { month: 'Outubro/26', price: 349.50, priceKg: (349.50 / 30).toFixed(2) },
     ];
+
+    // 3. Indicador CEPEA
+    const cepeaData = dynamicMarketData?.cepea || {
+      price: 367.05,
+      priceKg: (367.05 / 30).toFixed(2),
+      trend: 'up',
+      delta: 0.23
+    };
 
     const categories = ['Vaca', 'Novilha', 'Boi Gordo', 'Terneiro', 'Terneira'];
 
@@ -51,15 +63,29 @@ export async function GET() {
       .gte('auctions.auction_date', fourteenDaysAgo.toISOString())
       .lt('auctions.auction_date', sevenDaysAgo.toISOString());
 
-    // 4. Aggregate Platform Data (Last 7 days)
+    // 4. Aggregate Platform Data (Last 30 days to have more significance)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
     const { data: platformOffers } = await (supabaseAdmin
       .from('listings') as any)
       .select('price_kg, category, created_at')
-      .gte('created_at', sevenDaysAgo.toISOString());
+      .gte('created_at', thirtyDaysAgo.toISOString());
 
     // Helper to calculate average
     const calcAvg = (data: any[], cat: string) => {
-      const filtered = data?.filter(item => item.category === cat) || [];
+      // Map common market names to database categories
+      const categoryMap: Record<string, string[]> = {
+        'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo'],
+        'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte'],
+        'Novilha': ['Novilha'],
+        'Terneiro': ['Terneiro'],
+        'Terneira': ['Terneira']
+      };
+
+      const targetCategories = categoryMap[cat] || [cat];
+      const filtered = data?.filter(item => targetCategories.includes(item.category)) || [];
+      
       if (filtered.length === 0) return 0;
       return filtered.reduce((acc, curr) => acc + curr.price_kg, 0) / filtered.length;
     };
@@ -85,6 +111,7 @@ export async function GET() {
     return NextResponse.json({
       reportDate: today.toISOString(),
       scotData,
+      cepeaData,
       b3Futures,
       categoryStats
     });

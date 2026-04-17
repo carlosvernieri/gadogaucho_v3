@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, Info, 
   BarChart3, Globe, MapPin, Printer, 
   ChevronRight, Calendar, ArrowRightLeft,
-  Loader2, Share2, Mail, LayoutGrid
+  Share2, Mail
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -17,6 +17,9 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { Sidebar } from '@/components/Sidebar';
+import { ShareModal } from '@/components/ShareModal';
+import { NewsletterModal } from '@/components/NewsletterModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function MercadoReportPage() {
   const router = useRouter();
@@ -24,6 +27,8 @@ export default function MercadoReportPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -41,20 +46,9 @@ export default function MercadoReportPage() {
     fetchReport();
   }, []);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <div className="w-16 h-16 bg-[#2D5A27]/10 rounded-2xl flex items-center justify-center mb-4 animate-pulse">
-           <LayoutGrid className="text-[#2D5A27]" size={32} />
-        </div>
-        <Loader2 className="animate-spin text-[#2D5A27] mb-2" size={24} />
-        <p className="text-[#666] font-medium animate-pulse">Consolidando dados do mercado...</p>
-      </div>
-    );
+    return <LoadingScreen message="Consolidando dados do mercado..." />;
   }
 
   return (
@@ -93,45 +87,87 @@ export default function MercadoReportPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 print:hidden">
             <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#E9ECEF] text-[#333] rounded-xl hover:bg-[#F8F9FA] transition-all font-bold text-sm shadow-sm"
+              onClick={() => setShowShareModal(true)}
+              className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
+              title="Compartilhar Relatório"
             >
-              <Printer size={18} /> Imprimir PDF
+              <Share2 size={18} />
             </button>
-            <button 
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#2D5A27] text-white rounded-xl hover:bg-[#1E3D1A] transition-all font-bold text-sm shadow-lg shadow-[#2D5A27]/20"
-            >
-              <Share2 size={18} /> Compartilhar
-            </button>
-          </div>
         </div>
 
-        {/* Resumo Executivo */}
+        {/* Resumo Executivo e Indicadores Rápidos */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="md:col-span-2 bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#2D5A27]/5 rounded-bl-full -mr-8 -mt-8" />
             <h2 className="text-xl font-bold text-[#333] mb-4 flex items-center gap-2">
               <Info className="text-[#2D5A27]" size={22} /> Resumo do Comportamento
             </h2>
-            <p className="text-[#666] leading-relaxed relative z-10">
-              O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais, indicando uma janela de oportunidade para compradores de reposição nas categorias de <strong>Terneiro</strong> e <strong>Terneira</strong>.
+            <p className="text-[#666] leading-relaxed relative z-10 text-sm">
+              O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais.
             </p>
           </div>
           
-          <div className="bg-[#2D5A27] rounded-3xl p-8 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
+          <div className="bg-[#2D5A27] rounded-3xl p-6 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
             <div>
-              <TrendingUp size={32} className="mb-4 text-[#87C036]" />
-              <h3 className="text-lg font-bold mb-1">Destaque da Semana</h3>
-              <p className="text-sm text-white/80 leading-snug">
-                Novilha RS Oeste registrou a maior valorização entre as praças Scot Consultoria, com média de R$ 11,40/kg.
+              <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
+              <p className="text-xs text-white leading-snug font-medium">
+                Novilha RS Oeste registrou a maior valorização, com média de R$ 11,40/kg.
               </p>
             </div>
-            <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between">
-              <span className="text-2xl font-bold">+2.2%</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-white/60">Variação Novilha</span>
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="text-xl font-black">+2.2%</span>
+              <TrendingUp size={18} className="text-[#87C036]" />
             </div>
+          </div>
+        </div>
+
+        {/* Comparativo Principal */}
+        <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm mb-8">
+          <div className="p-6 border-b border-[#E9ECEF] bg-[#FDFDFD] flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#333] flex items-center gap-2">
+              <ArrowRightLeft className="text-[#2D5A27]" size={20} /> Comparativo de Mercado Gaúcho
+            </h2>
+            <div className="px-3 py-1 bg-[#2D5A27]/5 text-[#2D5A27] rounded-lg text-[10px] font-bold uppercase tracking-wider border border-[#2D5A27]/10">
+              Dados Consolidados
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#F8F9FA] text-[10px] uppercase tracking-widest text-[#999] font-bold border-b border-[#E9ECEF]">
+                  <th className="px-6 py-4">Categoria Animal</th>
+                  <th className="px-6 py-4 text-center">Média Leilões (Atacado)</th>
+                  <th className="px-6 py-4 text-center">Média Gado Gaúcho (Oferta)</th>
+                  <th className="px-6 py-4 text-center">Variação Semanal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData?.categoryStats?.map((stat: any) => (
+                  <tr key={stat.category} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-[#333]">{stat.category}</td>
+                    <td className="px-6 py-4 text-center text-[#666] font-medium">
+                       {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)}` : 'S/ DADOS'}
+                    </td>
+                    <td className="px-6 py-4 text-center font-bold text-[#2D5A27]">
+                       {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)}` : 'S/ DADOS'}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 
+                        stat.trend === 'down' ? 'bg-red-50 text-red-600' : 
+                        'bg-gray-50 text-gray-500'
+                      }`}>
+                        {stat.trend === 'up' ? <TrendingUp size={12} /> : 
+                         stat.trend === 'down' ? <TrendingDown size={12} /> : 
+                         <Minus size={12} />}
+                        {stat.delta === 0 ? 'ESTÁVEL' : `${stat.delta > 0 ? '+' : ''}${stat.delta}%`}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -191,52 +227,34 @@ export default function MercadoReportPage() {
           </div>
         </div>
 
-        {/* Comparativo Principal */}
-        <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm mb-8">
-          <div className="p-6 border-b border-[#E9ECEF] bg-[#FDFDFD] flex items-center justify-between">
-            <h2 className="text-lg font-bold text-[#333] flex items-center gap-2">
-              <ArrowRightLeft className="text-[#2D5A27]" size={20} /> Comparativo de Mercado Gaúcho
-            </h2>
-            <div className="px-3 py-1 bg-[#2D5A27]/5 text-[#2D5A27] rounded-lg text-[10px] font-bold uppercase tracking-wider border border-[#2D5A27]/10">
-              Dados Consolidados
+        {/* Indicador CEPEA - Agora abaixo da Scot */}
+        <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+               <Globe size={24} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest">Indicador CEPEA</span>
+                <div className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold">
+                  SP/B3
+                </div>
+              </div>
+              <h3 className="text-xl font-black text-[#333]">R$ {reportData?.cepeaData?.price.toFixed(2)}</h3>
+              <p className="text-xs text-[#2D5A27] font-bold">Eq. R$ {reportData?.cepeaData?.priceKg}/kg</p>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#F8F9FA] text-[10px] uppercase tracking-widest text-[#999] font-bold border-b border-[#E9ECEF]">
-                  <th className="px-6 py-4">Categoria Animal</th>
-                  <th className="px-6 py-4 text-center">Média Leilões (Atacado)</th>
-                  <th className="px-6 py-4 text-center">Média Gado Gaúcho (Oferta)</th>
-                  <th className="px-6 py-4 text-center">Variação Semanal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData?.categoryStats?.map((stat: any) => (
-                  <tr key={stat.category} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-[#333]">{stat.category}</td>
-                    <td className="px-6 py-4 text-center text-[#666] font-medium">
-                       {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)}` : 'S/ DADOS'}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-[#2D5A27]">
-                       {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)}` : 'S/ DADOS'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                        stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 
-                        stat.trend === 'down' ? 'bg-red-50 text-red-600' : 
-                        'bg-gray-50 text-gray-500'
-                      }`}>
-                        {stat.trend === 'up' ? <TrendingUp size={12} /> : 
-                         stat.trend === 'down' ? <TrendingDown size={12} /> : 
-                         <Minus size={12} />}
-                        {stat.delta === 0 ? 'ESTÁVEL' : `${stat.delta > 0 ? '+' : ''}${stat.delta}%`}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <div className="text-[11px] font-bold text-[#999] uppercase mb-1">Variação Semanal</div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-black">
+                <TrendingUp size={16} /> +{reportData?.cepeaData?.delta}%
+              </div>
+            </div>
+            <div className="h-10 w-px bg-[#E9ECEF] hidden md:block" />
+            <div className="text-[11px] text-[#666] max-w-[200px] leading-tight">
+              Referência nacional do Boi Gordo para contratos na B3.
+            </div>
           </div>
         </div>
 
@@ -324,7 +342,7 @@ export default function MercadoReportPage() {
                  <h3 className="font-bold">Receba este relatório por E-mail</h3>
                  <p className="text-xs text-white/60">Assine nosso informativo semanal e receba estas cotações toda segunda-feira.</p>
                  <button 
-                  onClick={() => router.push('/precodogado')}
+                  onClick={() => setShowNewsletterModal(true)}
                   className="w-full py-2.5 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-colors"
                  >
                    Assinar Newsletter
@@ -352,6 +370,19 @@ export default function MercadoReportPage() {
           />
         )}
       </div>
+
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        title="Boletim Semanal de Preços - Gado Gaúcho"
+        onCopySuccess={() => {}}
+      />
+
+      <NewsletterModal 
+        isOpen={showNewsletterModal} 
+        onClose={() => setShowNewsletterModal(false)} 
+      />
 
       <style jsx global>{`
         @media print {

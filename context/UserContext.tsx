@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { safeJsonStringify } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface UserContextType {
   user: any;
@@ -25,62 +25,85 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [favorites, setFavorites] = useState<number[]>([]);
 
+  // Buscar perfil completo na tabela pública
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      console.log('UserContext: Buscando perfil para ID:', userId);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('UserContext: Erro ao buscar perfil (Pode ser RLS):', error.message);
+        setIsAuthReady(true);
+        return;
+      }
+
+      if (data) {
+        console.log('UserContext: Perfil carregado com sucesso para:', data.email);
+        setUserState(data);
+        fetchFavorites(userId);
+      }
+    } catch (err) {
+      console.error('UserContext: Exceção ao buscar perfil:', err);
+    } finally {
+      setIsAuthReady(true);
+    }
+  };
+
+  const fetchFavorites = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('favorites')
+        .select('listing_id')
+        .eq('user_id', userId);
+      
+      if (data) {
+        setFavorites(data.map((f: any) => f.listing_id));
+      }
+    } catch (err) {
+      console.error('UserContext: Erro ao buscar favoritos:', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            setUserState(data.user);
-            localStorage.setItem('gado_gaucho_user', safeJsonStringify(data.user));
-            
-            fetch(`/api/favorites`)
-              .then(res => res.json())
-              .then(favData => {
-                if (Array.isArray(favData)) setFavorites(favData);
-              })
-              .catch(err => console.error('Error fetching favorites:', err));
-          } else {
-            setUserState(null);
-            localStorage.removeItem('gado_gaucho_user');
-          }
-        } else {
-          setUserState(null);
-          localStorage.removeItem('gado_gaucho_user');
-        }
-      } catch (err) {
-        console.error('Session fetch failed', err);
-        const stored = localStorage.getItem('gado_gaucho_user');
-        if (stored) {
-          setUserState(JSON.parse(stored));
-        }
-      } finally {
+    console.log('UserContext: Inicializando monitor de autenticação...');
+    
+    // 1. Verificar sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        console.log('UserContext: Sessão inicial encontrada:', session.user.email);
+        fetchUserProfile(session.user.id);
+      } else {
+        console.log('UserContext: Nenhuma sessão inicial encontrada.');
         setIsAuthReady(true);
       }
-    };
-    fetchSession();
+    });
+
+    // 2. Ouvir mudanças de estado (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('UserContext: Evento de Auth detetado:', event);
+      if (event === 'SIGNED_IN' && session?.user) {
+        fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUserState(null);
+        setFavorites([]);
+        setIsAuthReady(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const setUser = (newUser: any) => {
     setUserState(newUser);
-    if (newUser) {
-      localStorage.setItem('gado_gaucho_user', safeJsonStringify(newUser));
-    } else {
-      localStorage.removeItem('gado_gaucho_user');
-      setFavorites([]);
-    }
+    if (!newUser) setFavorites([]);
   };
 
   const logout = async () => {
-    setUserState(null);
-    localStorage.removeItem('gado_gaucho_user');
-    setFavorites([]);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch(e) {
-      console.error(e);
-    }
+    await supabase.auth.signOut();
   };
 
   return (
@@ -102,3 +125,4 @@ export const useUser = () => {
   }
   return context;
 };
+

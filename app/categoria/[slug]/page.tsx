@@ -36,19 +36,6 @@ export default function CategoriaPage() {
         
         const data = res.ok ? await res.json() : [];
         setListings(Array.isArray(data) && data.length > 0 ? data : []);
-
-        const storedUser = localStorage.getItem('gado_gaucho_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          // Fetch favorites
-          fetch(`/api/favorites?userId=${parsedUser.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
-            })
-            .catch(err => console.error('Error fetching favorites:', err));
-        }
       } catch (error) {
         console.error('Error in fetchData:', error);
       } finally {
@@ -57,6 +44,14 @@ export default function CategoriaPage() {
     };
     fetchData();
   }, []);
+
+  // Sincronizar favoritos do contexto
+  const { favorites: userFavorites } = useUser();
+  useEffect(() => {
+    if (userFavorites) {
+      setFavorites(userFavorites);
+    }
+  }, [userFavorites]);
 
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
@@ -108,8 +103,7 @@ export default function CategoriaPage() {
           onAdClick={() => router.push('/?ad=new')}
           onAdminClick={() => router.push('/')}
           onLogout={() => {
-            setUser(null);
-            localStorage.removeItem('gado_gaucho_user');
+            logout();
             router.push('/');
           }}
           onHomeClick={() => router.push('/')}

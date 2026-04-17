@@ -12,87 +12,11 @@ import { RS_CITIES } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { ShareModal } from '@/components/ShareModal';
 import { Sidebar } from '@/components/Sidebar';
+import { NewsletterModal } from '@/components/NewsletterModal';
 
-const formatPhone = (val: string) => {
-  const digits = val.replace(/\D/g, '').slice(0, 11);
-  if (digits.length === 0) return '';
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-};
+// formatPhone removido (movido para NewsletterModal)
 
-const mockPraças = [
-  {
-    cidade: 'Glorinha (Sta Ursula)',
-    vaca: 9.20,
-    novilha: 9.80,
-    terneira: 12.50,
-    terneiro: 13.80,
-    tendencia: 'up',
-    history: [
-      { name: 'Semana 1', vaca: 8.80, novilha: 9.40, terneira: 12.00, terneiro: 13.50 },
-      { name: 'Semana 2', vaca: 8.90, novilha: 9.50, terneira: 12.10, terneiro: 13.60 },
-      { name: 'Semana 3', vaca: 9.10, novilha: 9.70, terneira: 12.30, terneiro: 13.75 },
-      { name: 'Atual', vaca: 9.20, novilha: 9.80, terneira: 12.50, terneiro: 13.80 }
-    ]
-  },
-  {
-    cidade: 'Mostardas',
-    vaca: 8.90,
-    novilha: 9.50,
-    terneira: 12.20,
-    terneiro: 13.50,
-    tendencia: 'stable',
-    history: [
-      { name: 'Semana 1', vaca: 8.90, novilha: 9.40, terneira: 12.20, terneiro: 13.40 },
-      { name: 'Semana 2', vaca: 8.85, novilha: 9.45, terneira: 12.10, terneiro: 13.45 },
-      { name: 'Semana 3', vaca: 8.80, novilha: 9.50, terneira: 12.15, terneiro: 13.50 },
-      { name: 'Atual', vaca: 8.90, novilha: 9.50, terneira: 12.20, terneiro: 13.50 }
-    ]
-  },
-  {
-    cidade: 'Butiá',
-    vaca: 8.80,
-    novilha: 9.40,
-    terneira: 11.90,
-    terneiro: 13.20,
-    tendencia: 'down',
-    history: [
-      { name: 'Semana 1', vaca: 9.20, novilha: 9.70, terneira: 12.40, terneiro: 13.70 },
-      { name: 'Semana 2', vaca: 9.10, novilha: 9.60, terneira: 12.20, terneiro: 13.50 },
-      { name: 'Semana 3', vaca: 8.90, novilha: 9.50, terneira: 12.00, terneiro: 13.30 },
-      { name: 'Atual', vaca: 8.80, novilha: 9.40, terneira: 11.90, terneiro: 13.20 }
-    ]
-  },
-  {
-    cidade: 'Guaíba',
-    vaca: 9.10,
-    novilha: 9.70,
-    terneira: 12.40,
-    terneiro: 13.70,
-    tendencia: 'up',
-    history: [
-      { name: 'Semana 1', vaca: 8.60, novilha: 9.20, terneira: 11.80, terneiro: 13.20 },
-      { name: 'Semana 2', vaca: 8.80, novilha: 9.40, terneira: 12.00, terneiro: 13.40 },
-      { name: 'Semana 3', vaca: 9.00, novilha: 9.60, terneira: 12.20, terneiro: 13.60 },
-      { name: 'Atual', vaca: 9.10, novilha: 9.70, terneira: 12.40, terneiro: 13.70 }
-    ]
-  },
-  {
-    cidade: 'São Sepé',
-    vaca: 8.70,
-    novilha: 9.30,
-    terneira: 11.80,
-    terneiro: 13.10,
-    tendencia: 'stable',
-    history: [
-      { name: 'Semana 1', vaca: 8.70, novilha: 9.30, terneira: 11.80, terneiro: 13.10 },
-      { name: 'Semana 2', vaca: 8.60, novilha: 9.20, terneira: 11.75, terneiro: 13.00 },
-      { name: 'Semana 3', vaca: 8.80, novilha: 9.40, terneira: 11.90, terneiro: 13.20 },
-      { name: 'Atual', vaca: 8.70, novilha: 9.30, terneira: 11.80, terneiro: 13.10 }
-    ]
-  }
-];
+// mockPraças removido para uso de dados reais via API
 
 export default function PrecoDoGadoPage() {
   const router = useRouter();
@@ -101,36 +25,36 @@ export default function PrecoDoGadoPage() {
 
   // States for Newsletter Modal
   const [showNewsletterModal, setShowNewsletterModal] = useState(false);
-  const [newsletterLoading, setNewsletterLoading] = useState(false);
-  const [newsletterSuccess, setNewsletterSuccess] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', city: '' });
 
   // State for Share Modal
   const [showShareModal, setShowShareModal] = useState(false);
   
+  // State for Market Data
+  const [praças, setPraças] = useState<any[]>([]);
+  const [loadingPraças, setLoadingPraças] = useState(true);
+
   // State for Global Navigation Sidebar
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // States for City Autocomplete inside Modal
-  const [citySearch, setCitySearch] = useState('');
-  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
-
-  // States for Math Captcha
-  const [captchaParams, setCaptchaParams] = useState({ n1: 0, n2: 0 });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
-
   useEffect(() => {
-    if (showNewsletterModal && !newsletterSuccess) {
-      setCaptchaParams({ n1: Math.floor(Math.random() * 9) + 1, n2: Math.floor(Math.random() * 9) + 1 });
-      setCaptchaAnswer('');
-    }
-  }, [showNewsletterModal, newsletterSuccess]);
+    const fetchQuotes = async () => {
+      try {
+        setLoadingPraças(true);
+        const res = await fetch('/api/market-quotes');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setPraças(data);
+        }
+      } catch (err) {
+        console.error('Error fetching market quotes:', err);
+      } finally {
+        setLoadingPraças(false);
+      }
+    };
+    fetchQuotes();
+  }, []);
 
-  const citySuggestions = useMemo(() => {
-    if (!showCitySuggestions) return [];
-    if (citySearch.length < 3) return [];
-    return RS_CITIES.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()));
-  }, [citySearch, showCitySuggestions]);
+  // Newsletter logic removed (moved to NewsletterModal)
 
   const toggleCity = (cidade: string) => {
     if (expandedCity === cidade) {
@@ -231,9 +155,10 @@ export default function PrecoDoGadoPage() {
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-4 py-2 bg-white border border-[#E9ECEF] text-[#666] rounded-xl hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all flex items-center gap-2 text-sm font-bold shadow-sm"
+            className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
+            title="Compartilhar"
           >
-            <Share2 size={18} /> Compartilhar
+            <Share2 size={18} />
           </button>
         </div>
 
@@ -242,7 +167,7 @@ export default function PrecoDoGadoPage() {
 
           <div className="p-6 border-b border-[#E9ECEF] flex flex-col md:flex-row md:items-center justify-between bg-[#FDFDFD] gap-2">
             <h2 className="text-xl font-bold text-[#2D5A27] flex items-center gap-2">
-              Tabela de Preços (Mock)
+              Tabela de Preços (RS)
             </h2>
             <div className="text-sm font-medium text-[#999] flex items-center gap-1">
               <Info size={16} /> Última atualização: Hoje
@@ -264,11 +189,26 @@ export default function PrecoDoGadoPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockPraças.map((praca, idx) => (
+                {loadingPraças ? (
+                   <tr>
+                     <td colSpan={7} className="p-8 text-center">
+                       <div className="flex flex-col items-center gap-2">
+                         <Loader2 size={24} className="animate-spin text-[#2D5A27]" />
+                         <span className="text-sm text-[#999]">Carregando cotações reais...</span>
+                       </div>
+                     </td>
+                   </tr>
+                ) : praças.length === 0 ? (
+                  <tr>
+                     <td colSpan={7} className="p-8 text-center text-[#999] text-sm italic">
+                       Nenhuma cotação disponível no momento.
+                     </td>
+                  </tr>
+                ) : praças.map((praca, idx) => (
                   <React.Fragment key={praca.cidade}>
                     <tr
                       onClick={() => toggleCity(praca.cidade)}
-                      className={`border-b border-[#E9ECEF] hover:bg-[#F8F9FA] transition-colors cursor-pointer ${idx === mockPraças.length - 1 && expandedCity !== praca.cidade ? 'border-b-0' : ''}`}
+                      className={`border-b border-[#E9ECEF] hover:bg-[#F8F9FA] transition-colors cursor-pointer ${idx === praças.length - 1 && expandedCity !== praca.cidade ? 'border-b-0' : ''}`}
                     >
                       <td className="p-4 font-bold text-[#333] whitespace-nowrap">
                         {praca.cidade}
@@ -315,8 +255,8 @@ export default function PrecoDoGadoPage() {
 
           {/* Versão Mobile (Cards Responsivos com Accordion) */}
           <div className="md:hidden flex flex-col">
-            {mockPraças.map((praca, idx) => (
-              <div key={praca.cidade} className={`flex flex-col ${idx !== mockPraças.length - 1 ? 'border-b border-[#E9ECEF]' : ''}`}>
+            {praças.map((praca, idx) => (
+              <div key={praca.cidade} className={`flex flex-col ${idx !== praças.length - 1 ? 'border-b border-[#E9ECEF]' : ''}`}>
 
                 {/* Cabeçalho do Card (Clicável) */}
                 <div
@@ -368,197 +308,16 @@ export default function PrecoDoGadoPage() {
 
         </div>
 
-        {/* Helper Note */}
-        <div className="mt-4 p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-start gap-3">
-          <Info size={20} className="text-orange-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-orange-800 leading-relaxed">
-            <strong>Disclaimer:</strong> Os valores presentes nesta tela atualmente são fictícios (Mock) servindo apenas para demonstração do layout sob aprovação.
-            Futuramente serão substituídos pelos dados reais das praças locais.
-          </p>
-        </div>
+        {/* Helper Note removed as data is now real */}
 
       </main>
       </div>
 
-      {/* Newsletter Modal */}
-      <AnimatePresence>
-        {showNewsletterModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => setShowNewsletterModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
-            >
-              <div className="p-4 border-b border-[#E9ECEF] flex items-center justify-between sticky top-0 bg-white z-20">
-                <h3 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
-                  <Mail className="text-[#2D5A27]" size={20} /> Assinar Boletim Diário
-                </h3>
-                <button
-                  onClick={() => setShowNewsletterModal(false)}
-                  className="p-2 text-[#999] hover:text-[#333] hover:bg-[#F8F9FA] rounded-full transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-6 overflow-y-auto">
-                {newsletterSuccess ? (
-                  <div className="py-8 flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                      <CheckCircle2 size={32} className="text-emerald-600" />
-                    </div>
-                    <h4 className="text-xl font-bold text-[#333] mb-2">Inscrição Concluída!</h4>
-                    <p className="text-[#666]">Você começará a receber nossos alertas de mercado na sua caixa de entrada e telefone diariamente.</p>
-                  </div>
-                ) : (
-                  <form className="flex flex-col gap-4" onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (parseInt(captchaAnswer) !== (captchaParams.n1 + captchaParams.n2)) {
-                      alert('Resposta matemática incorreta. Tente novamente para confirmar que é humano.');
-                      return;
-                    }
-                    if (!formData.name || !formData.phone || !formData.email || !formData.city) {
-                      alert('Por favor, preencha todos os campos.');
-                      return;
-                    }
-
-                    setNewsletterLoading(true);
-                    try {
-                      const { error } = await (supabase as any).from('newsletter').insert([{
-                        name: formData.name,
-                        phone: formData.phone,
-                        email: formData.email,
-                        city: formData.city
-                      }]);
-                      if (error) throw error;
-                      setNewsletterSuccess(true);
-                    } catch (err) {
-                      console.error('Error inserting newsletter:', err);
-                      alert('Ocorreu um erro ao assinar. Tente novamente.');
-                    } finally {
-                      setNewsletterLoading(false);
-                    }
-                  }}>
-
-                    <p className="text-sm text-[#666] mb-2 leading-relaxed">
-                      Assine grátis para receber variações de preço do gado gordo direto das principais praças da região sul.
-                    </p>
-
-                    <div>
-                      <label className="block text-xs font-bold text-[#666] mb-1">Seu Nome Completo</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:border-[#2D5A27] outline-none"
-                        placeholder="Ex: João da Silva"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-[#666] mb-1">Seu WhatsApp</label>
-                      <input
-                        type="tel"
-                        required
-                        value={formData.phone}
-                        onChange={e => {
-                          const val = formatPhone(e.target.value);
-                          setFormData({ ...formData, phone: val });
-                        }}
-                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:border-[#2D5A27] outline-none"
-                        placeholder="(51) 99999-9999"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-[#666] mb-1">Endereço de E-mail</label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:border-[#2D5A27] outline-none"
-                        placeholder="contato@fazenda.com.br"
-                      />
-                    </div>
-
-                    <div className="relative">
-                      <label className="block text-xs font-bold text-[#666] mb-1">Seu Município Principal (RS)</label>
-                      <div className="relative">
-                        <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" />
-                        <input
-                          type="text"
-                          required
-                          value={citySearch}
-                          onChange={(e) => {
-                            setCitySearch(e.target.value);
-                            setShowCitySuggestions(true);
-                            setFormData(prev => ({ ...prev, city: e.target.value }));
-                          }}
-                          onFocus={() => setShowCitySuggestions(true)}
-                          placeholder="Digite sua cidade"
-                          className="w-full pl-10 pr-4 py-3 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:border-[#2D5A27] outline-none"
-                        />
-                      </div>
-
-                      {/* Autocomplete Dropdown */}
-                      {showCitySuggestions && citySuggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E9ECEF] rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                          {citySuggestions.map((city) => (
-                            <div
-                              key={city.name}
-                              className="px-4 py-3 hover:bg-[#F8F9FA] cursor-pointer text-sm border-b border-[#F8F9FA] last:border-b-0"
-                              onClick={() => {
-                                setCitySearch(city.name);
-                                setFormData(prev => ({ ...prev, city: city.name }));
-                                setShowCitySuggestions(false);
-                              }}
-                            >
-                              <span className="font-bold text-[#333]">{city.name}</span>
-                              <span className="text-[#999] text-xs ml-2">RS</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-2 p-4 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl flex items-center justify-between gap-4">
-                      <span className="text-sm font-bold text-[#333] shrink-0">
-                        Segurança: Quanto é <span className="text-[#2D5A27]">{captchaParams.n1} + {captchaParams.n2}</span>?
-                      </span>
-                      <input
-                        type="number"
-                        required
-                        value={captchaAnswer}
-                        onChange={e => setCaptchaAnswer(e.target.value)}
-                        className="w-16 px-2 py-2 text-center border border-[#E9ECEF] rounded-lg text-sm bg-white font-bold text-[#2D5A27]"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={newsletterLoading}
-                      className="w-full py-3.5 bg-[#2D5A27] text-white rounded-xl font-bold text-sm hover:bg-[#1E3D1A] transition-colors mt-2 disabled:bg-[#999] flex items-center justify-center gap-2"
-                    >
-                      {newsletterLoading ? <><Loader2 size={18} className="animate-spin" /> Processando...</> : 'Confirmar Assinatura'}
-                    </button>
-                    <p className="text-center text-[11px] text-[#999]">Você pode se descadastrar dessa lista a qualquer hora.</p>
-                  </form>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Newsletter Modal Reutilizável */}
+      <NewsletterModal 
+        isOpen={showNewsletterModal} 
+        onClose={() => setShowNewsletterModal(false)} 
+      />
 
       {user && (
         <BottomNav

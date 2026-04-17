@@ -1,55 +1,103 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import bcrypt from 'bcryptjs';
-import { signToken, setSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
+
   try {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
     }
 
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
+    const supabase = await createClientServer();
 
-    if (error || !user) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    // 1. Tentar autenticação nativa do Supabase
+    let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    // 2. Se falhar, verificar se é um usuário legado (Migração Preguiçosa)
+    if (authError) {
+      console.log('Login nativo falhou, verificando legado para:', email);
+      
+      const { data: legacyUser, error: legacyError } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (legacyUser && legacyUser.password) {
+        // Se a senha começar com $2 é um hash bcrypt, se não comparamos direto (caso de senhas simples legado como o admin)
+        const isPasswordValid = legacyUser.password.startsWith('$2') 
+          ? await bcrypt.compare(password, legacyUser.password)
+          : (password === legacyUser.password);
+        
+        if (isPasswordValid) {
+          console.log('Usuário legado identificado. Migrando:', email);
+          
+          // Criar o usuário no Supabase Auth para migrá-lo
+          // O Trigger SQL cuidará de atualizar o ID na tabela public.users
+          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+              name: legacyUser.name,
+              city: legacyUser.city,
+              phone: legacyUser.phone,
+              is_admin: !!legacyUser.is_admin
+            }
+          });
+
+          if (createError) {
+            console.error('Erro ao migrar usuário para Supabase Auth:', createError.message);
+            // Se o erro for que o usuário já existe, tentamos logar de novo (pode ser problema de sincronismo)
+            if (createError.message.includes('already exists')) {
+              const retry = await supabase.auth.signInWithPassword({ email, password });
+              authData = retry.data;
+              authError = retry.error;
+            }
+          } else {
+            console.log('Usuário migrado com sucesso. Tentando login final...');
+            const retry = await supabase.auth.signInWithPassword({ email, password });
+            authData = retry.data;
+            authError = retry.error;
+          }
+        }
+      }
     }
 
-    const userData = user as any;
-
-    let isPasswordValid = false;
-    if (userData.password && userData.password.startsWith('$2')) {
-      isPasswordValid = await bcrypt.compare(password, userData.password);
-    } else {
-      isPasswordValid = userData.password === password;
+    if (authError || !authData?.user) {
+      const message = authError?.message === 'Invalid login credentials' 
+        ? 'E-mail ou senha incorretos' 
+        : (authError?.message || 'E-mail ou senha incorretos');
+      
+      console.log('Login falhou com erro:', message);
+      return NextResponse.json({ error: message }, { status: 401 });
     }
 
-    if (!isPasswordValid) {
-      return NextResponse.json({ error: 'Senha incorreta' }, { status: 401 });
-    }
+    console.log('Login bem sucedido para:', email);
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = userData;
-    const finalUser = {
-      ...userWithoutPassword,
-      is_admin: !!userWithoutPassword.is_admin
-    };
+    // Retornamos os dados do usuário logado de forma segura
+    return NextResponse.json({
+      id: authData.user.id,
+      email: authData.user.email,
+      name: authData.user.user_metadata?.name || 'Usuário',
+      is_admin: authData.user.user_metadata?.is_admin || false
+    });
 
-    const token = await signToken({ id: finalUser.id, email: finalUser.email, is_admin: finalUser.is_admin });
-    await setSessionCookie(token);
-
-    return NextResponse.json(finalUser);
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('ERRO CRÍTICO NO LOGIN:', error);
+    return NextResponse.json({ 
+      error: 'Erro interno no servidor',
+      details: error.message 
+    }, { status: 500 });
   }
 }

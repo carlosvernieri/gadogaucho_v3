@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3 } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3, Calculator } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -32,9 +32,9 @@ export const Header = ({
 }: HeaderProps) => {
   const router = useRouter();
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-4 lg:px-8 py-4">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-3 sm:px-4 lg:px-8 py-4">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={onMenuClick}
             className="lg:hidden p-2 text-[#333] cursor-pointer"
@@ -42,14 +42,14 @@ export const Header = ({
             <Menu size={22} className="sm:w-6 sm:h-6" />
           </button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={onHomeClick}>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#2D5A27] rounded-xl flex items-center justify-center text-white">
+            <div className="hidden sm:flex w-10 h-10 bg-[#2D5A27] rounded-xl items-center justify-center text-white">
               <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
-            <span className="text-[22px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
+            <span className="text-[24.5px] sm:text-3xl font-normal text-[#2D5A27] tracking-tight font-logo">Gado Gaúcho</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-4">
           {/* Cotações - sempre visível */}
           <button
             onClick={() => router.push('/precodogado')}
@@ -67,6 +67,15 @@ export const Header = ({
           >
             <BarChart3 size={20} />
             <span className="hidden sm:inline">Boletim</span>
+          </button>
+
+          <button
+            onClick={() => router.push('/calculadoras/gmd')}
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            title="Calculadora de GMD & Rentabilidade"
+          >
+            <Calculator size={20} />
+            <span className="hidden sm:inline">Calculadora</span>
           </button>
 
           {user ? (
@@ -139,7 +148,7 @@ export const Header = ({
               </button>
               <button
                 onClick={() => onAuthClick('login')}
-                className="flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 Entrar
               </button>
