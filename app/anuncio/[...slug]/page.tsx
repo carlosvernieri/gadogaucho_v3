@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
-import { parseJsonField } from '@/lib/utils';
+import { parseJsonField, getListingUrl } from '@/lib/utils';
 import { AnuncioPageClient } from '@/components/AnuncioPageClient';
 import { Spinner } from '@/components/Spinner';
 
@@ -80,21 +81,29 @@ async function fetchListingData(id: string) {
   }
 }
 
-export default async function AnuncioPage(props: { params: Promise<{ id: string }> }) {
+export default async function AnuncioCatchAllPage(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params;
-  const { id } = params;
-  const { listing, listings } = await fetchListingData(id);
+  const slug = params.slug;
 
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
-        <div className="flex flex-col items-center">
-          <Spinner size="lg" className="mb-4" />
-          <p className="text-[#2D5A27] font-bold animate-pulse">Carregando anúncio...</p>
+  // SEO URL /anuncio/[cat]/[breed]/[city]/[id] (slug length is 4)
+  if (slug.length === 4) {
+    const id = slug[3];
+    const { listing, listings } = await fetchListingData(id);
+
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+          <div className="flex flex-col items-center">
+            <Spinner size="lg" className="mb-4" />
+            <p className="text-[#2D5A27] font-bold animate-pulse">Carregando anúncio...</p>
+          </div>
         </div>
-      </div>
-    }>
-      <AnuncioPageClient initialListing={listing} initialListings={listings} />
-    </Suspense>
-  );
+      }>
+        <AnuncioPageClient initialListing={listing} initialListings={listings} />
+      </Suspense>
+    );
+  }
+
+  // Other cases: redirect to home
+  redirect('/');
 }

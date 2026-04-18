@@ -1,23 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Calculator, TrendingUp, DollarSign, Clock,
   Target, Info, Printer, ChevronLeft,
   ArrowRight, ShieldCheck, PieChart,
-  Activity, Scale, Wallet, Loader2
+  Activity, Scale, Wallet, Loader2, Share2, Check
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
+import { ShareModal } from '@/components/ShareModal';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function GMDCalculatorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#2D5A27]" size={48} />
+      </div>
+    }>
+      <GMDCalculatorContent />
+    </Suspense>
+  );
+}
+
+function GMDCalculatorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout, setAuthMode, setShowAuthModal } = useUser();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [marketPrices, setMarketPrices] = useState<any>(null);
-  const [loadingPrices, setLoadingPrices] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Form State - Using strings to allow empty inputs in UI
   const [inputs, setInputs] = useState<Record<string, string>>({
@@ -30,28 +46,31 @@ export default function GMDCalculatorPage() {
     expectedSalePriceKg: '11.80'
   });
 
-  // Fetch Market Prices for Suggestion
+  // Load initial state from URL parameters
   useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        setLoadingPrices(true);
-        const res = await fetch('/api/market-report');
-        const data = await res.json();
-        setMarketPrices(data);
-
-        // Suggest sale price based on Boi Gordo avg if available
-        const boiAvg = data.categoryStats?.find((s: any) => s.category === 'Boi Gordo')?.auctionAvg;
-        if (boiAvg > 0) {
-          setInputs(prev => ({ ...prev, expectedSalePriceKg: boiAvg.toString() }));
-        }
-      } catch (err) {
-        console.error('Error fetching market prices:', err);
-      } finally {
-        setLoadingPrices(false);
-      }
+    const params = {
+      ac: searchParams.get('ac'),
+      iw: searchParams.get('iw'),
+      fw: searchParams.get('fw'),
+      d: searchParams.get('d'),
+      pk: searchParams.get('pk'),
+      ch: searchParams.get('ch'),
+      sk: searchParams.get('sk'),
     };
-    fetchPrices();
-  }, []);
+
+    if (Object.values(params).some(v => v !== null)) {
+      setInputs(prev => ({
+        ...prev,
+        animalCount: params.ac || prev.animalCount,
+        initialWeight: params.iw || prev.initialWeight,
+        finalWeight: params.fw || prev.finalWeight,
+        days: params.d || prev.days,
+        purchasePriceKg: params.pk || prev.purchasePriceKg,
+        dailyCostHead: params.ch || prev.dailyCostHead,
+        expectedSalePriceKg: params.sk || prev.expectedSalePriceKg,
+      }));
+    }
+  }, [searchParams]);
 
   // Performance Calculations
   const calculations = useMemo(() => {
@@ -111,6 +130,24 @@ export default function GMDCalculatorPage() {
     window.print();
   };
 
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
+
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams();
+    params.set('ac', inputs.animalCount);
+    params.set('iw', inputs.initialWeight);
+    params.set('fw', inputs.finalWeight);
+    params.set('d', inputs.days);
+    params.set('pk', inputs.purchasePriceKg);
+    params.set('ch', inputs.dailyCostHead);
+    params.set('sk', inputs.expectedSalePriceKg);
+
+    return `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+  }, [inputs]);
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col pb-24 lg:pb-0">
       <div className="print:hidden">
@@ -134,7 +171,7 @@ export default function GMDCalculatorPage() {
             <div className="flex items-center gap-2 text-[#2D5A27] font-bold text-sm uppercase tracking-widest print:hidden">
               <Calculator size={18} /> Simulador Estratégico
             </div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight">
+            <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] tracking-tight">
               Calculadora de GMD & Lucro
             </h1>
             <p className="text-[#666] text-sm mt-1">
@@ -143,10 +180,10 @@ export default function GMDCalculatorPage() {
           </div>
 
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-[#E9ECEF] text-[#333] rounded-2xl hover:bg-[#F8F9FA] transition-all font-bold text-sm shadow-sm print:hidden"
+            onClick={handleShare}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-[#E9ECEF] text-[#333] hover:bg-[#F8F9FA] transition-all font-bold text-sm shadow-sm print:hidden rounded-2xl"
           >
-            <Printer size={20} /> Gerar Laudo de Lote (PDF)
+            <Share2 size={20} /> Compartilhar Resultado
           </button>
         </div>
 
@@ -248,9 +285,7 @@ export default function GMDCalculatorPage() {
                       onChange={(e) => handleInputChange('expectedSalePriceKg', e.target.value)}
                       className="w-full bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-xl px-4 py-3 text-sm font-black text-[#2D5A27] outline-none focus:border-[#2D5A27]"
                     />
-                    {loadingPrices && <Loader2 className="absolute right-4 top-3.5 animate-spin text-[#2D5A27]/40" size={16} />}
                   </div>
-                  <p className="text-[10px] text-[#2D5A27] font-bold mt-2 uppercase tracking-wider">Referência sugerida via Mercado</p>
                 </div>
               </div>
             </div>
@@ -312,7 +347,7 @@ export default function GMDCalculatorPage() {
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Lucro p/ Cabeça</span>
                   <div className={`text-2xl font-black ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    R$ {calculations.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {calculations.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Margem Líquida</span>
                 </div>
@@ -320,7 +355,7 @@ export default function GMDCalculatorPage() {
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Diário</span>
                   <div className={`text-2xl font-black ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
-                    R$ {calculations.profitDay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {calculations.profitDay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/dia</span>
                 </div>
@@ -328,7 +363,7 @@ export default function GMDCalculatorPage() {
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Mensal</span>
                   <div className={`text-2xl font-black ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
-                    R$ {calculations.profitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {calculations.profitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/mês</span>
                 </div>
@@ -399,6 +434,31 @@ export default function GMDCalculatorPage() {
           />
         )}
       </div>
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title="Gado Gaúcho - Calculadora GMD & Lucro"
+        onCopySuccess={() => {
+          setToastMessage('Link copiado!');
+          setShowShareToast(true);
+          setTimeout(() => setShowShareToast(false), 3000);
+        }}
+      />
+
+      <AnimatePresence>
+        {showShareToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] bg-[#333] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-2"
+          >
+            <Check size={18} className="text-[#28A745]" /> {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         @media print {

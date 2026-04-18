@@ -67,6 +67,21 @@ export function unslugify(slug: string, list?: string[]) {
     .join(' ');
 }
 
+/**
+ * Generates an SEO friendly URL for a listing.
+ * Format: /anuncio/[category]/[breed]/[city]/[id]
+ */
+export function getListingUrl(listing: any) {
+  if (!listing) return '/';
+  
+  const category = slugify(listing.category || 'geral');
+  const breed = slugify(listing.breed || 'geral');
+  const city = slugify(listing.location || listing.seller_city || 'rs');
+  const id = listing.id;
+
+  return `/anuncio/${category}/${breed}/${city}/${id}`;
+}
+
 export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');

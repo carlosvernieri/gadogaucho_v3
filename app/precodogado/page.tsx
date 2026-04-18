@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, TrendingDown, Minus, Info, ChevronDown, ChevronUp, Bell, Share2, Search, Mail, Loader2, CheckCircle2, MapPin, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info, ChevronDown, ChevronUp, Bell, Share2, Search, Mail, Loader2, CheckCircle2, MapPin, X, Calendar } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
@@ -28,7 +28,7 @@ export default function PrecoDoGadoPage() {
 
   // State for Share Modal
   const [showShareModal, setShowShareModal] = useState(false);
-  
+
   // State for Market Data
   const [praças, setPraças] = useState<any[]>([]);
   const [loadingPraças, setLoadingPraças] = useState(true);
@@ -135,188 +135,188 @@ export default function PrecoDoGadoPage() {
 
         <main className="flex-1 min-w-0 w-full max-w-5xl mx-auto mt-4 lg:mt-0">
 
-        {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight mb-2">
-            Cotação e Inteligência de Mercado
-          </h1>
-          <p className="text-[#666] leading-relaxed">
-            Consulte os preços médios do Quilo Vivo (R$/kg) nas principais praças pecuárias do Rio Grande do Sul.
-          </p>
-        </div>
-
-        {/* Action Buttons Header */}
-        <div className="mb-6 flex gap-2">
-          <button
-            onClick={() => setShowNewsletterModal(true)}
-            className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl hover:bg-[#1E3D1A] transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-[#2D5A27]/20"
-          >
-            <Mail size={18} /> Assinar Boletim (Grátis)
-          </button>
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
-            title="Compartilhar"
-          >
-            <Share2 size={18} />
-          </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm">
-
-          <div className="p-6 border-b border-[#E9ECEF] flex flex-col md:flex-row md:items-center justify-between bg-[#FDFDFD] gap-2">
-            <h2 className="text-xl font-bold text-[#2D5A27] flex items-center gap-2">
-              Tabela de Preços (RS)
-            </h2>
-            <div className="text-sm font-medium text-[#999] flex items-center gap-1">
-              <Info size={16} /> Última atualização: Hoje
-            </div>
+          {/* Header Section */}
+          <div className="mb-8">
+            <h1 className="text-2xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight mb-2">
+              Cotação e Inteligência de Mercado
+            </h1>
+            <p className="text-[#666] leading-relaxed">
+              Consulte os preços médios do Quilo Vivo (R$/kg) nas principais praças pecuárias do Rio Grande do Sul.
+            </p>
           </div>
 
-          {/* Versão Desktop (Tabela Clássica com Accordion) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[11px] uppercase tracking-wider text-[#666]">
-                  <th className="p-4 font-bold">Praça Geográfica</th>
-                  <th className="p-4 font-bold text-center">Vaca</th>
-                  <th className="p-4 font-bold text-center">Novilha</th>
-                  <th className="p-4 font-bold text-center">Terneira</th>
-                  <th className="p-4 font-bold text-center">Terneiro</th>
-                  <th className="p-4 text-center font-bold">Tendência</th>
-                  <th className="p-4 text-center font-bold w-12"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingPraças ? (
-                   <tr>
-                     <td colSpan={7} className="p-8 text-center">
-                       <div className="flex flex-col items-center gap-2">
-                         <Loader2 size={24} className="animate-spin text-[#2D5A27]" />
-                         <span className="text-sm text-[#999]">Carregando cotações reais...</span>
-                       </div>
-                     </td>
-                   </tr>
-                ) : praças.length === 0 ? (
-                  <tr>
-                     <td colSpan={7} className="p-8 text-center text-[#999] text-sm italic">
-                       Nenhuma cotação disponível no momento.
-                     </td>
+          {/* Action Buttons Header */}
+          <div className="mb-6 flex items-center gap-3">
+            <button
+              onClick={() => setShowNewsletterModal(true)}
+              className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl hover:bg-[#1E3D1A] transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-[#2D5A27]/20"
+            >
+              <Mail size={18} /> Assinar Boletim (Grátis)
+            </button>
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
+              title="Compartilhar"
+            >
+              <Share2 size={18} />
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm">
+
+            <div className="p-6 border-b border-[#E9ECEF] flex flex-col md:flex-row md:items-center justify-between bg-[#FDFDFD] gap-2">
+              <h2 className="text-xl font-bold text-[#2D5A27] flex items-center gap-2">
+                Tabela de Preços (RS)
+              </h2>
+              <div className="text-sm font-medium text-[#999] flex items-center gap-1">
+                <Info size={16} /> Última atualização: Hoje
+              </div>
+            </div>
+
+            {/* Versão Desktop (Tabela Clássica com Accordion) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[11px] uppercase tracking-wider text-[#666]">
+                    <th className="p-4 font-bold">Praça Geográfica</th>
+                    <th className="p-4 font-bold text-center">Vaca</th>
+                    <th className="p-4 font-bold text-center">Novilha</th>
+                    <th className="p-4 font-bold text-center">Terneira</th>
+                    <th className="p-4 font-bold text-center">Terneiro</th>
+                    <th className="p-4 text-center font-bold">Tendência</th>
+                    <th className="p-4 text-center font-bold w-12"></th>
                   </tr>
-                ) : praças.map((praca, idx) => (
-                  <React.Fragment key={praca.cidade}>
-                    <tr
-                      onClick={() => toggleCity(praca.cidade)}
-                      className={`border-b border-[#E9ECEF] hover:bg-[#F8F9FA] transition-colors cursor-pointer ${idx === praças.length - 1 && expandedCity !== praca.cidade ? 'border-b-0' : ''}`}
-                    >
-                      <td className="p-4 font-bold text-[#333] whitespace-nowrap">
-                        {praca.cidade}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.vaca.toFixed(2)}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.novilha.toFixed(2)}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.terneira.toFixed(2)}
-                      </td>
-                      <td className="p-4 text-center text-[#666] font-medium">
-                        R$ {praca.terneiro.toFixed(2)}
-                      </td>
-                      <td className="p-4 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center shadow-sm">
-                          {renderTrendIcon(praca.tendencia)}
+                </thead>
+                <tbody>
+                  {loadingPraças ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 size={24} className="animate-spin text-[#2D5A27]" />
+                          <span className="text-sm text-[#999]">Carregando cotações reais...</span>
                         </div>
                       </td>
-                      <td className="p-4 text-[#999]">
-                        {expandedCity === praca.cidade ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </tr>
+                  ) : praças.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-[#999] text-sm italic">
+                        Nenhuma cotação disponível no momento.
                       </td>
                     </tr>
-
-                    {/* Gaveta do Accordion Desktop */}
-                    {expandedCity === praca.cidade && (
-                      <tr className="bg-[#FDFDFD] border-b border-[#E9ECEF]">
-                        <td colSpan={7} className="p-0">
-                          <div className="p-6 lg:p-8 flex flex-col items-center">
-                            <h3 className="text-[#333] font-bold text-lg mb-2">Evolução Gráfica - {praca.cidade}</h3>
-                            <p className="text-sm text-[#666] mb-4">Veja a flutuação do Kg Vivo nas últimas 4 semanas de amostragem.</p>
-                            {renderChart(praca.history)}
+                  ) : praças.map((praca, idx) => (
+                    <React.Fragment key={praca.cidade}>
+                      <tr
+                        onClick={() => toggleCity(praca.cidade)}
+                        className={`border-b border-[#E9ECEF] hover:bg-[#F8F9FA] transition-colors cursor-pointer ${idx === praças.length - 1 && expandedCity !== praca.cidade ? 'border-b-0' : ''}`}
+                      >
+                        <td className="p-4 font-bold text-[#333] whitespace-nowrap">
+                          {praca.cidade}
+                        </td>
+                        <td className="p-4 text-center text-[#666] font-medium">
+                          R$ {praca.vaca.toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center text-[#666] font-medium">
+                          R$ {praca.novilha.toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center text-[#666] font-medium">
+                          R$ {praca.terneira.toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center text-[#666] font-medium">
+                          R$ {praca.terneiro.toFixed(2)}
+                        </td>
+                        <td className="p-4 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center shadow-sm">
+                            {renderTrendIcon(praca.tendencia)}
                           </div>
                         </td>
+                        <td className="p-4 text-[#999]">
+                          {expandedCity === praca.cidade ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Versão Mobile (Cards Responsivos com Accordion) */}
-          <div className="md:hidden flex flex-col">
-            {praças.map((praca, idx) => (
-              <div key={praca.cidade} className={`flex flex-col ${idx !== praças.length - 1 ? 'border-b border-[#E9ECEF]' : ''}`}>
+                      {/* Gaveta do Accordion Desktop */}
+                      {expandedCity === praca.cidade && (
+                        <tr className="bg-[#FDFDFD] border-b border-[#E9ECEF]">
+                          <td colSpan={7} className="p-0">
+                            <div className="p-6 lg:p-8 flex flex-col items-center">
+                              <h3 className="text-[#333] font-bold text-lg mb-2">Evolução Gráfica - {praca.cidade}</h3>
+                              <p className="text-sm text-[#666] mb-4">Veja a flutuação do Kg Vivo nas últimas 4 semanas de amostragem.</p>
+                              {renderChart(praca.history)}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                {/* Cabeçalho do Card (Clicável) */}
-                <div
-                  className="p-5 flex flex-col gap-4 cursor-pointer hover:bg-[#F8F9FA] transition-colors active:bg-[#E9ECEF]"
-                  onClick={() => toggleCity(praca.cidade)}
-                >
-                  <div className="flex items-center justify-between border-b border-[#F8F9FA] pb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-[#333] text-lg">{praca.cidade}</span>
-                      <div className="w-8 h-8 rounded-full bg-[#F8F9FA] border border-[#E9ECEF] flex items-center justify-center shadow-sm">
-                        {renderTrendIcon(praca.tendencia)}
+            {/* Versão Mobile (Cards Responsivos com Accordion) */}
+            <div className="md:hidden flex flex-col">
+              {praças.map((praca, idx) => (
+                <div key={praca.cidade} className={`flex flex-col ${idx !== praças.length - 1 ? 'border-b border-[#E9ECEF]' : ''}`}>
+
+                  {/* Cabeçalho do Card (Clicável) */}
+                  <div
+                    className="p-5 flex flex-col gap-4 cursor-pointer hover:bg-[#F8F9FA] transition-colors active:bg-[#E9ECEF]"
+                    onClick={() => toggleCity(praca.cidade)}
+                  >
+                    <div className="flex items-center justify-between border-b border-[#F8F9FA] pb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-[#333] text-lg">{praca.cidade}</span>
+                        <div className="w-8 h-8 rounded-full bg-[#F8F9FA] border border-[#E9ECEF] flex items-center justify-center shadow-sm">
+                          {renderTrendIcon(praca.tendencia)}
+                        </div>
+                      </div>
+                      <div className="text-[#999]">
+                        {expandedCity === praca.cidade ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                       </div>
                     </div>
-                    <div className="text-[#999]">
-                      {expandedCity === praca.cidade ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca</span>
+                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vaca.toFixed(2)}</span>
+                      </div>
+                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilha</span>
+                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilha.toFixed(2)}</span>
+                      </div>
+                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneira</span>
+                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneira.toFixed(2)}</span>
+                      </div>
+                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
+                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vaca.toFixed(2)}</span>
-                    </div>
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilha</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilha.toFixed(2)}</span>
-                    </div>
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneira</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneira.toFixed(2)}</span>
-                    </div>
-                    <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                      <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
-                      <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Gaveta do Accordion Mobile */}
-                {expandedCity === praca.cidade && (
-                  <div className="p-4 bg-[#FDFDFD] border-t border-[#E9ECEF] flex flex-col items-center">
-                    <h3 className="text-[#333] font-bold text-center">Histórico Gráfico</h3>
-                    <span className="text-xs text-[#666] text-center mb-2">Últimas 4 semanas</span>
-                    {renderChart(praca.history)}
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* Gaveta do Accordion Mobile */}
+                  {expandedCity === praca.cidade && (
+                    <div className="p-4 bg-[#FDFDFD] border-t border-[#E9ECEF] flex flex-col items-center">
+                      <h3 className="text-[#333] font-bold text-center">Histórico Gráfico</h3>
+                      <span className="text-xs text-[#666] text-center mb-2">Últimas 4 semanas</span>
+                      {renderChart(praca.history)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
           </div>
 
-        </div>
+          {/* Helper Note removed as data is now real */}
 
-        {/* Helper Note removed as data is now real */}
-
-      </main>
+        </main>
       </div>
 
       {/* Newsletter Modal Reutilizável */}
-      <NewsletterModal 
-        isOpen={showNewsletterModal} 
-        onClose={() => setShowNewsletterModal(false)} 
+      <NewsletterModal
+        isOpen={showNewsletterModal}
+        onClose={() => setShowNewsletterModal(false)}
       />
 
       {user && (

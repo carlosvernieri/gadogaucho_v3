@@ -11,7 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 
 export function AnuncioPageClient({ initialListing, initialListings }: { initialListing: any, initialListings: any[] }) {
   const params = useParams();
@@ -163,7 +163,7 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        url={typeof window !== 'undefined' ? `${window.location.origin}/anuncio/${listing.id}` : ''}
+        url={typeof window !== 'undefined' ? `${window.location.origin}${getListingUrl(listing)}` : ''}
         title={listing.title}
         onCopySuccess={() => {
           setToastMessage('Link copiado!');

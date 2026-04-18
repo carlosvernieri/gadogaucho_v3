@@ -32,7 +32,7 @@ import imageCompression from 'browser-image-compression';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
-import { slugify, safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
+import { slugify, safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage, getListingUrl } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 import { Spinner } from '@/components/Spinner';
 import { ListingCard } from '@/components/ListingCard';
@@ -720,7 +720,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
             if (!isNaN(id)) {
               const exists = listings.find(l => l.id === id);
               if (exists) {
-                router.push(`/anuncio/${id}`);
+                router.push(getListingUrl(exists));
                 return;
               }
             }

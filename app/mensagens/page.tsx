@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Trash2, CheckCircle, Clock, MessageSquare, User, Phone, ExternalLink, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 
 export default function MensagensPage() {
   const router = useRouter();
@@ -300,7 +300,10 @@ export default function MensagensPage() {
                                 </div>
                                 <h4 className="text-sm font-bold text-[#333] line-clamp-2 mb-2">{msg.listing_title}</h4>
                                 <button
-                                  onClick={() => router.push(`/anuncio/${msg.listing_id}`)}
+                                  onClick={() => {
+                                    const listing = listings.find(l => l.id === msg.listing_id);
+                                    router.push(listing ? getListingUrl(listing) : `/anuncio/${msg.listing_id}`);
+                                  }}
                                   className="w-full py-2 bg-[#F8F9FA] hover:bg-[#E9ECEF] text-xs font-bold text-[#333] rounded-xl flex items-center justify-center gap-1 transition-colors"
                                 >
                                   Ver anúncio detalhado <ExternalLink size={12} />

@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { User, MapPin, ChevronLeft } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify } from '@/lib/utils';
+import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 import { Badge } from '@/components/Badge';
 
 export default function VendedorPage() {
@@ -109,7 +109,8 @@ export default function VendedorPage() {
   };
 
   const handleShare = (id: number) => {
-    const url = `${window.location.origin}/anuncio/${id}`;
+    const listing = listings.find(l => l.id === id);
+    const url = `${window.location.origin}${getListingUrl(listing)}`;
     navigator.clipboard.writeText(url);
     setShowShareToast(true);
     setTimeout(() => setShowShareToast(false), 3000);
@@ -191,14 +192,8 @@ export default function VendedorPage() {
             </button>
 
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E9ECEF] shadow-sm flex flex-col md:flex-row items-center gap-4 md:gap-8">
-              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#F8F9FA] shadow-md">
-                <Image
-                  src={`https://picsum.photos/seed/${sellerId}/200/200`}
-                  alt={sellerName}
-                  fill
-                  className="object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#F8F9FA] flex items-center justify-center text-[#2D5A27] border-4 border-white shadow-md">
+                <User size={40} />
               </div>
               <div className="flex-1 text-center md:text-left">
                 <h1 className="text-2xl md:text-3xl font-bold text-[#333] mb-1 md:mb-2">{sellerName}</h1>

@@ -14,7 +14,7 @@ import { Spinner } from '@/components/Spinner';
 import { Megaphone, LayoutGrid, Menu as MenuIcon, Plus, X, Camera, Video, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
-import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
+import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage, getListingUrl } from '@/lib/utils';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
@@ -507,7 +507,7 @@ export default function MeusAnunciosPage() {
                     <ListingListItem
                       listing={item}
                       isOwner={true}
-                      onView={(id) => router.push(`/anuncio/${id}`)}
+                      onView={() => router.push(getListingUrl(item))}
                       onEdit={(l) => {
                         setEditingListingId(l.id);
                         setAdForm({

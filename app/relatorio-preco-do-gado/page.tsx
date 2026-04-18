@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  TrendingUp, TrendingDown, Minus, Info, 
-  BarChart3, Globe, MapPin, Printer, 
+import {
+  TrendingUp, TrendingDown, Minus, Info,
+  BarChart3, Globe, MapPin, Printer,
   ChevronRight, Calendar, ArrowRightLeft,
   Share2, Mail
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
   AreaChart, Area
 } from 'recharts';
@@ -67,33 +67,29 @@ export default function MercadoReportPage() {
       </div>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 lg:px-8 py-8">
-        
+
         {/* Header Relatório */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[#2D5A27] font-bold text-sm uppercase tracking-widest print:hidden">
               <BarChart3 size={18} /> Inteligência de Mercado
             </div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight">
+            <h1 className="text-2xl lg:text-4xl font-bold text-[#1A1A1A] tracking-tight">
               Boletim Semanal de Preços
             </h1>
             <div className="flex items-center gap-3 text-[#666] text-sm mt-1">
               <span className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#E9ECEF] shadow-sm">
                 <Calendar size={14} /> {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
               </span>
-              <span className="flex items-center gap-1.5 bg-[#2D5A27]/5 text-[#2D5A27] px-3 py-1 rounded-full border border-[#2D5A27]/10 font-bold">
-                Edição RS #24
-              </span>
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#E9ECEF] text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm font-bold"
+                title="Compartilhar Relatório"
+              >
+                <Share2 size={14} /> Compartilhar
+              </button>
             </div>
           </div>
-          
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="w-10 h-10 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center text-[#666] hover:text-[#2D5A27] hover:border-[#2D5A27] transition-all shadow-sm"
-              title="Compartilhar Relatório"
-            >
-              <Share2 size={18} />
-            </button>
         </div>
 
         {/* Resumo Executivo e Indicadores Rápidos */}
@@ -107,7 +103,7 @@ export default function MercadoReportPage() {
               O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais.
             </p>
           </div>
-          
+
           <div className="bg-[#2D5A27] rounded-3xl p-6 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
             <div>
               <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
@@ -147,20 +143,19 @@ export default function MercadoReportPage() {
                   <tr key={stat.category} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors">
                     <td className="px-6 py-4 font-bold text-[#333]">{stat.category}</td>
                     <td className="px-6 py-4 text-center text-[#666] font-medium">
-                       {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)}` : 'S/ DADOS'}
+                      {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)}` : 'S/ DADOS'}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-[#2D5A27]">
-                       {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)}` : 'S/ DADOS'}
+                      {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)}` : 'S/ DADOS'}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                        stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 
-                        stat.trend === 'down' ? 'bg-red-50 text-red-600' : 
-                        'bg-gray-50 text-gray-500'
-                      }`}>
-                        {stat.trend === 'up' ? <TrendingUp size={12} /> : 
-                         stat.trend === 'down' ? <TrendingDown size={12} /> : 
-                         <Minus size={12} />}
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' :
+                          stat.trend === 'down' ? 'bg-red-50 text-red-600' :
+                            'bg-gray-50 text-gray-500'
+                        }`}>
+                        {stat.trend === 'up' ? <TrendingUp size={12} /> :
+                          stat.trend === 'down' ? <TrendingDown size={12} /> :
+                            <Minus size={12} />}
                         {stat.delta === 0 ? 'ESTÁVEL' : `${stat.delta > 0 ? '+' : ''}${stat.delta}%`}
                       </div>
                     </td>
@@ -198,7 +193,7 @@ export default function MercadoReportPage() {
                     {idx === 0 && (
                       <td rowSpan={reportData.scotData.pelotas.length} className="px-6 py-4 font-bold text-[#333] border-r border-[#F8F9FA]">
                         <div className="flex items-center gap-2">
-                           <MapPin size={16} className="text-[#999]" /> Pelotas
+                          <MapPin size={16} className="text-[#999]" /> Pelotas
                         </div>
                       </td>
                     )}
@@ -213,7 +208,7 @@ export default function MercadoReportPage() {
                     {idx === 0 && (
                       <td rowSpan={reportData.scotData.oeste.length} className="px-6 py-4 font-bold text-[#333] border-r border-[#F8F9FA]">
                         <div className="flex items-center gap-2">
-                           <MapPin size={16} className="text-[#999]" /> RS Oeste
+                          <MapPin size={16} className="text-[#999]" /> RS Oeste
                         </div>
                       </td>
                     )}
@@ -231,7 +226,7 @@ export default function MercadoReportPage() {
         <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-               <Globe size={24} />
+              <Globe size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -260,95 +255,95 @@ export default function MercadoReportPage() {
 
         {/* Mercado Futuro B3 */}
         <div className="grid lg:grid-cols-5 gap-6 mb-8">
-           <div className="lg:col-span-3 bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-xl font-bold text-[#333] flex items-center gap-2">
-                    <BarChart3 className="text-[#2D5A27]" size={22} /> Expectativas Mercado Futuro (B3)
-                  </h2>
-                  <p className="text-sm text-[#999] mt-1">Curva futura do Boi Gordo (BGI) para os próximos meses</p>
-                </div>
+          <div className="lg:col-span-3 bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-xl font-bold text-[#333] flex items-center gap-2">
+                  <BarChart3 className="text-[#2D5A27]" size={22} /> Expectativas Mercado Futuro (B3)
+                </h2>
+                <p className="text-sm text-[#999] mt-1">Curva futura do Boi Gordo (BGI) para os próximos meses</p>
               </div>
-              
-              <div className="h-[280px] w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={reportData?.b3Futures || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#2D5A27" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                    <XAxis 
-                      dataKey="month" 
-                      tick={{ fontSize: 11, fill: '#999', fontWeight: 'bold' }} 
-                      axisLine={false} 
-                      tickLine={false} 
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 11, fill: '#999', fontWeight: 'bold' }} 
-                      axisLine={false} 
-                      tickLine={false} 
-                      domain={['auto', 'auto']}
-                      tickFormatter={(value) => `R$${value}`}
-                    />
-                    <RechartsTooltip 
-                      formatter={(v: any) => [`R$ ${v}/@`, 'Cotação Futura']}
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="price" 
-                      stroke="#2D5A27" 
-                      strokeWidth={4}
-                      fillOpacity={1} 
-                      fill="url(#colorPrice)" 
-                      dot={{ r: 6, fill: '#2D5A27', strokeWidth: 3, stroke: '#fff' }}
-                      activeDot={{ r: 8, strokeWidth: 0 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+            </div>
 
-              <div className="mt-8 p-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start gap-3">
-                <Info size={18} className="text-[#2171B5] mt-0.5 shrink-0" />
-                <p className="text-[12px] text-[#666] leading-relaxed">
-                  <strong>Análise B3:</strong> O mercado financeiro sinaliza uma curva de <strong>contango</strong> moderado até Abril/26, seguida de um ajuste baixista no inverno (Jun/Jul), refletindo a sazonalidade da safra de capim. A retomada de preços projetada para Outubro/26 indica expectativas de redução na oferta de animais de cocho.
-                </p>
-              </div>
-           </div>
+            <div className="h-[280px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={reportData?.b3Futures || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#2D5A27" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: '#999', fontWeight: 'bold' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#999', fontWeight: 'bold' }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={['auto', 'auto']}
+                    tickFormatter={(value) => `R$${value}`}
+                  />
+                  <RechartsTooltip
+                    formatter={(v: any) => [`R$ ${v}/@`, 'Cotação Futura']}
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="price"
+                    stroke="#2D5A27"
+                    strokeWidth={4}
+                    fillOpacity={1}
+                    fill="url(#colorPrice)"
+                    dot={{ r: 6, fill: '#2D5A27', strokeWidth: 3, stroke: '#fff' }}
+                    activeDot={{ r: 8, strokeWidth: 0 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
 
-           <div className="lg:col-span-2 flex flex-col gap-6">
-              <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm flex-1">
-                <h3 className="font-bold text-[#333] mb-4 text-sm uppercase tracking-wider">Cotações Detalhadas B3</h3>
-                <div className="space-y-4">
-                  {reportData?.b3Futures?.slice(0, 4).map((f: any) => (
-                    <div key={f.month} className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
-                      <span className="text-sm font-bold text-[#666]">{f.month}</span>
-                      <div className="text-right">
-                        <div className="text-sm font-black text-[#2D5A27]">R$ {f.price.toFixed(2)} /@</div>
-                        <div className="text-[10px] text-[#999] font-bold">Eq. R$ {f.priceKg}/kg</div>
-                      </div>
+            <div className="mt-8 p-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start gap-3">
+              <Info size={18} className="text-[#2171B5] mt-0.5 shrink-0" />
+              <p className="text-[12px] text-[#666] leading-relaxed">
+                <strong>Análise B3:</strong> O mercado financeiro sinaliza uma curva de <strong>contango</strong> moderado até Abril/26, seguida de um ajuste baixista no inverno (Jun/Jul), refletindo a sazonalidade da safra de capim. A retomada de preços projetada para Outubro/26 indica expectativas de redução na oferta de animais de cocho.
+              </p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm flex-1">
+              <h3 className="font-bold text-[#333] mb-4 text-sm uppercase tracking-wider">Cotações Detalhadas B3</h3>
+              <div className="space-y-4">
+                {reportData?.b3Futures?.slice(0, 4).map((f: any) => (
+                  <div key={f.month} className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                    <span className="text-sm font-bold text-[#666]">{f.month}</span>
+                    <div className="text-right">
+                      <div className="text-sm font-black text-[#2D5A27]">R$ {f.price.toFixed(2)} /@</div>
+                      <div className="text-[10px] text-[#999] font-bold">Eq. R$ {f.priceKg}/kg</div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="bg-[#1A1A1A] rounded-3xl p-6 text-white shadow-xl flex flex-col items-center justify-center text-center gap-4">
-                 <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                    <Mail size={24} className="text-[#87C036]" />
-                 </div>
-                 <h3 className="font-bold">Receba este relatório por E-mail</h3>
-                 <p className="text-xs text-white/60">Assine nosso informativo semanal e receba estas cotações toda segunda-feira.</p>
-                 <button 
-                  onClick={() => setShowNewsletterModal(true)}
-                  className="w-full py-2.5 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-colors"
-                 >
-                   Assinar Newsletter
-                 </button>
+            <div className="bg-[#1A1A1A] rounded-3xl p-6 text-white shadow-xl flex flex-col items-center justify-center text-center gap-4">
+              <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                <Mail size={24} className="text-[#87C036]" />
               </div>
-           </div>
+              <h3 className="font-bold">Receba este relatório por E-mail</h3>
+              <p className="text-xs text-white/60">Assine nosso informativo semanal e receba estas cotações toda segunda-feira.</p>
+              <button
+                onClick={() => setShowNewsletterModal(true)}
+                className="w-full py-2.5 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-colors"
+              >
+                Assinar Newsletter
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Footer Relatório */}
@@ -371,17 +366,17 @@ export default function MercadoReportPage() {
         )}
       </div>
 
-      <ShareModal 
+      <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         url={typeof window !== 'undefined' ? window.location.href : ''}
         title="Boletim Semanal de Preços - Gado Gaúcho"
-        onCopySuccess={() => {}}
+        onCopySuccess={() => { }}
       />
 
-      <NewsletterModal 
-        isOpen={showNewsletterModal} 
-        onClose={() => setShowNewsletterModal(false)} 
+      <NewsletterModal
+        isOpen={showNewsletterModal}
+        onClose={() => setShowNewsletterModal(false)}
       />
 
       <style jsx global>{`
