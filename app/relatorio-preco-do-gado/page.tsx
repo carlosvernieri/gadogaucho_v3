@@ -64,6 +64,30 @@ export default function MercadoReportPage() {
           onHomeClick={() => router.push('/')}
           onFavoritesClick={() => router.push('/favoritos')}
         />
+
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          selectedCategory={null}
+          onSelectCategory={(cat) => {
+            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+            else router.push('/');
+          }}
+          searchQuery=""
+          onSearchChange={() => { }}
+          listingsCount={0}
+          getCategoryCount={() => 0}
+          citySearch=""
+          onCitySearchChange={() => { }}
+          maxDistance={100}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
+          citySuggestions={[]}
+          onSelectCity={() => { }}
+          showSuggestions={false}
+          setShowSuggestions={() => { }}
+          isDesktopHidden={true}
+        />
       </div>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 lg:px-8 py-8">

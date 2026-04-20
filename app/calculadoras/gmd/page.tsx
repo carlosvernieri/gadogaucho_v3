@@ -12,6 +12,7 @@ import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
 import { ShareModal } from '@/components/ShareModal';
+import { Sidebar } from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function GMDCalculatorPage() {
@@ -160,6 +161,30 @@ function GMDCalculatorContent() {
           onLogout={() => { logout(); router.push('/'); }}
           onHomeClick={() => router.push('/')}
           onFavoritesClick={() => router.push('/favoritos')}
+        />
+        
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          selectedCategory={null}
+          onSelectCategory={(cat) => {
+            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+            else router.push('/');
+          }}
+          searchQuery=""
+          onSearchChange={() => { }}
+          listingsCount={0}
+          getCategoryCount={() => 0}
+          citySearch=""
+          onCitySearchChange={() => { }}
+          maxDistance={100}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
+          citySuggestions={[]}
+          onSelectCity={() => { }}
+          showSuggestions={false}
+          setShowSuggestions={() => { }}
+          isDesktopHidden={true}
         />
       </div>
 

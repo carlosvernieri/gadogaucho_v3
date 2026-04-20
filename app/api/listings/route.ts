@@ -40,6 +40,48 @@ export async function GET(request: Request) {
       });
       listings = data || [];
       error = rpcError;
+      
+      if (rpcError) {
+        console.error('RPC fallback required: ', rpcError);
+        // Fallback to JS filtering if RPC fails or doesn't exist
+        error = null;
+        let query = (supabaseAdmin.from('listings') as any).select('*, users(name, verified)');
+        query = query.or('sold.eq.false,sold.is.null'); // only active ads
+        if (category) query = query.ilike('category', category);
+        if (search) {
+          if (!isNaN(Number(search))) {
+             query = query.or(`title.ilike.%${search}%,id.eq.${search}`);
+          } else {
+             query = query.ilike('title', `%${search}%`);
+          }
+        }
+        if (verified) query = query.eq('verified', true);
+        query = query.order('id', { ascending: false });
+
+        const { data: allData, error: qError } = await query;
+        if (qError) {
+            error = qError;
+        } else if (allData) {
+            const R = 6371; // km
+            const targetLat = parseFloat(latStr);
+            const targetLng = parseFloat(lngStr);
+            const radius = parseFloat(radiusStr);
+            
+            listings = allData.filter((item: any) => {
+                if (!item.lat || !item.lng) return false;
+                const dLat = (item.lat - targetLat) * Math.PI / 180;
+                const dLng = (item.lng - targetLng) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(targetLat * Math.PI / 180) * Math.cos(item.lat * Math.PI / 180) * 
+                          Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                item.distance_km = R * c;
+                return item.distance_km <= radius;
+            });
+            // Manual pagination for fallback
+            listings = listings.slice(offset, offset + limit);
+        }
+      }
     } else {
       // Standard query
       let query = (supabaseAdmin
