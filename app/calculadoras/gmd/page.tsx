@@ -371,7 +371,7 @@ function GMDCalculatorContent() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Lucro p/ Cabeça</span>
-                  <div className={`text-2xl font-black ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     R$ {calculations.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Margem Líquida</span>
@@ -379,7 +379,7 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Diário</span>
-                  <div className={`text-2xl font-black ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                     R$ {calculations.profitDay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/dia</span>
@@ -387,7 +387,7 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Mensal</span>
-                  <div className={`text-2xl font-black ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                     R$ {calculations.profitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/mês</span>
@@ -395,8 +395,8 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1 bg-[#2D5A27]/5 p-4 rounded-2xl border border-[#2D5A27]/10 -m-4">
                   <span className="text-[10px] font-bold text-[#2D5A27] uppercase tracking-widest block mb-2">Lucro Mensal Lote</span>
-                  <div className={`text-2xl font-black ${calculations.totalBatchProfitMonth >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
-                    R$ {calculations.totalBatchProfitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.totalBatchProfitMonth >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                    R$ {calculations.totalBatchProfitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                   <span className="text-[11px] text-[#2D5A27]/70 font-medium">Total do lote/mês</span>
                 </div>
@@ -406,15 +406,15 @@ function GMDCalculatorContent() {
               <div className="mt-12 p-8 bg-[#F8F9FA] rounded-[2rem] border border-[#E9ECEF] flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col text-center sm:text-left">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-1">Lucro Total do Lote ({inputs.animalCount} animais)</span>
-                  <div className={`text-4xl font-black ${calculations.totalBatchProfit >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
-                    R$ {calculations.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  <div className={`text-3xl font-black ${calculations.totalBatchProfit >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                    R$ {calculations.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div className="h-px w-full sm:h-20 sm:w-px bg-[#E9ECEF]" />
                 <div className="flex flex-col text-center sm:text-right">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-1">Investimento Total Estimado</span>
                   <div className="text-3xl font-bold text-[#333]">
-                    R$ {calculations.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    R$ {calculations.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>
