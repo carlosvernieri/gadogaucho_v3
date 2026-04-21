@@ -14,6 +14,10 @@ interface UserContextType {
   setAuthMode: (mode: 'login' | 'register') => void;
   favorites: number[];
   setFavorites: (favs: number[]) => void;
+  showAdModal: boolean;
+  setShowAdModal: (show: boolean) => void;
+  editingListing: any | null;
+  setEditingListing: (listing: any | null) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -24,6 +28,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [editingListing, setEditingListing] = useState<any | null>(null);
 
   // Buscar perfil completo na tabela pública
   const fetchUserProfile = async (userId: string) => {
@@ -111,7 +117,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       user, setUser, logout, isAuthReady, 
       showAuthModal, setShowAuthModal, 
       authMode, setAuthMode,
-      favorites, setFavorites 
+      favorites, setFavorites,
+      showAdModal, setShowAdModal,
+      editingListing, setEditingListing
     }}>
       {children}
     </UserContext.Provider>

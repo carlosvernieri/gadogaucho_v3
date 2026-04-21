@@ -12,7 +12,20 @@ import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
 import { ShareModal } from '@/components/ShareModal';
+import { Sidebar } from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+  Area,
+  AreaChart
+} from 'recharts';
 
 export default function GMDCalculatorPage() {
   return (
@@ -122,6 +135,47 @@ function GMDCalculatorContent() {
     };
   }, [inputs]);
 
+  // Chart Data: accumulated profit per day for the full lot
+  const chartData = useMemo(() => {
+    const numInputs = {
+      animalCount: parseFloat(inputs.animalCount) || 0,
+      initialWeight: parseFloat(inputs.initialWeight) || 0,
+      finalWeight: parseFloat(inputs.finalWeight) || 0,
+      days: parseFloat(inputs.days) || 0,
+      purchasePriceKg: parseFloat(inputs.purchasePriceKg) || 0,
+      dailyCostHead: parseFloat(inputs.dailyCostHead) || 0,
+      expectedSalePriceKg: parseFloat(inputs.expectedSalePriceKg) || 0,
+    };
+
+    if (numInputs.days <= 0 || numInputs.animalCount <= 0) return [];
+
+    const totalInvestment = numInputs.initialWeight * numInputs.purchasePriceKg * numInputs.animalCount;
+    const dailyCostTotal = numInputs.dailyCostHead * numInputs.animalCount;
+    const gmd = numInputs.days > 0 ? (numInputs.finalWeight - numInputs.initialWeight) / numInputs.days : 0;
+
+    // Generate one point per day (or every N days if period is long)
+    const step = numInputs.days <= 120 ? 1 : Math.ceil(numInputs.days / 120);
+    const points: { dia: number; lucro: number; custo: number; receita: number }[] = [];
+
+    for (let d = 0; d <= numInputs.days; d += step) {
+      const currentWeight = numInputs.initialWeight + gmd * d;
+      const revenueSoFar = currentWeight * numInputs.expectedSalePriceKg * numInputs.animalCount;
+      const costSoFar = totalInvestment + dailyCostTotal * d;
+      const profit = revenueSoFar - costSoFar;
+      points.push({ dia: d, lucro: Math.round(profit), custo: Math.round(costSoFar), receita: Math.round(revenueSoFar) });
+    }
+
+    // Always include the final day
+    if (points[points.length - 1]?.dia !== numInputs.days) {
+      const currentWeight = numInputs.finalWeight;
+      const revenueSoFar = currentWeight * numInputs.expectedSalePriceKg * numInputs.animalCount;
+      const costSoFar = totalInvestment + dailyCostTotal * numInputs.days;
+      points.push({ dia: numInputs.days, lucro: Math.round(revenueSoFar - costSoFar), custo: Math.round(costSoFar), receita: Math.round(revenueSoFar) });
+    }
+
+    return points;
+  }, [inputs]);
+
   const handleInputChange = (field: string, value: string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
   };
@@ -160,6 +214,30 @@ function GMDCalculatorContent() {
           onLogout={() => { logout(); router.push('/'); }}
           onHomeClick={() => router.push('/')}
           onFavoritesClick={() => router.push('/favoritos')}
+        />
+        
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          selectedCategory={null}
+          onSelectCategory={(cat) => {
+            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+            else router.push('/');
+          }}
+          searchQuery=""
+          onSearchChange={() => { }}
+          listingsCount={0}
+          getCategoryCount={() => 0}
+          citySearch=""
+          onCitySearchChange={() => { }}
+          maxDistance={100}
+          onMaxDistanceChange={() => { }}
+          onUseMyLocation={() => { }}
+          citySuggestions={[]}
+          onSelectCity={() => { }}
+          showSuggestions={false}
+          setShowSuggestions={() => { }}
+          isDesktopHidden={true}
         />
       </div>
 
@@ -329,15 +407,18 @@ function GMDCalculatorContent() {
 
             {/* Dashboard Financeiro */}
             <div className="bg-white rounded-[2.5rem] p-8 border border-[#E9ECEF] shadow-sm">
-              <div className="flex items-center justify-between mb-10 pb-6 border-b border-[#F8F9FA]">
-                <h2 className="text-xl font-bold text-[#1A1A1A] flex items-center gap-2">
-                  <PieChart className="text-[#2D5A27]" size={24} /> Resumo Financeiro do Lote
-                </h2>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 bg-[#F8F9FA] border border-[#E9ECEF] text-[#666] rounded-full text-[10px] font-bold uppercase tracking-wider">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-[#F8F9FA] gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1A1A1A] flex items-center gap-2">
+                    <PieChart className="text-[#2D5A27]" size={24} /> Resumo Financeiro do Lote
+                  </h2>
+                  <p className="text-[10px] text-[#999] uppercase tracking-wider font-medium md:hidden">Impacto financeiro estimado</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="px-3 py-1.5 bg-[#F8F9FA] border border-[#E9ECEF] text-[#666] rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap shadow-sm">
                     ROI: {calculations.roi.toFixed(1)}%
                   </div>
-                  <div className="px-4 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-full text-xs font-black uppercase tracking-wider border border-[#2D5A27]/10">
+                  <div className="px-3 py-1.5 bg-[#E9F0E8] text-[#2D5A27] rounded-full text-xs font-black uppercase tracking-wider border border-[#2D5A27]/10 whitespace-nowrap shadow-sm">
                     Rent. Mensal: {calculations.monthlyProfitability.toFixed(2)}%
                   </div>
                 </div>
@@ -346,7 +427,7 @@ function GMDCalculatorContent() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Lucro p/ Cabeça</span>
-                  <div className={`text-2xl font-black ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitPerHead >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     R$ {calculations.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Margem Líquida</span>
@@ -354,7 +435,7 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Diário</span>
-                  <div className={`text-2xl font-black ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitDay >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                     R$ {calculations.profitDay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/dia</span>
@@ -362,7 +443,7 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-2">Resultado Mensal</span>
-                  <div className={`text-2xl font-black ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.profitMonth >= 0 ? 'text-[#333]' : 'text-red-500'}`}>
                     R$ {calculations.profitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <span className="text-[11px] text-[#999] font-medium">Por animal/mês</span>
@@ -370,8 +451,8 @@ function GMDCalculatorContent() {
 
                 <div className="space-y-1 bg-[#2D5A27]/5 p-4 rounded-2xl border border-[#2D5A27]/10 -m-4">
                   <span className="text-[10px] font-bold text-[#2D5A27] uppercase tracking-widest block mb-2">Lucro Mensal Lote</span>
-                  <div className={`text-2xl font-black ${calculations.totalBatchProfitMonth >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
-                    R$ {calculations.totalBatchProfitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  <div className={`text-2xl font-black whitespace-nowrap ${calculations.totalBatchProfitMonth >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                    R$ {calculations.totalBatchProfitMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                   <span className="text-[11px] text-[#2D5A27]/70 font-medium">Total do lote/mês</span>
                 </div>
@@ -381,19 +462,106 @@ function GMDCalculatorContent() {
               <div className="mt-12 p-8 bg-[#F8F9FA] rounded-[2rem] border border-[#E9ECEF] flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col text-center sm:text-left">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-1">Lucro Total do Lote ({inputs.animalCount} animais)</span>
-                  <div className={`text-4xl font-black ${calculations.totalBatchProfit >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
-                    R$ {calculations.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  <div className={`text-3xl font-black ${calculations.totalBatchProfit >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                    R$ {calculations.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div className="h-px w-full sm:h-20 sm:w-px bg-[#E9ECEF]" />
                 <div className="flex flex-col text-center sm:text-right">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-1">Investimento Total Estimado</span>
                   <div className="text-3xl font-bold text-[#333]">
-                    R$ {calculations.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    R$ {calculations.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Gráfico de Evolução do Lucro */}
+            {chartData.length > 0 && (
+              <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-[#E9ECEF] shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
+                      <TrendingUp className="text-[#2D5A27]" size={20} />
+                      Evolução do Lucro do Lote
+                    </h2>
+                    <p className="text-[11px] text-[#999] mt-0.5">Projeção acumulada dia a dia · {inputs.animalCount} animais</p>
+                  </div>
+                  <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded-full bg-[#2D5A27] inline-block" />Lucro</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded-full bg-[#E9ECEF] inline-block border border-[#ccc]" />Custo</span>
+                  </div>
+                </div>
+
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#2D5A27" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradCusto" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.12} />
+                        <stop offset="95%" stopColor="#94A3B8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                    <XAxis
+                      dataKey="dia"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                      tickFormatter={(v) => `Dia ${v}`}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                      tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                      width={52}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: '#1A1A1A',
+                        border: 'none',
+                        borderRadius: '16px',
+                        padding: '12px 16px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                      }}
+                      labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}
+                      itemStyle={{ fontSize: 12, fontWeight: 700 }}
+                      labelFormatter={(v) => `Dia ${v}`}
+                      formatter={(value, name) => [
+                        `R$ ${Number(value ?? 0).toLocaleString('pt-BR')}`,
+                        name === 'lucro' ? 'Lucro Acum.' : 'Custo Acum.'
+                      ]}
+                    />
+                    <ReferenceLine y={0} stroke="#EF4444" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Break-even', position: 'insideTopLeft', fill: '#EF4444', fontSize: 10, fontWeight: 700 }} />
+                    <Area type="monotone" dataKey="custo" stroke="#CBD5E1" strokeWidth={1.5} fill="url(#gradCusto)" dot={false} />
+                    <Area type="monotone" dataKey="lucro" stroke="#2D5A27" strokeWidth={2.5} fill="url(#gradLucro)" dot={false} activeDot={{ r: 5, fill: '#2D5A27', strokeWidth: 2, stroke: '#fff' }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+                {/* Break-even insight */}
+                {(() => {
+                  const breakEvenPoint = chartData.find((p, i) => i > 0 && chartData[i - 1].lucro < 0 && p.lucro >= 0);
+                  return breakEvenPoint ? (
+                    <p className="text-center text-xs text-[#666] mt-4 font-medium">
+                      📍 O lote começa a gerar lucro por volta do <strong className="text-[#2D5A27]">dia {breakEvenPoint.dia}</strong>
+                    </p>
+                  ) : chartData[0]?.lucro >= 0 ? (
+                    <p className="text-center text-xs text-emerald-600 mt-4 font-medium">
+                      ✅ O lote já começa com saldo positivo desde o primeiro dia.
+                    </p>
+                  ) : (
+                    <p className="text-center text-xs text-red-500 mt-4 font-medium">
+                      ⚠️ Com os parâmetros atuais, o lote não atingirá o break-even no período informado.
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Alerta de Estratégia */}
             <div className="p-6 bg-[#2171B5]/5 border border-[#2171B5]/10 rounded-3xl flex items-start gap-4">

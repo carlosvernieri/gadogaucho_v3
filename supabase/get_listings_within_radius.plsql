@@ -20,7 +20,7 @@ RETURNS TABLE (
   location TEXT, 
   lat FLOAT, 
   lng FLOAT, 
-  user_id BIGINT, 
+  user_id TEXT, 
   image TEXT, 
   description TEXT, 
   images JSONB, 

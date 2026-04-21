@@ -31,6 +31,7 @@ import { ToastContainer } from '@/components/ConfirmModal';
 import { AuthModal } from '@/components/AuthModal';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { Footer } from '@/components/Footer';
+import { AdModal } from '@/components/AdModal';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <Footer />
             <AuthModal />
+            <AdModal />
             <ToastContainer />
           </LoadingProvider>
         </UserProvider>

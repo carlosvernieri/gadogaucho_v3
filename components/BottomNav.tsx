@@ -3,23 +3,35 @@
 import React from 'react';
 import { Home, Heart, MessageSquare, PlusCircle, User, Megaphone } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 
 interface BottomNavProps {
-  user: any;
-  onAdClick: () => void;
-  onAuthClick: () => void;
+  user?: any;
+  onAdClick?: () => void;
+  onAuthClick?: () => void;
 }
 
-export const BottomNav = ({ user, onAdClick, onAuthClick }: BottomNavProps) => {
+export const BottomNav = ({ user: defaultUser, onAdClick: defaultOnAdClick, onAuthClick: defaultOnAuthClick }: BottomNavProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal } = useUser();
+  const user = defaultUser || contextUser;
+
+  const handleAuth = () => {
+    setAuthMode('login');
+    setShowAuthModal(true);
+  };
+
+  const handleAd = () => {
+    setShowAdModal(true);
+  };
 
   const navItems = [
     { icon: Home, label: 'Início', path: '/', action: () => router.push('/') },
-    { icon: Heart, label: 'Favoritos', path: '/favoritos', action: () => user ? router.push('/favoritos') : onAuthClick() },
-    ...(user ? [{ icon: PlusCircle, label: 'Anunciar', path: null, action: onAdClick, primary: true }] : []),
-    { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', action: () => user ? router.push('/mensagens') : onAuthClick() },
-    { icon: Megaphone, label: 'Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : onAuthClick() },
+    { icon: Heart, label: 'Favoritos', path: '/favoritos', action: () => user ? router.push('/favoritos') : handleAuth() },
+    ...(user ? [{ icon: PlusCircle, label: 'Anunciar', path: null, action: handleAd, primary: true }] : []),
+    { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', action: () => user ? router.push('/mensagens') : handleAuth() },
+    { icon: Megaphone, label: 'Anúncios', path: '/meus-anuncios', action: () => user ? router.push('/meus-anuncios') : handleAuth() },
   ];
 
   return (

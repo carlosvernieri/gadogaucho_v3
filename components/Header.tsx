@@ -5,13 +5,15 @@ import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageS
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useUser } from '@/context/UserContext';
+
 interface HeaderProps {
-  user: any;
-  onMenuClick: () => void;
-  onAuthClick: (mode: 'login' | 'register') => void;
-  onAdClick: () => void;
-  onAdminClick: () => void;
-  onLogout: () => void;
+  user?: any;
+  onMenuClick?: () => void;
+  onAuthClick?: (mode: 'login' | 'register') => void;
+  onAdClick?: () => void;
+  onAdminClick?: () => void;
+  onLogout?: () => void;
   onHomeClick: () => void;
   onFavoritesClick: () => void;
   onMyAdsClick?: () => void;
@@ -19,18 +21,41 @@ interface HeaderProps {
 }
 
 export const Header = ({
-  user,
+  user: defaultUser,
   onMenuClick,
-  onAuthClick,
-  onAdClick,
+  onAuthClick: defaultOnAuthClick,
+  onAdClick: defaultOnAdClick,
   onAdminClick,
-  onLogout,
+  onLogout: defaultOnLogout,
   onHomeClick,
   onFavoritesClick,
   onMyAdsClick,
   onMessagesClick
 }: HeaderProps) => {
   const router = useRouter();
+  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal, logout } = useUser();
+  const user = defaultUser || contextUser;
+
+  const handleAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
+  };
+
+  const handleAd = () => {
+    setShowAdModal(true);
+  };
+
+  const handleLogout = () => {
+    if (defaultOnLogout) defaultOnLogout();
+    logout();
+    router.push('/');
+  };
+
+  const handleHome = () => {
+    if (onHomeClick) onHomeClick();
+    router.push('/');
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-3 sm:px-4 lg:px-8 py-4">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
@@ -41,7 +66,7 @@ export const Header = ({
           >
             <Menu size={22} className="sm:w-6 sm:h-6" />
           </button>
-          <div className="flex items-center gap-2 cursor-pointer" onClick={onHomeClick}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={handleHome}>
             <div className="hidden sm:flex w-10 h-10 bg-[#2D5A27] rounded-xl items-center justify-center text-white">
               <LayoutGrid size={22} className="sm:w-6 sm:h-6" />
             </div>
@@ -81,7 +106,7 @@ export const Header = ({
           {user ? (
             <div className="flex items-center gap-4">
               <button
-                onClick={onAdClick}
+                onClick={handleAd}
                 className="hidden sm:flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-white rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 <Megaphone size={18} /> Anuncie aqui
@@ -92,7 +117,7 @@ export const Header = ({
 
                 {user.is_admin && (
                   <button
-                    onClick={() => router.push('/admin')}
+                    onClick={onAdminClick || (() => router.push('/admin'))}
                     className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-bold"
                     title="Painel Administrativo"
                   >
@@ -101,7 +126,7 @@ export const Header = ({
                   </button>
                 )}
                 <button
-                  onClick={onMyAdsClick}
+                  onClick={onMyAdsClick || (() => router.push('/meus-anuncios'))}
                   className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Meus Anúncios"
                 >
@@ -117,7 +142,7 @@ export const Header = ({
                   <span className="hidden xl:inline">Mensagens</span>
                 </button>
                 <button
-                  onClick={onFavoritesClick}
+                  onClick={onFavoritesClick || (() => router.push('/favoritos'))}
                   className="p-2 text-[#666] hover:bg-red-50 hover:text-[#DC3545] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Meus Favoritos"
                 >
@@ -131,7 +156,7 @@ export const Header = ({
               </div>
               <div className="flex flex-row-reverse sm:flex-row items-center gap-3">
                 <button
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   className="p-2 text-[#999] hover:text-[#333] transition-colors cursor-pointer"
                 >
                   <LogOut size={20} />
@@ -141,13 +166,13 @@ export const Header = ({
           ) : (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onAuthClick('register')}
+                onClick={() => handleAuth('register')}
                 className="hidden sm:flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-white rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 <Megaphone size={18} /> Anuncie aqui
               </button>
               <button
-                onClick={() => onAuthClick('login')}
+                onClick={() => handleAuth('login')}
                 className="flex items-center gap-2 px-3.5 py-2 sm:px-6 sm:py-2.5 bg-[#2D5A27] text-[#FFF] rounded-lg text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
               >
                 Entrar
