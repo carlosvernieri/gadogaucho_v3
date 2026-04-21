@@ -308,8 +308,8 @@ function ProteinadoCalculatorContent() {
 
               {/* Formulação Status */}
               <div className={`mb-5 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${calculations.isFormulationValid
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
                 }`}>
                 <span>Total: {calculations.totalQty.toFixed(1)} kg / 100 kg</span>
                 {calculations.isFormulationValid
@@ -437,8 +437,8 @@ function ProteinadoCalculatorContent() {
               </div>
             </div>
 
-            {/* Lot Data - Mobile only */}
-            <div className="lg:hidden bg-white rounded-[2rem] p-5 sm:p-6 border border-[#E9ECEF] shadow-sm">
+            {/* Lot Data */}
+            <div className="bg-white rounded-[2rem] p-5 sm:p-6 border border-[#E9ECEF] shadow-sm">
               <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
                 <Beef size={18} className="text-[#8B4513]" /> Dados do Lote
               </h2>
@@ -484,46 +484,6 @@ function ProteinadoCalculatorContent() {
 
           {/* Right Column - Results (7/12) */}
           <div className="lg:col-span-7 space-y-6">
-
-            {/* Lot Data - Desktop only (appears above nutrition cards) */}
-            <div className="hidden lg:block bg-white rounded-[2rem] p-5 sm:p-6 border border-[#E9ECEF] shadow-sm">
-              <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
-                <Beef size={18} className="text-[#8B4513]" /> Dados do Lote
-              </h2>
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Nº de Animais</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={lotData.animals}
-                    onChange={(e) => setLotData(p => ({ ...p, animals: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Peso Médio (kg)</label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={lotData.avgWeight}
-                    onChange={(e) => setLotData(p => ({ ...p, avgWeight: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Consumo (% PV)</label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={lotData.consumptionRate}
-                    onChange={(e) => setLotData(p => ({ ...p, consumptionRate: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Nutrition & Cost Cards */}
             <div className="grid sm:grid-cols-2 gap-6">
@@ -658,8 +618,8 @@ function ProteinadoCalculatorContent() {
                         <tr
                           key={row.rate}
                           className={`transition-colors ${isActive
-                              ? 'bg-[#2D5A27]/5 ring-1 ring-inset ring-[#2D5A27]/20'
-                              : 'hover:bg-[#FAFAFA]'
+                            ? 'bg-[#2D5A27]/5 ring-1 ring-inset ring-[#2D5A27]/20'
+                            : 'hover:bg-[#FAFAFA]'
                             }`}
                         >
                           <td className={`px-3 py-2.5 font-black ${isActive ? 'text-[#2D5A27]' : 'text-[#333]'}`}>
@@ -829,19 +789,19 @@ function ProteinadoCalculatorContent() {
                           boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                         }}
                         labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 4 }}
-                        formatter={(value: number, name: string) => [
-                          `${value.toFixed(1)} kg`,
-                          name === 'pasto' ? 'Somente Pasto' : 'Com Suplemento'
+                        formatter={(value: any, name: any) => [
+                          `${Number(value ?? 0).toFixed(1)} kg`,
+                          String(name) === 'pasto' ? 'Somente Pasto' : 'Com Suplemento'
                         ]}
-                        labelFormatter={(label: string) => {
-                          const point = projectionData.find(p => p.name === label);
-                          return `${label} ${point?.isDry ? '(Seca)' : '(Águas)'}`;
+                        labelFormatter={(label: any) => {
+                          const point = projectionData.find(p => p.name === String(label));
+                          return `${String(label)} ${point?.isDry ? '(Seca)' : '(Águas)'}`;
                         }}
                       />
                       <Legend
                         verticalAlign="top"
                         height={36}
-                        formatter={(value: string) => value === 'pasto' ? 'Somente a Pasto' : 'Com Proteinado'}
+                        formatter={(value: any) => String(value) === 'pasto' ? 'Somente a Pasto' : 'Com Proteinado'}
                       />
                       <Area
                         type="monotone"
