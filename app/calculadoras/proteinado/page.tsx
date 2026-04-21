@@ -6,7 +6,7 @@ import {
   Calculator, Loader2, Share2, Check, Info,
   Plus, Trash2, ChevronDown, FlaskConical,
   Scale, Wallet, AlertTriangle, ShieldCheck,
-  DollarSign, Beef
+  DollarSign, Beef, TrendingUp, Droplets, Sun
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -22,7 +22,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell
+  Cell,
+  AreaChart,
+  Area,
+  Legend,
+  ReferenceLine
 } from 'recharts';
 
 // --- Catálogo de Ingredientes com valores nutricionais fixos ---
@@ -39,7 +43,7 @@ const INGREDIENT_CATALOG = [
   { id: 'ureia_protegida', name: 'Ureia protegida', defaultBagKg: 25, defaultPrice: 120, proteina: 256, ndt: 0 },
   { id: 'sal_branco', name: 'Sal branco', defaultBagKg: 25, defaultPrice: 25.5, proteina: 0, ndt: 0 },
   { id: 'sal_mineral', name: 'Sal mineral', defaultBagKg: 25, defaultPrice: 65, proteina: 0, ndt: 0 },
-  { id: 'nucleo', name: 'Núcleo mineral', defaultBagKg: 25, defaultPrice: 82, proteina: 0, ndt: 0 },
+  { id: 'nucleo', name: 'Núcleo mineral Supra 40/30% sal', defaultBagKg: 25, defaultPrice: 82, proteina: 0, ndt: 0 },
   { id: 'fosfato_bicalcico', name: 'Fosfato bicálcico', defaultBagKg: 25, defaultPrice: 95, proteina: 0, ndt: 0 },
   { id: 'calcario', name: 'Calcário calcítico', defaultBagKg: 25, defaultPrice: 12, proteina: 0, ndt: 0 },
   { id: 'enxofre', name: 'Enxofre ventilado', defaultBagKg: 25, defaultPrice: 45, proteina: 0, ndt: 0 },
@@ -303,11 +307,10 @@ function ProteinadoCalculatorContent() {
               </h2>
 
               {/* Formulação Status */}
-              <div className={`mb-5 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${
-                calculations.isFormulationValid
+              <div className={`mb-5 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between ${calculations.isFormulationValid
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : 'bg-amber-50 text-amber-700 border border-amber-200'
-              }`}>
+                }`}>
                 <span>Total: {calculations.totalQty.toFixed(1)} kg / 100 kg</span>
                 {calculations.isFormulationValid
                   ? <ShieldCheck size={16} />
@@ -610,6 +613,282 @@ function ProteinadoCalculatorContent() {
                 </div>
               </div>
             </div>
+
+            {/* Estimated Weight Gain Reference Table */}
+            <div className="bg-white rounded-[2.5rem] p-6 sm:p-7 border border-[#E9ECEF] shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 pb-5 border-b border-[#F8F9FA] gap-3">
+                <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
+                  <TrendingUp className="text-[#2D5A27]" size={22} /> Ganho Adicional com Suplemento
+                </h2>
+                <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Ganho extra por faixa de consumo</span>
+              </div>
+
+              <p className="text-xs text-[#666] mb-5 leading-relaxed">
+                Ganho de peso <strong>adicional</strong> proporcionado pelo suplemento, além do que o animal já ganharia somente a pasto.
+                Na <strong>seca</strong>, o pasto sozinho mantém ou perde peso (base ≈ 0 kg/dia). Nas <strong>águas</strong>, o pasto bom já proporciona ~0,4–0,5 kg/dia.
+              </p>
+
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-[11px] min-w-[520px]">
+                  <thead>
+                    <tr className="border-b-2 border-[#E9ECEF]">
+                      <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Consumo (% PV)</th>
+                      <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Tipo</th>
+                      <th className="text-center px-3 py-2.5 font-bold uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 text-amber-600"><Sun size={12} /> +Seca</span>
+                      </th>
+                      <th className="text-center px-3 py-2.5 font-bold uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 text-blue-600"><Droplets size={12} /> +Águas</span>
+                      </th>
+                      <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Objetivo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1F3F5]">
+                    {[
+                      { rate: 0.1, type: 'Sal proteinado', gmdSeca: '+0,10 – 0,25', gmdChuva: '+0,05 – 0,15', obj: 'Evitar perda na seca' },
+                      { rate: 0.2, type: 'Sal proteinado (alto)', gmdSeca: '+0,20 – 0,40', gmdChuva: '+0,10 – 0,25', obj: 'Ganho moderado' },
+                      { rate: 0.3, type: 'Proteico-energético', gmdSeca: '+0,30 – 0,50', gmdChuva: '+0,20 – 0,35', obj: 'Recria' },
+                      { rate: 0.4, type: 'Proteico-energético', gmdSeca: '+0,40 – 0,60', gmdChuva: '+0,30 – 0,45', obj: 'Recria intensiva' },
+                      { rate: 0.5, type: 'Supl. energético', gmdSeca: '+0,50 – 0,80', gmdChuva: '+0,40 – 0,60', obj: 'Semiconfinamento' },
+                      { rate: 1.0, type: 'Ração / semiconf.', gmdSeca: '+0,80 – 1,20', gmdChuva: '+0,60 – 0,90', obj: 'Terminação' },
+                    ].map((row) => {
+                      const currentRate = parseFloat(lotData.consumptionRate) || 0;
+                      const isActive = Math.abs(currentRate - row.rate) < 0.05;
+                      return (
+                        <tr
+                          key={row.rate}
+                          className={`transition-colors ${isActive
+                              ? 'bg-[#2D5A27]/5 ring-1 ring-inset ring-[#2D5A27]/20'
+                              : 'hover:bg-[#FAFAFA]'
+                            }`}
+                        >
+                          <td className={`px-3 py-2.5 font-black ${isActive ? 'text-[#2D5A27]' : 'text-[#333]'}`}>
+                            {row.rate.toFixed(1)}%
+                            {isActive && <span className="ml-1.5 text-[8px] font-bold bg-[#2D5A27] text-white px-1.5 py-0.5 rounded-full align-middle">ATUAL</span>}
+                          </td>
+                          <td className="px-3 py-2.5 text-[#666] font-medium">{row.type}</td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className={`font-bold ${isActive ? 'text-amber-700' : 'text-amber-600'}`}>{row.gmdSeca}</span>
+                            <span className="text-[#999] ml-0.5">kg/dia</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className={`font-bold ${isActive ? 'text-blue-700' : 'text-blue-600'}`}>{row.gmdChuva}</span>
+                            <span className="text-[#999] ml-0.5">kg/dia</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-[#666] font-medium">{row.obj}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-5 p-4 bg-[#F8F9FA] border border-[#E9ECEF] rounded-2xl flex gap-3">
+                <Info size={16} className="text-[#2D5A27] shrink-0 mt-0.5" />
+                <p className="text-[10px] text-[#666] leading-relaxed italic">
+                  <strong className="text-[#333]">Valores representam o ganho extra</strong> do suplemento sobre o que o animal já ganharia somente a pasto.
+                  Na <strong className="text-[#333]">seca</strong> (base ≈ 0 kg/dia), o suplemento é praticamente todo o ganho.
+                  Nas <strong className="text-[#333]">águas</strong> (base ≈ 0,4–0,5 kg/dia), o ganho adicional é menor pois o pasto já supre boa parte da demanda — mas o efeito combinado gera GMD total superior.
+                </p>
+              </div>
+            </div>
+
+            {/* Weight Gain Projection Chart */}
+            {(() => {
+              const gainReference = [
+                { rate: 0.1, secaMin: 0.10, secaMax: 0.25, chuvaMin: 0.05, chuvaMax: 0.15 },
+                { rate: 0.2, secaMin: 0.20, secaMax: 0.40, chuvaMin: 0.10, chuvaMax: 0.25 },
+                { rate: 0.3, secaMin: 0.30, secaMax: 0.50, chuvaMin: 0.20, chuvaMax: 0.35 },
+                { rate: 0.4, secaMin: 0.40, secaMax: 0.60, chuvaMin: 0.30, chuvaMax: 0.45 },
+                { rate: 0.5, secaMin: 0.50, secaMax: 0.80, chuvaMin: 0.40, chuvaMax: 0.60 },
+                { rate: 1.0, secaMin: 0.80, secaMax: 1.20, chuvaMin: 0.60, chuvaMax: 0.90 },
+              ];
+
+              const currentRate = parseFloat(lotData.consumptionRate) || 0;
+              const startWeight = parseFloat(lotData.avgWeight) || 225;
+
+              let bestMatch = gainReference[0];
+              let bestDist = Math.abs(currentRate - gainReference[0].rate);
+              for (const ref of gainReference) {
+                const dist = Math.abs(currentRate - ref.rate);
+                if (dist < bestDist) {
+                  bestDist = dist;
+                  bestMatch = ref;
+                }
+              }
+
+              const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+              const now = new Date();
+              const startMonth = now.getMonth();
+              const isDryMonth = (monthIdx: number) => monthIdx >= 4 && monthIdx <= 8;
+
+              let pastureWeight = startWeight;
+              let supplementWeight = startWeight;
+              const projectionData: { name: string; mes: number; pasto: number; suplemento: number; isDry: boolean }[] = [];
+
+              projectionData.push({
+                name: monthNames[startMonth],
+                mes: 0,
+                pasto: Math.round(pastureWeight * 10) / 10,
+                suplemento: Math.round(supplementWeight * 10) / 10,
+                isDry: isDryMonth(startMonth),
+              });
+
+              for (let i = 1; i <= 12; i++) {
+                const monthIdx = (startMonth + i) % 12;
+                const dry = isDryMonth(monthIdx);
+                const daysInMonth = 30;
+                const pastureGMD = dry ? 0.0 : 0.45;
+                const suppGainExtra = dry
+                  ? (bestMatch.secaMin + bestMatch.secaMax) / 2
+                  : (bestMatch.chuvaMin + bestMatch.chuvaMax) / 2;
+
+                pastureWeight += pastureGMD * daysInMonth;
+                supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
+
+                projectionData.push({
+                  name: monthNames[monthIdx],
+                  mes: i,
+                  pasto: Math.round(pastureWeight * 10) / 10,
+                  suplemento: Math.round(supplementWeight * 10) / 10,
+                  isDry: dry,
+                });
+              }
+
+              const finalDifference = (supplementWeight - pastureWeight).toFixed(0);
+              const lastPasture = projectionData[projectionData.length - 1].pasto;
+              const lastSupplement = projectionData[projectionData.length - 1].suplemento;
+
+              return (
+                <div className="bg-white rounded-[2.5rem] p-6 sm:p-7 border border-[#E9ECEF] shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 pb-5 border-b border-[#F8F9FA] gap-3">
+                    <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
+                      <TrendingUp className="text-[#2D5A27]" size={22} /> Projeção de Peso — 12 Meses
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Consumo:</span>
+                      <span className="text-xs font-black text-[#2D5A27] bg-[#2D5A27]/10 px-2.5 py-1 rounded-full">
+                        {currentRate.toFixed(1)}% PV
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#666] mb-5 leading-relaxed">
+                    Evolução estimada do peso médio dos animais ao longo de 12 meses.
+                    Linha <strong className="text-amber-600">amber tracejada</strong> = somente a pasto. Linha <strong className="text-[#2D5A27]">verde</strong> = com proteinado.
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="bg-[#F8F9FA] rounded-xl p-3 text-center border border-[#E9ECEF]">
+                      <div className="text-[9px] font-bold text-[#999] uppercase tracking-wider mb-1">Peso Inicial</div>
+                      <div className="text-lg font-black text-[#333]">{startWeight}<span className="text-xs text-[#999] font-bold"> kg</span></div>
+                    </div>
+                    <div className="bg-[#FFF7ED] rounded-xl p-3 text-center border border-amber-200">
+                      <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Só Pasto (12m)</div>
+                      <div className="text-lg font-black text-amber-700">{lastPasture}<span className="text-xs text-amber-500 font-bold"> kg</span></div>
+                    </div>
+                    <div className="bg-[#E9F0E8] rounded-xl p-3 text-center border border-[#2D5A27]/20">
+                      <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-1">Com Suplemento</div>
+                      <div className="text-lg font-black text-[#2D5A27]">{lastSupplement}<span className="text-xs text-[#2D5A27]/60 font-bold"> kg</span></div>
+                    </div>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height={320}>
+                    <AreaChart data={projectionData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gradPasto" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="gradSuplemento" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#2D5A27" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                      <XAxis
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={{ stroke: '#E9ECEF' }}
+                        tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }}
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                        tickFormatter={(v: number) => `${v}kg`}
+                        domain={['dataMin - 10', 'dataMax + 10']}
+                        width={55}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#1A1A1A',
+                          border: 'none',
+                          borderRadius: '16px',
+                          padding: '12px 16px',
+                          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                        }}
+                        labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 4 }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(1)} kg`,
+                          name === 'pasto' ? 'Somente Pasto' : 'Com Suplemento'
+                        ]}
+                        labelFormatter={(label: string) => {
+                          const point = projectionData.find(p => p.name === label);
+                          return `${label} ${point?.isDry ? '(Seca)' : '(Águas)'}`;
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        height={36}
+                        formatter={(value: string) => value === 'pasto' ? 'Somente a Pasto' : 'Com Proteinado'}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="pasto"
+                        stroke="#D97706"
+                        strokeWidth={2.5}
+                        fill="url(#gradPasto)"
+                        strokeDasharray="6 3"
+                        dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: '#D97706', strokeWidth: 2, stroke: '#fff' }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="suplemento"
+                        stroke="#2D5A27"
+                        strokeWidth={3}
+                        fill="url(#gradSuplemento)"
+                        dot={{ r: 3, fill: '#2D5A27', strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: '#2D5A27', strokeWidth: 2, stroke: '#fff' }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+
+                  <div className="mt-5 p-4 bg-gradient-to-r from-[#2D5A27]/5 to-[#2D5A27]/10 border border-[#2D5A27]/15 rounded-2xl flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#2D5A27] rounded-xl flex items-center justify-center shrink-0">
+                      <TrendingUp className="text-white" size={22} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-[#2D5A27]">
+                        +{finalDifference} kg a mais em 12 meses
+                      </div>
+                      <p className="text-[10px] text-[#666] mt-0.5">
+                        com suplementação a {currentRate.toFixed(1)}% PV vs somente a pasto
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] text-[#999] font-medium">
+                    <Sun size={12} className="text-amber-500" />
+                    <span>Seca (Mai–Set): base ≈ 0 kg/dia</span>
+                    <span className="mx-1">·</span>
+                    <Droplets size={12} className="text-blue-500" />
+                    <span>Águas (Out–Abr): ~0,45 kg/dia</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Cost Chart */}
             {chartData.length > 0 && (
