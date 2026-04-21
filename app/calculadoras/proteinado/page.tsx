@@ -98,7 +98,8 @@ function ProteinadoCalculatorContent() {
   // Lot data
   const [lotData, setLotData] = useState({
     animals: '41',
-    avgWeight: '225',
+    startWeight: '180',
+    endWeight: '270',
     consumptionRate: '0.1',
     sellPrice: '14.50',
   });
@@ -141,7 +142,9 @@ function ProteinadoCalculatorContent() {
     const costPerBag25 = costPerKg * 25;
 
     const animals = parseFloat(lotData.animals) || 0;
-    const avgWeight = parseFloat(lotData.avgWeight) || 0;
+    const startWt = parseFloat(lotData.startWeight) || 0;
+    const endWt = parseFloat(lotData.endWeight) || 0;
+    const avgWeight = (startWt + endWt) / 2;
     const consumptionRate = parseFloat(lotData.consumptionRate) || 0;
 
     const dailyConsumptionKg = (avgWeight * animals * consumptionRate) / 100;
@@ -456,15 +459,29 @@ function ProteinadoCalculatorContent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Peso Médio (kg)</label>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Peso Inicial (kg)</label>
                     <input
                       type="number"
                       inputMode="numeric"
-                      value={lotData.avgWeight}
-                      onChange={(e) => setLotData(p => ({ ...p, avgWeight: e.target.value }))}
+                      value={lotData.startWeight}
+                      onChange={(e) => setLotData(p => ({ ...p, startWeight: e.target.value }))}
                       className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Peso Final (kg)</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={lotData.endWeight}
+                      onChange={(e) => setLotData(p => ({ ...p, endWeight: e.target.value }))}
+                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                    />
+                  </div>
+                </div>
+                <div className="px-3 py-2 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF] flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-[#999] uppercase">Peso Médio (custo)</span>
+                  <span className="text-sm font-black text-[#333]">{(((parseFloat(lotData.startWeight) || 0) + (parseFloat(lotData.endWeight) || 0)) / 2).toFixed(0)} kg</span>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Consumo (% do PV)</label>
@@ -678,7 +695,7 @@ function ProteinadoCalculatorContent() {
               ];
 
               const currentRate = parseFloat(lotData.consumptionRate) || 0;
-              const startWeight = parseFloat(lotData.avgWeight) || 225;
+              const startWeight = parseFloat(lotData.startWeight) || 180;
 
               let bestMatch = gainReference[0];
               let bestDist = Math.abs(currentRate - gainReference[0].rate);
