@@ -100,6 +100,7 @@ function ProteinadoCalculatorContent() {
     animals: '41',
     avgWeight: '225',
     consumptionRate: '0.1',
+    sellPrice: '14.50',
   });
 
   // Get catalog info for an ingredient
@@ -477,6 +478,18 @@ function ProteinadoCalculatorContent() {
                   />
                   <p className="text-[10px] text-[#999] mt-1.5 italic">Proteinado típico: 0,05% a 0,15% do peso vivo.</p>
                 </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Preço Venda (R$/kg vivo)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.50"
+                    value={lotData.sellPrice}
+                    onChange={(e) => setLotData(p => ({ ...p, sellPrice: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                  />
+                  <p className="text-[10px] text-[#999] mt-1.5 italic">Preço estimado da @ ou kg vivo na venda.</p>
+                </div>
               </div>
             </div>
 
@@ -838,6 +851,116 @@ function ProteinadoCalculatorContent() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Profit Comparison */}
+                  {(() => {
+                    const sellPrice = parseFloat(lotData.sellPrice) || 0;
+                    const animals = parseFloat(lotData.animals) || 0;
+                    if (sellPrice <= 0 || animals <= 0) return null;
+
+                    const weightGainPasture = lastPasture - startWeight;
+                    const weightGainSupplement = lastSupplement - startWeight;
+                    const extraKg = weightGainSupplement - weightGainPasture;
+
+                    // Revenue from weight gain over 12 months (per animal × animals)
+                    const revenuePasture = weightGainPasture * sellPrice * animals;
+                    const revenueSupplement = weightGainSupplement * sellPrice * animals;
+
+                    // Supplement cost over 12 months
+                    const supplementCost12m = calculations.monthlyCost * 12;
+
+                    // Net profit (revenue minus supplement cost)
+                    const profitPasture = revenuePasture; // no supplement cost
+                    const profitSupplement = revenueSupplement - supplementCost12m;
+                    const profitDifference = profitSupplement - profitPasture;
+
+                    const extraRevenuePerAnimal = extraKg * sellPrice;
+                    const supplementCostPerAnimal = animals > 0 ? supplementCost12m / animals : 0;
+                    const netPerAnimal = extraRevenuePerAnimal - supplementCostPerAnimal;
+
+                    return (
+                      <div className="mt-5 bg-white rounded-2xl border border-[#E9ECEF] overflow-hidden">
+                        <div className="px-5 py-4 bg-gradient-to-r from-[#2D5A27]/5 to-transparent border-b border-[#E9ECEF]">
+                          <h3 className="text-sm font-bold text-[#333] flex items-center gap-2">
+                            <DollarSign size={16} className="text-[#2D5A27]" /> Análise de Lucratividade (12 meses)
+                          </h3>
+                          <p className="text-[10px] text-[#999] mt-1">Preço de venda: R$ {sellPrice.toFixed(2)}/kg vivo · {animals} animais</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 divide-x divide-[#E9ECEF]">
+                          {/* Somente a Pasto */}
+                          <div className="p-5">
+                            <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-amber-500" />
+                              Somente a Pasto
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
+                                <div className="text-base font-black text-[#333]">{weightGainPasture.toFixed(1)} kg</div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
+                                <div className="text-base font-black text-amber-700">R$ {revenuePasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
+                                <div className="text-base font-black text-[#333]">R$ 0</div>
+                              </div>
+                              <div className="pt-2 border-t border-[#F1F3F5]">
+                                <span className="text-[10px] text-[#999] font-medium">Resultado</span>
+                                <div className="text-lg font-black text-amber-700">R$ {profitPasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Com Proteinado */}
+                          <div className="p-5 bg-[#2D5A27]/[0.02]">
+                            <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-[#2D5A27]" />
+                              Com Proteinado
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
+                                <div className="text-base font-black text-[#333]">{weightGainSupplement.toFixed(1)} kg</div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
+                                <div className="text-base font-black text-[#2D5A27]">R$ {revenueSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
+                                <div className="text-base font-black text-red-500">- R$ {supplementCost12m.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                              </div>
+                              <div className="pt-2 border-t border-[#2D5A27]/10">
+                                <span className="text-[10px] text-[#999] font-medium">Resultado</span>
+                                <div className="text-lg font-black text-[#2D5A27]">R$ {profitSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bottom summary */}
+                        <div className={`px-5 py-4 border-t border-[#E9ECEF] flex items-center justify-between ${profitDifference > 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                          <div>
+                            <div className={`text-sm font-black ${profitDifference > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                              {profitDifference > 0 ? '+' : ''}R$ {profitDifference.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {profitDifference > 0 ? 'de lucro extra' : 'de prejuízo'}
+                            </div>
+                            <p className="text-[10px] text-[#666] mt-0.5">
+                              {profitDifference > 0 ? 'O proteinado se paga e gera retorno adicional' : 'O custo do suplemento supera a receita extra gerada'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-xs font-black ${netPerAnimal > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                              {netPerAnimal > 0 ? '+' : ''}R$ {netPerAnimal.toFixed(2)}/cab
+                            </div>
+                            <span className="text-[9px] text-[#999]">retorno líquido</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] text-[#999] font-medium">
                     <Sun size={12} className="text-amber-500" />
