@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Calculator, Loader2, Share2, Check, Info,
   Plus, Trash2, ChevronDown, FlaskConical,
   Scale, Wallet, AlertTriangle, ShieldCheck,
-  DollarSign, Beef, TrendingUp, Droplets, Sun
+  DollarSign, Beef, TrendingUp, Droplets, Sun, Snowflake
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -79,6 +79,7 @@ export default function ProteinadoCalculatorPage() {
 
 function ProteinadoCalculatorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout, setAuthMode, setShowAuthModal } = useUser();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -88,11 +89,11 @@ function ProteinadoCalculatorContent() {
 
   // Default formulation (matching user's spreadsheet)
   const [ingredients, setIngredients] = useState<FormulationIngredient[]>([
-    { catalogId: 'farelo_trigo', bagKg: 25, price: 35, qtyIn100kg: 30 },
-    { catalogId: 'farelo_milho', bagKg: 25, price: 44, qtyIn100kg: 25 },
-    { catalogId: 'ureia', bagKg: 50, price: 160, qtyIn100kg: 13 },
-    { catalogId: 'sal_branco', bagKg: 25, price: 25.5, qtyIn100kg: 7 },
+    { catalogId: 'farelo_milho', bagKg: 25, price: 44, qtyIn100kg: 48 },
+    { catalogId: 'farelo_soja', bagKg: 40, price: 128, qtyIn100kg: 10 },
     { catalogId: 'nucleo', bagKg: 25, price: 82, qtyIn100kg: 25 },
+    { catalogId: 'ureia', bagKg: 50, price: 160, qtyIn100kg: 10 },
+    { catalogId: 'sal_branco', bagKg: 25, price: 25.5, qtyIn100kg: 7 },
   ]);
 
   // Lot data
@@ -100,9 +101,49 @@ function ProteinadoCalculatorContent() {
     animals: '41',
     startWeight: '180',
     endWeight: '270',
-    consumptionRate: '0.1',
+    consumptionRate: '0.2',
     sellPrice: '14.50',
   });
+
+  // Load initial state from URL parameters
+  useEffect(() => {
+    const i = searchParams.get('i');
+    const a = searchParams.get('a');
+    const sw = searchParams.get('sw');
+    const ew = searchParams.get('ew');
+    const c = searchParams.get('c');
+    const s = searchParams.get('s');
+
+    if (i) {
+      try {
+        const parsedIngredients = i.split(',').map(item => {
+          const [catalogId, bagKg, price, qtyIn100kg] = item.split(':');
+          return {
+            catalogId,
+            bagKg: parseFloat(bagKg) || 0,
+            price: parseFloat(price) || 0,
+            qtyIn100kg: parseFloat(qtyIn100kg) || 0,
+          };
+        });
+        if (parsedIngredients.length > 0) {
+          setIngredients(parsedIngredients);
+        }
+      } catch (e) {
+        console.error('Error parsing shared ingredients', e);
+      }
+    }
+
+    if (a || sw || ew || c || s) {
+      setLotData(prev => ({
+        ...prev,
+        animals: a || prev.animals,
+        startWeight: sw || prev.startWeight,
+        endWeight: ew || prev.endWeight,
+        consumptionRate: c || prev.consumptionRate,
+        sellPrice: s || prev.sellPrice,
+      }));
+    }
+  }, [searchParams]);
 
   // Get catalog info for an ingredient
   const getCatalog = (catalogId: string) =>
@@ -182,6 +223,7 @@ function ProteinadoCalculatorContent() {
       daysPerBatch,
       isFormulationValid: Math.abs(totalQty - 100) < 0.01,
       isUreiaSafe: ureiaPercent <= 15,
+      avgWeight,
     };
   }, [ingredients, lotData]);
 
@@ -229,8 +271,10 @@ function ProteinadoCalculatorContent() {
     const data = {
       i: ingredients.map(i => `${i.catalogId}:${i.bagKg}:${i.price}:${i.qtyIn100kg}`).join(','),
       a: lotData.animals,
-      w: lotData.avgWeight,
+      sw: lotData.startWeight,
+      ew: lotData.endWeight,
       c: lotData.consumptionRate,
+      s: lotData.sellPrice,
     };
     const params = new URLSearchParams(data);
     return `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
@@ -302,7 +346,7 @@ function ProteinadoCalculatorContent() {
         <div className="grid lg:grid-cols-12 gap-8 items-start">
 
           {/* Left Column - Inputs (5/12) */}
-          <div className="lg:col-span-5 space-y-6 print:hidden">
+          <div className="lg:col-span-5 space-y-6 print:hidden min-w-0">
 
             {/* Ingredient Table */}
             <div className="bg-white rounded-[2rem] p-5 sm:p-6 border border-[#E9ECEF] shadow-sm">
@@ -367,7 +411,7 @@ function ProteinadoCalculatorContent() {
                             inputMode="numeric"
                             value={ing.bagKg || ''}
                             onChange={(e) => updateIngredient(idx, 'bagKg', e.target.value)}
-                            className="w-full bg-white border border-[#E0E0E0] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                            className="w-full min-w-0 bg-white border border-[#E0E0E0] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                           />
                         </div>
                         <div>
@@ -378,7 +422,7 @@ function ProteinadoCalculatorContent() {
                             step="0.01"
                             value={ing.price || ''}
                             onChange={(e) => updateIngredient(idx, 'price', e.target.value)}
-                            className="w-full bg-white border border-[#E0E0E0] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                            className="w-full min-w-0 bg-white border border-[#E0E0E0] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                           />
                         </div>
                         <div>
@@ -388,7 +432,7 @@ function ProteinadoCalculatorContent() {
                             inputMode="decimal"
                             value={ing.qtyIn100kg || ''}
                             onChange={(e) => updateIngredient(idx, 'qtyIn100kg', e.target.value)}
-                            className="w-full bg-[#FFFDE7] border border-[#F9A825]/30 rounded-lg px-2.5 py-1.5 text-xs font-black text-[#333] outline-none focus:border-[#F9A825]"
+                            className="w-full min-w-0 bg-[#FFFDE7] border border-[#F9A825]/30 rounded-lg px-2.5 py-1.5 text-xs font-black text-[#333] outline-none focus:border-[#F9A825]"
                           />
                         </div>
                       </div>
@@ -455,7 +499,7 @@ function ProteinadoCalculatorContent() {
                       inputMode="numeric"
                       value={lotData.animals}
                       onChange={(e) => setLotData(p => ({ ...p, animals: e.target.value }))}
-                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                      className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
                   <div>
@@ -465,7 +509,7 @@ function ProteinadoCalculatorContent() {
                       inputMode="numeric"
                       value={lotData.startWeight}
                       onChange={(e) => setLotData(p => ({ ...p, startWeight: e.target.value }))}
-                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                      className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
                   <div>
@@ -475,7 +519,7 @@ function ProteinadoCalculatorContent() {
                       inputMode="numeric"
                       value={lotData.endWeight}
                       onChange={(e) => setLotData(p => ({ ...p, endWeight: e.target.value }))}
-                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                      className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                     />
                   </div>
                 </div>
@@ -491,7 +535,7 @@ function ProteinadoCalculatorContent() {
                     step="0.01"
                     value={lotData.consumptionRate}
                     onChange={(e) => setLotData(p => ({ ...p, consumptionRate: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                    className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                   <p className="text-[10px] text-[#999] mt-1.5 italic">Proteinado típico: 0,05% a 0,15% do peso vivo.</p>
                 </div>
@@ -503,7 +547,7 @@ function ProteinadoCalculatorContent() {
                     step="0.50"
                     value={lotData.sellPrice}
                     onChange={(e) => setLotData(p => ({ ...p, sellPrice: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                    className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
                   <p className="text-[10px] text-[#999] mt-1.5 italic">Preço estimado da @ ou kg vivo na venda.</p>
                 </div>
@@ -513,7 +557,7 @@ function ProteinadoCalculatorContent() {
           </div>
 
           {/* Right Column - Results (7/12) */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-6 min-w-0">
 
             {/* Nutrition & Cost Cards */}
             <div className="grid sm:grid-cols-2 gap-6">
@@ -574,7 +618,7 @@ function ProteinadoCalculatorContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#999] uppercase tracking-widest block mb-1">Custo/Cab/Dia</span>
                   <div className="text-2xl font-black text-[#333] whitespace-nowrap">
@@ -613,10 +657,15 @@ function ProteinadoCalculatorContent() {
                 <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Ganho extra por faixa de consumo</span>
               </div>
 
-              <p className="text-xs text-[#666] mb-5 leading-relaxed">
-                Ganho de peso <strong>adicional</strong> proporcionado pelo suplemento, além do que o animal já ganharia somente a pasto.
-                Na <strong>seca</strong>, o pasto sozinho mantém ou perde peso (base ≈ 0 kg/dia). Nas <strong>águas</strong>, o pasto bom já proporciona ~0,4–0,5 kg/dia.
-              </p>
+              <div className="text-xs text-[#666] mb-5 leading-relaxed space-y-3">
+                <p>
+                  Ganho de peso <strong>adicional</strong> proporcionado pelo suplemento, além do que o animal já ganharia somente a pasto.
+                  No <strong>inverno</strong>, o pasto nativo sozinho mantém ou perde peso (base ≈ 0 kg/dia). Nas <strong>demais estações</strong>, o pasto bom já proporciona ~0,4–0,5 kg/dia.
+                </p>
+                <div className="p-3 bg-[#E9F0E8]/50 border border-[#2D5A27]/20 rounded-xl text-[11px]">
+                  <strong className="text-[#2D5A27]">Contexto RS:</strong> Diferente de regiões mais ao centro/norte do país, no Rio Grande do Sul não temos um longo período de "seca". O desafio nutricional equivalente ocorre no <strong>inverno</strong> (meses mais frios de junho, julho, agosto e setembro), marcado por geadas e quando o campo nativo perde qualidade, assumindo que não há pastagens cultivadas de inverno como aveia ou azevém.
+                </div>
+              </div>
 
               <div className="overflow-x-auto -mx-2">
                 <table className="w-full text-[11px] min-w-[520px]">
@@ -625,22 +674,22 @@ function ProteinadoCalculatorContent() {
                       <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Consumo (% PV)</th>
                       <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Tipo</th>
                       <th className="text-center px-3 py-2.5 font-bold uppercase tracking-wider">
-                        <span className="inline-flex items-center gap-1 text-amber-600"><Sun size={12} /> +Seca</span>
+                        <span className="inline-flex items-center gap-1 text-blue-600"><Snowflake size={12} /> +Inverno</span>
                       </th>
                       <th className="text-center px-3 py-2.5 font-bold uppercase tracking-wider">
-                        <span className="inline-flex items-center gap-1 text-blue-600"><Droplets size={12} /> +Águas</span>
+                        <span className="inline-flex items-center gap-1 text-amber-600"><Sun size={12} /> +Verão</span>
                       </th>
                       <th className="text-left px-3 py-2.5 font-bold text-[#999] uppercase tracking-wider">Objetivo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F1F3F5]">
                     {[
-                      { rate: 0.1, type: 'Sal proteinado', gmdSeca: '+0,10 – 0,25', gmdChuva: '+0,05 – 0,15', obj: 'Evitar perda na seca' },
-                      { rate: 0.2, type: 'Sal proteinado (alto)', gmdSeca: '+0,20 – 0,40', gmdChuva: '+0,10 – 0,25', obj: 'Ganho moderado' },
-                      { rate: 0.3, type: 'Proteico-energético', gmdSeca: '+0,30 – 0,50', gmdChuva: '+0,20 – 0,35', obj: 'Recria' },
-                      { rate: 0.4, type: 'Proteico-energético', gmdSeca: '+0,40 – 0,60', gmdChuva: '+0,30 – 0,45', obj: 'Recria intensiva' },
-                      { rate: 0.5, type: 'Supl. energético', gmdSeca: '+0,50 – 0,80', gmdChuva: '+0,40 – 0,60', obj: 'Semiconfinamento' },
-                      { rate: 1.0, type: 'Ração / semiconf.', gmdSeca: '+0,80 – 1,20', gmdChuva: '+0,60 – 0,90', obj: 'Terminação' },
+                      { rate: 0.1, type: 'Sal proteinado', gmdInverno: '+0,10 – 0,25', gmdVerao: '+0,05 – 0,15', obj: 'Manutenção no inverno' },
+                      { rate: 0.2, type: 'Sal proteinado (alto)', gmdInverno: '+0,20 – 0,40', gmdVerao: '+0,10 – 0,25', obj: 'Ganho moderado' },
+                      { rate: 0.3, type: 'Proteico-energético', gmdInverno: '+0,30 – 0,50', gmdVerao: '+0,20 – 0,35', obj: 'Recria' },
+                      { rate: 0.4, type: 'Proteico-energético', gmdInverno: '+0,40 – 0,60', gmdVerao: '+0,30 – 0,45', obj: 'Recria intensiva' },
+                      { rate: 0.5, type: 'Supl. energético', gmdInverno: '+0,50 – 0,80', gmdVerao: '+0,40 – 0,60', obj: 'Semiconfinamento' },
+                      { rate: 1.0, type: 'Ração / semiconf.', gmdInverno: '+0,80 – 1,20', gmdVerao: '+0,60 – 0,90', obj: 'Terminação' },
                     ].map((row) => {
                       const currentRate = parseFloat(lotData.consumptionRate) || 0;
                       const isActive = Math.abs(currentRate - row.rate) < 0.05;
@@ -658,11 +707,11 @@ function ProteinadoCalculatorContent() {
                           </td>
                           <td className="px-3 py-2.5 text-[#666] font-medium">{row.type}</td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className={`font-bold ${isActive ? 'text-amber-700' : 'text-amber-600'}`}>{row.gmdSeca}</span>
+                            <span className={`font-bold ${isActive ? 'text-blue-700' : 'text-blue-600'}`}>{row.gmdInverno}</span>
                             <span className="text-[#999] ml-0.5">kg/dia</span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className={`font-bold ${isActive ? 'text-blue-700' : 'text-blue-600'}`}>{row.gmdChuva}</span>
+                            <span className={`font-bold ${isActive ? 'text-amber-700' : 'text-amber-600'}`}>{row.gmdVerao}</span>
                             <span className="text-[#999] ml-0.5">kg/dia</span>
                           </td>
                           <td className="px-3 py-2.5 text-[#666] font-medium">{row.obj}</td>
@@ -677,8 +726,8 @@ function ProteinadoCalculatorContent() {
                 <Info size={16} className="text-[#2D5A27] shrink-0 mt-0.5" />
                 <p className="text-[10px] text-[#666] leading-relaxed italic">
                   <strong className="text-[#333]">Valores representam o ganho extra</strong> do suplemento sobre o que o animal já ganharia somente a pasto.
-                  Na <strong className="text-[#333]">seca</strong> (base ≈ 0 kg/dia), o suplemento é praticamente todo o ganho.
-                  Nas <strong className="text-[#333]">águas</strong> (base ≈ 0,4–0,5 kg/dia), o ganho adicional é menor pois o pasto já supre boa parte da demanda — mas o efeito combinado gera GMD total superior.
+                  No <strong className="text-[#333]">inverno</strong> (base ≈ 0 kg/dia), o suplemento é praticamente todo o ganho.
+                  No <strong className="text-[#333]">verão/primavera</strong> (base ≈ 0,4–0,5 kg/dia), o ganho adicional é menor pois o pasto já supre boa parte da demanda — mas o efeito combinado gera GMD total superior.
                 </p>
               </div>
             </div>
@@ -686,12 +735,12 @@ function ProteinadoCalculatorContent() {
             {/* Weight Gain Projection Chart */}
             {(() => {
               const gainReference = [
-                { rate: 0.1, secaMin: 0.10, secaMax: 0.25, chuvaMin: 0.05, chuvaMax: 0.15 },
-                { rate: 0.2, secaMin: 0.20, secaMax: 0.40, chuvaMin: 0.10, chuvaMax: 0.25 },
-                { rate: 0.3, secaMin: 0.30, secaMax: 0.50, chuvaMin: 0.20, chuvaMax: 0.35 },
-                { rate: 0.4, secaMin: 0.40, secaMax: 0.60, chuvaMin: 0.30, chuvaMax: 0.45 },
-                { rate: 0.5, secaMin: 0.50, secaMax: 0.80, chuvaMin: 0.40, chuvaMax: 0.60 },
-                { rate: 1.0, secaMin: 0.80, secaMax: 1.20, chuvaMin: 0.60, chuvaMax: 0.90 },
+                { rate: 0.1, invernoMin: 0.10, invernoMax: 0.25, veraoMin: 0.05, veraoMax: 0.15 },
+                { rate: 0.2, invernoMin: 0.20, invernoMax: 0.40, veraoMin: 0.10, veraoMax: 0.25 },
+                { rate: 0.3, invernoMin: 0.30, invernoMax: 0.50, veraoMin: 0.20, veraoMax: 0.35 },
+                { rate: 0.4, invernoMin: 0.40, invernoMax: 0.60, veraoMin: 0.30, veraoMax: 0.45 },
+                { rate: 0.5, invernoMin: 0.50, invernoMax: 0.80, veraoMin: 0.40, veraoMax: 0.60 },
+                { rate: 1.0, invernoMin: 0.80, invernoMax: 1.20, veraoMin: 0.60, veraoMax: 0.90 },
               ];
 
               const currentRate = parseFloat(lotData.consumptionRate) || 0;
@@ -710,28 +759,28 @@ function ProteinadoCalculatorContent() {
               const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
               const now = new Date();
               const startMonth = now.getMonth();
-              const isDryMonth = (monthIdx: number) => monthIdx >= 4 && monthIdx <= 8;
+              const isWinterMonth = (monthIdx: number) => monthIdx >= 5 && monthIdx <= 8;
 
               let pastureWeight = startWeight;
               let supplementWeight = startWeight;
-              const projectionData: { name: string; mes: number; pasto: number; suplemento: number; isDry: boolean }[] = [];
+              const projectionData: { name: string; mes: number; pasto: number; suplemento: number; isWinter: boolean }[] = [];
 
               projectionData.push({
                 name: monthNames[startMonth],
                 mes: 0,
                 pasto: Math.round(pastureWeight * 10) / 10,
                 suplemento: Math.round(supplementWeight * 10) / 10,
-                isDry: isDryMonth(startMonth),
+                isWinter: isWinterMonth(startMonth),
               });
 
               for (let i = 1; i <= 12; i++) {
                 const monthIdx = (startMonth + i) % 12;
-                const dry = isDryMonth(monthIdx);
+                const winter = isWinterMonth(monthIdx);
                 const daysInMonth = 30;
-                const pastureGMD = dry ? 0.0 : 0.45;
-                const suppGainExtra = dry
-                  ? (bestMatch.secaMin + bestMatch.secaMax) / 2
-                  : (bestMatch.chuvaMin + bestMatch.chuvaMax) / 2;
+                const pastureGMD = winter ? 0.0 : 0.45;
+                const suppGainExtra = winter
+                  ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
+                  : (bestMatch.veraoMin + bestMatch.veraoMax) / 2;
 
                 pastureWeight += pastureGMD * daysInMonth;
                 supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
@@ -741,7 +790,7 @@ function ProteinadoCalculatorContent() {
                   mes: i,
                   pasto: Math.round(pastureWeight * 10) / 10,
                   suplemento: Math.round(supplementWeight * 10) / 10,
-                  isDry: dry,
+                  isWinter: winter,
                 });
               }
 
@@ -825,7 +874,7 @@ function ProteinadoCalculatorContent() {
                         ]}
                         labelFormatter={(label: any) => {
                           const point = projectionData.find(p => p.name === String(label));
-                          return `${String(label)} ${point?.isDry ? '(Seca)' : '(Águas)'}`;
+                          return `${String(label)} ${point?.isWinter ? '(Inverno)' : '(Verão)'}`;
                         }}
                       />
                       <Legend
@@ -904,7 +953,7 @@ function ProteinadoCalculatorContent() {
                           <p className="text-[10px] text-[#999] mt-1">Preço de venda: R$ {sellPrice.toFixed(2)}/kg vivo · {animals} animais</p>
                         </div>
 
-                        <div className="grid grid-cols-2 divide-x divide-[#E9ECEF]">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#E9ECEF]">
                           {/* Somente a Pasto */}
                           <div className="p-5">
                             <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -980,11 +1029,11 @@ function ProteinadoCalculatorContent() {
                   })()}
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] text-[#999] font-medium">
+                    <Snowflake size={12} className="text-blue-500" />
+                    <span>Inverno (Jun–Set): base ≈ 0 kg/dia</span>
+                    <span className="mx-1 hidden sm:inline">·</span>
                     <Sun size={12} className="text-amber-500" />
-                    <span>Seca (Mai–Set): base ≈ 0 kg/dia</span>
-                    <span className="mx-1">·</span>
-                    <Droplets size={12} className="text-blue-500" />
-                    <span>Águas (Out–Abr): ~0,45 kg/dia</span>
+                    <span>Restante: ~0,45 kg/dia</span>
                   </div>
                 </div>
               );
