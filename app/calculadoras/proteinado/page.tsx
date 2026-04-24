@@ -98,12 +98,11 @@ function ProteinadoCalculatorContent() {
 
   // Lot data
   const [lotData, setLotData] = useState({
-    animals: '41',
+    animals: '40',
     startWeight: '180',
-    endWeight: '270',
     consumptionRate: '0.2',
-    sellPrice: '14.50',
-    periodo: '120',
+    sellPrice: '13.00',
+    periodo: '180',
   });
 
   // Load initial state from URL parameters
@@ -140,7 +139,6 @@ function ProteinadoCalculatorContent() {
         ...prev,
         animals: a || prev.animals,
         startWeight: sw || prev.startWeight,
-        endWeight: ew || prev.endWeight,
         consumptionRate: c || prev.consumptionRate,
         sellPrice: s || prev.sellPrice,
         periodo: p || prev.periodo,
@@ -187,9 +185,72 @@ function ProteinadoCalculatorContent() {
 
     const animals = parseFloat(lotData.animals) || 0;
     const startWt = parseFloat(lotData.startWeight) || 0;
-    const endWt = parseFloat(lotData.endWeight) || 0;
-    const avgWeight = (startWt + endWt) / 2;
     const consumptionRate = parseFloat(lotData.consumptionRate) || 0;
+    const periodoDias = parseFloat(lotData.periodo) || 0;
+
+    // --- Lógica de Projeção de Peso (Mover para o useMemo para automatizar Peso Final) ---
+    const gainReference = [
+      { rate: 0.1, invernoMin: 0.10, invernoMax: 0.25, veraoMin: 0.05, veraoMax: 0.15 },
+      { rate: 0.2, invernoMin: 0.20, invernoMax: 0.40, veraoMin: 0.10, veraoMax: 0.25 },
+      { rate: 0.3, invernoMin: 0.30, invernoMax: 0.50, veraoMin: 0.20, veraoMax: 0.35 },
+      { rate: 0.4, invernoMin: 0.40, invernoMax: 0.60, veraoMin: 0.30, veraoMax: 0.45 },
+      { rate: 0.5, invernoMin: 0.50, invernoMax: 0.80, veraoMin: 0.40, veraoMax: 0.60 },
+      { rate: 1.0, invernoMin: 0.80, invernoMax: 1.20, veraoMin: 0.60, veraoMax: 0.90 },
+    ];
+
+    let bestMatch = gainReference[0];
+    let bestDist = Math.abs(consumptionRate - gainReference[0].rate);
+    for (const ref of gainReference) {
+      const dist = Math.abs(consumptionRate - ref.rate);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestMatch = ref;
+      }
+    }
+
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const now = new Date();
+    const startMonth = now.getMonth();
+    const isWinterMonth = (monthIdx: number) => monthIdx >= 5 && monthIdx <= 8;
+
+    let pastureWeight = startWt;
+    let supplementWeight = startWt;
+    const projectionData = [];
+
+    projectionData.push({
+      name: monthNames[startMonth],
+      mes: 0,
+      pasto: Math.round(pastureWeight * 10) / 10,
+      suplemento: Math.round(supplementWeight * 10) / 10,
+      isWinter: isWinterMonth(startMonth),
+    });
+
+    const totalMeses = Math.ceil(periodoDias / 30);
+    for (let i = 1; i <= totalMeses; i++) {
+      const monthIdx = (startMonth + i) % 12;
+      const winter = isWinterMonth(monthIdx);
+      const daysInMonth = (i === totalMeses && periodoDias % 30 !== 0) ? periodoDias % 30 : 30;
+
+      const pastureGMD = winter ? 0.0 : 0.45;
+      const suppGainExtra = winter
+        ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
+        : (bestMatch.veraoMin + bestMatch.veraoMax) / 2;
+
+      pastureWeight += pastureGMD * daysInMonth;
+      supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
+
+      projectionData.push({
+        name: monthNames[monthIdx],
+        mes: i,
+        pasto: Math.round(pastureWeight * 10) / 10,
+        suplemento: Math.round(supplementWeight * 10) / 10,
+        isWinter: winter,
+      });
+    }
+
+    const endWeightProjected = Math.round(supplementWeight * 10) / 10;
+    const endWeightPasture = Math.round(pastureWeight * 10) / 10;
+    const avgWeight = (startWt + endWeightProjected) / 2;
 
     const dailyConsumptionKg = (avgWeight * animals * consumptionRate) / 100;
     const dailyCost = dailyConsumptionKg * costPerKg;
@@ -229,6 +290,10 @@ function ProteinadoCalculatorContent() {
       isFormulationValid: Math.abs(totalQty - 100) < 0.01,
       isUreiaSafe: ureiaPercent <= 15,
       avgWeight,
+      endWeightProjected,
+      endWeightPasture,
+      projectionData,
+      finalDifference: (endWeightProjected - endWeightPasture).toFixed(0)
     };
   }, [ingredients, lotData]);
 
@@ -277,7 +342,6 @@ function ProteinadoCalculatorContent() {
       i: ingredients.map(i => `${i.catalogId}:${i.bagKg}:${i.price}:${i.qtyIn100kg}`).join(','),
       a: lotData.animals,
       sw: lotData.startWeight,
-      ew: lotData.endWeight,
       c: lotData.consumptionRate,
       s: lotData.sellPrice,
       p: lotData.periodo,
@@ -519,14 +583,10 @@ function ProteinadoCalculatorContent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Peso Final (kg)</label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={lotData.endWeight}
-                      onChange={(e) => setLotData(p => ({ ...p, endWeight: e.target.value }))}
-                      className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
-                    />
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Peso Final Projetado</label>
+                    <div className="w-full bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-xl px-3 py-2.5 text-sm font-black text-[#2D5A27]">
+                      {calculations.endWeightProjected} kg
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Período (dias)</label>
@@ -540,8 +600,11 @@ function ProteinadoCalculatorContent() {
                   </div>
                 </div>
                 <div className="px-3 py-2 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF] flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-[#999] uppercase">Peso Médio (custo)</span>
-                  <span className="text-sm font-black text-[#333]">{(((parseFloat(lotData.startWeight) || 0) + (parseFloat(lotData.endWeight) || 0)) / 2).toFixed(0)} kg</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Peso Médio Projetado</span>
+                    <span className="text-[8px] text-[#2D5A27] font-bold italic">Média entre Inicial e Máximo Projetado</span>
+                  </div>
+                  <span className="text-sm font-black text-[#333]">{calculations.avgWeight.toFixed(1)} kg</span>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Consumo (% do PV)</label>
@@ -749,318 +812,244 @@ function ProteinadoCalculatorContent() {
             </div>
 
             {/* Weight Gain Projection Chart */}
-            {(() => {
-              const gainReference = [
-                { rate: 0.1, invernoMin: 0.10, invernoMax: 0.25, veraoMin: 0.05, veraoMax: 0.15 },
-                { rate: 0.2, invernoMin: 0.20, invernoMax: 0.40, veraoMin: 0.10, veraoMax: 0.25 },
-                { rate: 0.3, invernoMin: 0.30, invernoMax: 0.50, veraoMin: 0.20, veraoMax: 0.35 },
-                { rate: 0.4, invernoMin: 0.40, invernoMax: 0.60, veraoMin: 0.30, veraoMax: 0.45 },
-                { rate: 0.5, invernoMin: 0.50, invernoMax: 0.80, veraoMin: 0.40, veraoMax: 0.60 },
-                { rate: 1.0, invernoMin: 0.80, invernoMax: 1.20, veraoMin: 0.60, veraoMax: 0.90 },
-              ];
-
-              const currentRate = parseFloat(lotData.consumptionRate) || 0;
-              const startWeight = parseFloat(lotData.startWeight) || 180;
-
-              let bestMatch = gainReference[0];
-              let bestDist = Math.abs(currentRate - gainReference[0].rate);
-              for (const ref of gainReference) {
-                const dist = Math.abs(currentRate - ref.rate);
-                if (dist < bestDist) {
-                  bestDist = dist;
-                  bestMatch = ref;
-                }
-              }
-
-              const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-              const now = new Date();
-              const startMonth = now.getMonth();
-              const isWinterMonth = (monthIdx: number) => monthIdx >= 5 && monthIdx <= 8;
-
-              let pastureWeight = startWeight;
-              let supplementWeight = startWeight;
-              const projectionData: { name: string; mes: number; pasto: number; suplemento: number; isWinter: boolean }[] = [];
-
-              projectionData.push({
-                name: monthNames[startMonth],
-                mes: 0,
-                pasto: Math.round(pastureWeight * 10) / 10,
-                suplemento: Math.round(supplementWeight * 10) / 10,
-                isWinter: isWinterMonth(startMonth),
-              });
-
-                const totalPeriodoDias = parseFloat(lotData.periodo) || 120;
-                const totalMeses = Math.ceil(totalPeriodoDias / 30);
-
-                for (let i = 1; i <= totalMeses; i++) {
-                  const monthIdx = (startMonth + i) % 12;
-                  const winter = isWinterMonth(monthIdx);
-                  // Se for o último mês e não for múltiplo de 30, usa os dias restantes
-                  const daysInMonth = (i === totalMeses && totalPeriodoDias % 30 !== 0) 
-                    ? totalPeriodoDias % 30 
-                    : 30;
-                  
-                  const pastureGMD = winter ? 0.0 : 0.45;
-                const suppGainExtra = winter
-                  ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
-                  : (bestMatch.veraoMin + bestMatch.veraoMax) / 2;
-
-                pastureWeight += pastureGMD * daysInMonth;
-                supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
-
-                projectionData.push({
-                  name: monthNames[monthIdx],
-                  mes: i,
-                  pasto: Math.round(pastureWeight * 10) / 10,
-                  suplemento: Math.round(supplementWeight * 10) / 10,
-                  isWinter: winter,
-                });
-              }
-
-              const finalDifference = (supplementWeight - pastureWeight).toFixed(0);
-              const lastPasture = projectionData[projectionData.length - 1].pasto;
-              const lastSupplement = projectionData[projectionData.length - 1].suplemento;
-
-              return (
-                <div className="bg-white rounded-[2.5rem] p-6 sm:p-7 border border-[#E9ECEF] shadow-sm">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 pb-5 border-b border-[#F8F9FA] gap-3">
-                    <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
-                      <TrendingUp className="text-[#2D5A27]" size={22} /> Projeção de Peso — {lotData.periodo} dias
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Consumo:</span>
-                      <span className="text-xs font-black text-[#2D5A27] bg-[#2D5A27]/10 px-2.5 py-1 rounded-full">
-                        {currentRate.toFixed(1)}% PV
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-[#666] mb-5 leading-relaxed">
-                    Evolução estimada do peso médio dos animais ao longo do período de {lotData.periodo} dias.
-                    Linha <strong className="text-amber-600">amber tracejada</strong> = somente a pasto. Linha <strong className="text-[#2D5A27]">verde</strong> = com proteinado.
-                  </p>
-
-                  <div className="grid grid-cols-3 gap-3 mb-6">
-                    <div className="bg-[#F8F9FA] rounded-xl p-3 text-center border border-[#E9ECEF]">
-                      <div className="text-[9px] font-bold text-[#999] uppercase tracking-wider mb-1">Peso Inicial</div>
-                      <div className="text-lg font-black text-[#333]">{startWeight}<span className="text-xs text-[#999] font-bold"> kg</span></div>
-                    </div>
-                    <div className="bg-[#FFF7ED] rounded-xl p-3 text-center border border-amber-200">
-                      <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Só Pasto ({lotData.periodo}d)</div>
-                      <div className="text-lg font-black text-amber-700">{lastPasture}<span className="text-xs text-amber-500 font-bold"> kg</span></div>
-                    </div>
-                    <div className="bg-[#E9F0E8] rounded-xl p-3 text-center border border-[#2D5A27]/20">
-                      <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-1">Com Suplemento</div>
-                      <div className="text-lg font-black text-[#2D5A27]">{lastSupplement}<span className="text-xs text-[#2D5A27]/60 font-bold"> kg</span></div>
-                    </div>
-                  </div>
-
-                  <ResponsiveContainer width="100%" height={320}>
-                    <AreaChart data={projectionData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="gradPasto" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
-                        </linearGradient>
-                        <linearGradient id="gradSuplemento" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#2D5A27" stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                      <XAxis
-                        dataKey="name"
-                        tickLine={false}
-                        axisLine={{ stroke: '#E9ECEF' }}
-                        tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }}
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
-                        tickFormatter={(v: number) => `${v}kg`}
-                        domain={['dataMin - 10', 'dataMax + 10']}
-                        width={55}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#1A1A1A',
-                          border: 'none',
-                          borderRadius: '16px',
-                          padding: '12px 16px',
-                          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                        }}
-                        labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 4 }}
-                        formatter={(value: any, name: any) => [
-                          `${Number(value ?? 0).toFixed(1)} kg`,
-                          String(name) === 'pasto' ? 'Somente Pasto' : 'Com Suplemento'
-                        ]}
-                        labelFormatter={(label: any) => {
-                          const point = projectionData.find(p => p.name === String(label));
-                          return `${String(label)} ${point?.isWinter ? '(Inverno)' : '(Verão)'}`;
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        height={36}
-                        formatter={(value: any) => String(value) === 'pasto' ? 'Somente a Pasto' : 'Com Proteinado'}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="pasto"
-                        stroke="#D97706"
-                        strokeWidth={2.5}
-                        fill="url(#gradPasto)"
-                        strokeDasharray="6 3"
-                        dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#D97706', strokeWidth: 2, stroke: '#fff' }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="suplemento"
-                        stroke="#2D5A27"
-                        strokeWidth={3}
-                        fill="url(#gradSuplemento)"
-                        dot={{ r: 3, fill: '#2D5A27', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#2D5A27', strokeWidth: 2, stroke: '#fff' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-
-                  <div className="mt-5 p-4 bg-gradient-to-r from-[#2D5A27]/5 to-[#2D5A27]/10 border border-[#2D5A27]/15 rounded-2xl flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#2D5A27] rounded-xl flex items-center justify-center shrink-0">
-                      <TrendingUp className="text-white" size={22} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-[#2D5A27]">
-                        +{finalDifference} kg a mais em {lotData.periodo} dias
-                      </div>
-                      <p className="text-[10px] text-[#666] mt-0.5">
-                        com suplementação a {currentRate.toFixed(1)}% PV vs somente a pasto
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Profit Comparison */}
-                  {(() => {
-                    const sellPrice = parseFloat(lotData.sellPrice) || 0;
-                    const animals = parseFloat(lotData.animals) || 0;
-                    if (sellPrice <= 0 || animals <= 0) return null;
-
-                    const weightGainPasture = lastPasture - startWeight;
-                    const weightGainSupplement = lastSupplement - startWeight;
-                    const extraKg = weightGainSupplement - weightGainPasture;
-
-                    // Revenue from weight gain over period (per animal × animals)
-                    const revenuePasture = weightGainPasture * sellPrice * animals;
-                    const revenueSupplement = weightGainSupplement * sellPrice * animals;
-
-                    // Supplement cost over period
-                    const supplementCostPeriod = calculations.totalPeriodCost;
-
-                    // Net profit (revenue minus supplement cost)
-                    const profitPasture = revenuePasture; // no supplement cost
-                    const profitSupplement = revenueSupplement - supplementCostPeriod;
-                    const profitDifference = profitSupplement - profitPasture;
-
-                    const extraRevenuePerAnimal = extraKg * sellPrice;
-                    const supplementCostPerAnimal = animals > 0 ? supplementCostPeriod / animals : 0;
-                    const netPerAnimal = extraRevenuePerAnimal - supplementCostPerAnimal;
-
-                    return (
-                      <div className="mt-5 bg-white rounded-2xl border border-[#E9ECEF] overflow-hidden">
-                        <div className="px-5 py-4 bg-gradient-to-r from-[#2D5A27]/5 to-transparent border-b border-[#E9ECEF]">
-                          <h3 className="text-sm font-bold text-[#333] flex items-center gap-2">
-                            <DollarSign size={16} className="text-[#2D5A27]" /> Análise de Lucratividade ({lotData.periodo} dias)
-                          </h3>
-                          <p className="text-[10px] text-[#999] mt-1">Preço de venda: R$ {sellPrice.toFixed(2)}/kg vivo · {animals} animais</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#E9ECEF]">
-                          {/* Somente a Pasto */}
-                          <div className="p-5">
-                            <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-amber-500" />
-                              Somente a Pasto
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
-                                <div className="text-base font-black text-[#333]">{weightGainPasture.toFixed(1)} kg</div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
-                                <div className="text-base font-black text-amber-700">R$ {revenuePasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
-                                <div className="text-base font-black text-[#333]">R$ 0</div>
-                              </div>
-                              <div className="pt-2 border-t border-[#F1F3F5]">
-                                <span className="text-[10px] text-[#999] font-medium">Resultado</span>
-                                <div className="text-lg font-black text-amber-700">R$ {profitPasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Com Proteinado */}
-                          <div className="p-5 bg-[#2D5A27]/[0.02]">
-                            <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-[#2D5A27]" />
-                              Com Proteinado
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
-                                <div className="text-base font-black text-[#333]">{weightGainSupplement.toFixed(1)} kg</div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
-                                <div className="text-base font-black text-[#2D5A27]">R$ {revenueSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                              </div>
-                              <div>
-                                <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
-                                <div className="text-base font-black text-red-500">- R$ {supplementCostPeriod.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                              </div>
-                              <div className="pt-2 border-t border-[#2D5A27]/10">
-                                <span className="text-[10px] text-[#999] font-medium">Resultado</span>
-                                <div className="text-lg font-black text-[#2D5A27]">R$ {profitSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Bottom summary */}
-                        <div className={`px-5 py-4 border-t border-[#E9ECEF] flex items-center justify-between ${profitDifference > 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                          <div>
-                            <div className={`text-sm font-black ${profitDifference > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                              {profitDifference > 0 ? '+' : ''}R$ {profitDifference.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {profitDifference > 0 ? 'de lucro extra' : 'de prejuízo'}
-                            </div>
-                            <p className="text-[10px] text-[#666] mt-0.5">
-                              {profitDifference > 0 ? 'O proteinado se paga e gera retorno adicional' : 'O custo do suplemento supera a receita extra gerada'}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-xs font-black ${netPerAnimal > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                              {netPerAnimal > 0 ? '+' : ''}R$ {netPerAnimal.toFixed(2)}/cab
-                            </div>
-                            <span className="text-[9px] text-[#999]">retorno líquido</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] text-[#999] font-medium">
-                    <Snowflake size={12} className="text-blue-500" />
-                    <span>Inverno (Jun–Set): base ≈ 0 kg/dia</span>
-                    <span className="mx-1 hidden sm:inline">·</span>
-                    <Sun size={12} className="text-amber-500" />
-                    <span>Restante: ~0,45 kg/dia</span>
-                  </div>
+            <div className="bg-white rounded-[2.5rem] p-6 sm:p-7 border border-[#E9ECEF] shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 pb-5 border-b border-[#F8F9FA] gap-3">
+                <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
+                  <TrendingUp className="text-[#2D5A27]" size={22} /> Projeção de Peso — {lotData.periodo} dias
+                </h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Consumo:</span>
+                  <span className="text-xs font-black text-[#2D5A27] bg-[#2D5A27]/10 px-2.5 py-1 rounded-full">
+                    {(parseFloat(lotData.consumptionRate) || 0).toFixed(1)}% PV
+                  </span>
                 </div>
-              );
-            })()}
+              </div>
+
+              <p className="text-xs text-[#666] mb-5 leading-relaxed">
+                Evolução estimada do peso médio dos animais ao longo do período de {lotData.periodo} dias.
+                Linha <strong className="text-amber-600">amber tracejada</strong> = somente a pasto. Linha <strong className="text-[#2D5A27]">verde</strong> = com proteinado.
+              </p>
+
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="bg-[#F8F9FA] rounded-xl p-3 text-center border border-[#E9ECEF]">
+                  <div className="text-[9px] font-bold text-[#999] uppercase tracking-wider mb-1">Peso Inicial</div>
+                  <div className="text-lg font-black text-[#333]">{lotData.startWeight}<span className="text-xs text-[#999] font-bold"> kg</span></div>
+                </div>
+                <div className="bg-[#FFF7ED] rounded-xl p-3 text-center border border-amber-200">
+                  <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Só Pasto ({lotData.periodo}d)</div>
+                  <div className="text-lg font-black text-amber-700">{calculations.endWeightPasture}<span className="text-xs text-amber-500 font-bold"> kg</span></div>
+                </div>
+                <div className="bg-[#E9F0E8] rounded-xl p-3 text-center border border-[#2D5A27]/20">
+                  <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-1">Com Suplemento</div>
+                  <div className="text-lg font-black text-[#2D5A27]">{calculations.endWeightProjected}<span className="text-xs text-[#2D5A27]/60 font-bold"> kg</span></div>
+                </div>
+              </div>
+
+              <ResponsiveContainer width="100%" height={320}>
+                <AreaChart data={calculations.projectionData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradPasto" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="gradSuplemento" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#2D5A27" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={{ stroke: '#E9ECEF' }}
+                    tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                    tickFormatter={(v: number) => `${v}kg`}
+                    domain={['dataMin - 10', 'dataMax + 10']}
+                    width={55}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#1A1A1A',
+                      border: 'none',
+                      borderRadius: '16px',
+                      padding: '12px 16px',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                    }}
+                    labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 4 }}
+                    formatter={(value: any, name: any) => [
+                      `${Number(value ?? 0).toFixed(1)} kg`,
+                      String(name) === 'pasto' ? 'Somente Pasto' : 'Com Suplemento'
+                    ]}
+                    labelFormatter={(label: any) => {
+                      const point = calculations.projectionData.find(p => p.name === String(label));
+                      return `${String(label)} ${point?.isWinter ? '(Inverno)' : '(Verão)'}`;
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    height={36}
+                    formatter={(value: any) => String(value) === 'pasto' ? 'Somente a Pasto' : 'Com Proteinado'}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="pasto"
+                    stroke="#D97706"
+                    strokeWidth={2.5}
+                    fill="url(#gradPasto)"
+                    strokeDasharray="6 3"
+                    dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: '#D97706', strokeWidth: 2, stroke: '#fff' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="suplemento"
+                    stroke="#2D5A27"
+                    strokeWidth={3}
+                    fill="url(#gradSuplemento)"
+                    dot={{ r: 3, fill: '#2D5A27', strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: '#2D5A27', strokeWidth: 2, stroke: '#fff' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+
+              <div className="mt-5 p-4 bg-gradient-to-r from-[#2D5A27]/5 to-[#2D5A27]/10 border border-[#2D5A27]/15 rounded-2xl flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#2D5A27] rounded-xl flex items-center justify-center shrink-0">
+                  <TrendingUp className="text-white" size={22} />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-[#2D5A27]">
+                    +{calculations.finalDifference} kg a mais em {lotData.periodo} dias
+                  </div>
+                  <p className="text-[10px] text-[#666] mt-0.5">
+                    com suplementação a {(parseFloat(lotData.consumptionRate) || 0).toFixed(1)}% PV vs somente a pasto
+                  </p>
+                </div>
+              </div>
+
+              {/* Profit Comparison */}
+              {(() => {
+                const sellPrice = parseFloat(lotData.sellPrice) || 0;
+                const animals = parseFloat(lotData.animals) || 0;
+                if (sellPrice <= 0 || animals <= 0) return null;
+
+                const weightGainPasture = calculations.endWeightPasture - parseFloat(lotData.startWeight);
+                const weightGainSupplement = calculations.endWeightProjected - parseFloat(lotData.startWeight);
+                const extraKg = weightGainSupplement - weightGainPasture;
+
+                // Revenue from weight gain over period (per animal × animals)
+                const revenuePasture = weightGainPasture * sellPrice * animals;
+                const revenueSupplement = weightGainSupplement * sellPrice * animals;
+
+                // Supplement cost over period
+                const supplementCostPeriod = calculations.totalPeriodCost;
+
+                // Net profit (revenue minus supplement cost)
+                const profitPasture = revenuePasture; // no supplement cost
+                const profitSupplement = revenueSupplement - supplementCostPeriod;
+                const profitDifference = profitSupplement - profitPasture;
+
+                const extraRevenuePerAnimal = extraKg * sellPrice;
+                const supplementCostPerAnimal = animals > 0 ? supplementCostPeriod / animals : 0;
+                const netPerAnimal = extraRevenuePerAnimal - supplementCostPerAnimal;
+
+
+                return (
+                  <div className="mt-5 bg-white rounded-2xl border border-[#E9ECEF] overflow-hidden">
+                    <div className="px-5 py-4 bg-gradient-to-r from-[#2D5A27]/5 to-transparent border-b border-[#E9ECEF]">
+                      <h3 className="text-sm font-bold text-[#333] flex items-center gap-2">
+                        <DollarSign size={16} className="text-[#2D5A27]" /> Análise de Lucratividade ({lotData.periodo} dias)
+                      </h3>
+                      <p className="text-[10px] text-[#999] mt-1">Preço de venda: R$ {sellPrice.toFixed(2)}/kg vivo · {animals} animais</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#E9ECEF]">
+                      {/* Somente a Pasto */}
+                      <div className="p-5">
+                        <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          Somente a Pasto
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
+                            <div className="text-base font-black text-[#333]">{weightGainPasture.toFixed(1)} kg</div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
+                            <div className="text-base font-black text-amber-700">R$ {revenuePasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
+                            <div className="text-base font-black text-[#333]">R$ 0</div>
+                          </div>
+                          <div className="pt-2 border-t border-[#F1F3F5]">
+                            <span className="text-[10px] text-[#999] font-medium">Resultado</span>
+                            <div className="text-lg font-black text-amber-700">R$ {profitPasture.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Com Proteinado */}
+                      <div className="p-5 bg-[#2D5A27]/[0.02]">
+                        <div className="text-[9px] font-bold text-[#2D5A27] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-[#2D5A27]" />
+                          Com Proteinado
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Ganho de peso/cab</span>
+                            <div className="text-base font-black text-[#333]">{weightGainSupplement.toFixed(1)} kg</div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Receita do lote</span>
+                            <div className="text-base font-black text-[#2D5A27]">R$ {revenueSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
+                            <div className="text-base font-black text-red-500">- R$ {supplementCostPeriod.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                          </div>
+                          <div className="pt-2 border-t border-[#2D5A27]/10">
+                            <span className="text-[10px] text-[#999] font-medium">Resultado</span>
+                            <div className="text-lg font-black text-[#2D5A27]">R$ {profitSupplement.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom summary */}
+                    <div className={`px-5 py-4 border-t border-[#E9ECEF] flex items-center justify-between ${profitDifference > 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                      <div>
+                        <div className={`text-sm font-black ${profitDifference > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                          {profitDifference > 0 ? '+' : ''}R$ {profitDifference.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {profitDifference > 0 ? 'de lucro extra' : 'de prejuízo'}
+                        </div>
+                        <p className="text-[10px] text-[#666] mt-0.5">
+                          {profitDifference > 0 ? 'O proteinado se paga e gera retorno adicional' : 'O custo do suplemento supera a receita extra gerada'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-black ${netPerAnimal > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                          {netPerAnimal > 0 ? '+' : ''}R$ {netPerAnimal.toFixed(2)}/cab
+                        </div>
+                        <span className="text-[9px] text-[#999]">retorno líquido</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] text-[#999] font-medium">
+                <Snowflake size={12} className="text-blue-500" />
+                <span>Inverno (Jun–Set): base ≈ 0 kg/dia</span>
+                <span className="mx-1 hidden sm:inline">·</span>
+                <Sun size={12} className="text-amber-500" />
+                <span>Restante: ~0,45 kg/dia</span>
+              </div>
+            </div>
 
             {/* Cost Chart */}
             {chartData.length > 0 && (
