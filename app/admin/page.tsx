@@ -33,6 +33,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
+import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
 import Image from 'next/image';
 import { RS_CITIES } from '@/lib/data';
 import imageCompression from 'browser-image-compression';
@@ -50,7 +51,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions'>('users');
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
   const [isSyncingMarket, setIsSyncingMarket] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
@@ -627,6 +628,12 @@ export default function AdminPage() {
                 >
                   Sistema
                 </button>
+                <button
+                  onClick={() => setAdminTab('suggestions')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'suggestions' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Sugestões
+                </button>
               </div>
             </div>
             <button
@@ -875,7 +882,7 @@ export default function AdminPage() {
               </div>
             ) : adminTab === 'auctions' ? (
               <AdminAuctionManager />
-            ) : (
+            ) : adminTab === 'system' ? (
               <div>
                 <div className="flex items-center gap-2 mb-6">
                   <HardDrive size={20} className="text-[#2D5A27]" />
@@ -981,7 +988,9 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-            )}
+            ) : adminTab === 'suggestions' ? (
+              <AdminCalculatorSuggestions />
+            ) : null}
           </div>
         </motion.div>
       </div>
