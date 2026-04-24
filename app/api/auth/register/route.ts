@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -14,6 +15,8 @@ export async function POST(request: Request) {
     if (rawPhone.length !== 11) {
       return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
+
+    const supabase = await createClientServer();
 
     // O Supabase Auth cuidará de verificar se o usuário existe e de hashear a senha.
     // Enviamos os dados extras no 'options.data' para que o Trigger SQL os pegue.
@@ -42,7 +45,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: authData.user.id,
       email: authData.user.email,
-      name: authData.user.user_metadata.name
+      name: authData.user.user_metadata?.name || name
     });
 
   } catch (error) {

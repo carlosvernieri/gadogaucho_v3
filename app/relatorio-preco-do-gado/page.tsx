@@ -30,21 +30,68 @@ export default function MercadoReportPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showNewsletterModal, setShowNewsletterModal] = useState(false);
 
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/market-report');
+      const data = await res.json();
+      setReportData(data);
+    } catch (err) {
+      console.error('Error fetching market report:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/market-report');
-        const data = await res.json();
-        setReportData(data);
-      } catch (err) {
-        console.error('Error fetching market report:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchReport();
   }, []);
+
+  const marketAnalysis = React.useMemo(() => {
+    if (!reportData) return null;
+
+    const stats = reportData.categoryStats || [];
+    const cepea = reportData.cepeaData;
+    const b3 = reportData.b3Futures || [];
+    const scot = reportData.scotData;
+
+    // 1. Determine Overall Trend
+    const upCount = stats.filter((s: any) => s.trend === 'up').length;
+    const downCount = stats.filter((s: any) => s.trend === 'down').length;
+    let mainTrend = 'estabilidade';
+    if (upCount > downCount + 1) mainTrend = 'valorização';
+    if (downCount > upCount + 1) mainTrend = 'retração';
+
+    // 2. Find Highlight Category
+    const highlight = [...stats].sort((a: any, b: any) => b.delta - a.delta)[0];
+
+    // 3. Platform vs Auction Analysis
+    const betterDirect = stats.filter((s: any) => s.platformAvg > 0 && s.platformAvg < s.auctionAvg).length;
+    
+    // 4. B3 Curve Analysis
+    const firstB3 = b3[0]?.price || 0;
+    const lastB3 = b3[b3.length - 1]?.price || 0;
+    const b3Trend = lastB3 > firstB3 ? 'contango (alta)' : 'backwardation (baixa)';
+
+    // Build Summary
+    const summary = `O mercado gaúcho apresenta um cenário de ${mainTrend} nas principais praças pesquisadas. ` +
+      `${cepea?.trend === 'up' ? 'Acompanhando a firmeza do Indicador CEPEA (SP),' : 'Apesar da oscilação no Indicador CEPEA (SP),'} ` +
+      `o estado registra preços ${mainTrend === 'valorização' ? 'em ascensão' : 'sustentados'} principalmente pela ${highlight?.delta > 0 ? 'valorização do ' + highlight.category : 'baixa oferta de animais terminados'}. ` +
+      `Na plataforma Gado Gaúcho, ${betterDirect > 2 ? 'existem excelentes oportunidades de compra direta da porteira com valores abaixo da média dos leilões' : 'as ofertas diretas acompanham o ritmo do atacado, mantendo a competitividade logística'}.`;
+
+    const b3Analysis = `O mercado financeiro sinaliza uma curva de ${b3Trend} até ${b3[b3.length-1]?.month || 'o final do período'}, ` +
+      `com o Boi Gordo projetado em R$ ${lastB3.toFixed(2)} /@. Esta dinâmica reflete as expectativas ${lastB3 > firstB3 ? 'positivas quanto à demanda de exportação e entressafra' : 'de maior oferta de animais de pasto nos meses de inverno'}.`;
+
+    return {
+      summary,
+      b3Analysis,
+      highlight: {
+        category: highlight?.category || 'Boi Gordo',
+        delta: highlight?.delta || 0,
+        price: highlight?.auctionAvg || 0
+      }
+    };
+  }, [reportData]);
 
 
   if (loading) {
@@ -124,7 +171,7 @@ export default function MercadoReportPage() {
               <Info className="text-[#2D5A27]" size={22} /> Resumo do Comportamento
             </h2>
             <p className="text-[#666] leading-relaxed relative z-10 text-sm">
-              O mercado gaúcho apresenta estabilidade nas principais praças pesquisadas. No <strong>Oeste do RS</strong>, os preços do Boi Gordo mantêm-se firmes devido à baixa oferta de animais terminados. Já na plataforma <strong>Gado Gaúcho</strong>, observamos ofertas direto da porteira com preços ligeiramente competitivos em relação à média dos leilões estaduais.
+              {marketAnalysis?.summary}
             </p>
           </div>
 
@@ -132,12 +179,12 @@ export default function MercadoReportPage() {
             <div>
               <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
               <p className="text-xs text-white leading-snug font-medium">
-                Novilha RS Oeste registrou a maior valorização, com média de R$ 11,40/kg.
+                {marketAnalysis?.highlight.category} registrou a maior valorização, com média de R$ {marketAnalysis?.highlight.price.toFixed(2)}/kg.
               </p>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-              <span className="text-xl font-black">+2.2%</span>
-              <TrendingUp size={18} className="text-[#87C036]" />
+              <span className="text-xl font-black">{marketAnalysis?.highlight.delta > 0 ? '+' : ''}{marketAnalysis?.highlight.delta}%</span>
+              {marketAnalysis?.highlight.delta >= 0 ? <TrendingUp size={18} className="text-[#87C036]" /> : <TrendingDown size={18} className="text-red-400" />}
             </div>
           </div>
         </div>
@@ -333,7 +380,7 @@ export default function MercadoReportPage() {
             <div className="mt-8 p-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start gap-3">
               <Info size={18} className="text-[#2171B5] mt-0.5 shrink-0" />
               <p className="text-[12px] text-[#666] leading-relaxed">
-                <strong>Análise B3:</strong> O mercado financeiro sinaliza uma curva de <strong>contango</strong> moderado até Abril/26, seguida de um ajuste baixista no inverno (Jun/Jul), refletindo a sazonalidade da safra de capim. A retomada de preços projetada para Outubro/26 indica expectativas de redução na oferta de animais de cocho.
+                <strong>Análise B3:</strong> {marketAnalysis?.b3Analysis}
               </p>
             </div>
           </div>

@@ -34,11 +34,17 @@ export function Footer() {
               <Link href="/calculadoras/proteinado" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Calculadora de Proteinado
               </Link>
+              <Link href="/calculadoras/pastagem" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+                Calculadora de Pastagem
+              </Link>
               <Link href="/precodogado" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
                 Inteligência de Mercado
               </Link>
               <Link href="/termos" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
                 Termos de Uso
+              </Link>
+              <Link href="/politica-de-privacidade" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
+                Política de Privacidade
               </Link>
               <Link href="/contato" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
                 Contato

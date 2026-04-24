@@ -95,12 +95,12 @@ export const Header = ({
           </button>
 
           <button
-            onClick={() => router.push('/calculadoras/gmd')}
+            onClick={() => router.push('/calculadoras')}
             className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
-            title="Calculadora de GMD & Rentabilidade"
+            title="Nossas Calculadoras Técnicas"
           >
             <Calculator size={20} />
-            <span className="hidden sm:inline">Calculadora</span>
+            <span className="hidden sm:inline">Calculadoras</span>
           </button>
 
           {user ? (
