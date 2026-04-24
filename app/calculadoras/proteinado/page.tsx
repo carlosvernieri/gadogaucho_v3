@@ -232,9 +232,11 @@ function ProteinadoCalculatorContent() {
       const daysInMonth = (i === totalMeses && periodoDias % 30 !== 0) ? periodoDias % 30 : 30;
 
       const pastureGMD = winter ? 0.0 : 0.45;
-      const suppGainExtra = winter
-        ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
-        : (bestMatch.veraoMin + bestMatch.veraoMax) / 2;
+      const suppGainExtra = consumptionRate <= 0 
+        ? 0 
+        : (winter
+          ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
+          : (bestMatch.veraoMin + bestMatch.veraoMax) / 2);
 
       pastureWeight += pastureGMD * daysInMonth;
       supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
