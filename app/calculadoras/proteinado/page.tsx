@@ -103,6 +103,7 @@ function ProteinadoCalculatorContent() {
     endWeight: '270',
     consumptionRate: '0.2',
     sellPrice: '14.50',
+    periodo: '120',
   });
 
   // Load initial state from URL parameters
@@ -113,6 +114,7 @@ function ProteinadoCalculatorContent() {
     const ew = searchParams.get('ew');
     const c = searchParams.get('c');
     const s = searchParams.get('s');
+    const p = searchParams.get('p');
 
     if (i) {
       try {
@@ -141,6 +143,7 @@ function ProteinadoCalculatorContent() {
         endWeight: ew || prev.endWeight,
         consumptionRate: c || prev.consumptionRate,
         sellPrice: s || prev.sellPrice,
+        periodo: p || prev.periodo,
       }));
     }
   }, [searchParams]);
@@ -193,6 +196,7 @@ function ProteinadoCalculatorContent() {
     const monthlyCost = dailyCost * 30;
     const costPerAnimalDay = animals > 0 ? dailyCost / animals : 0;
     const costPerAnimalMonth = costPerAnimalDay * 30;
+    const totalPeriodCost = dailyCost * (parseFloat(lotData.periodo) || 0);
 
     // Safety checks
     const ureiaIngredients = ingredients.filter(i => {
@@ -218,6 +222,7 @@ function ProteinadoCalculatorContent() {
       monthlyCost,
       costPerAnimalDay,
       costPerAnimalMonth,
+      totalPeriodCost,
       ureiaPercent,
       ureiaQty,
       daysPerBatch,
@@ -275,6 +280,7 @@ function ProteinadoCalculatorContent() {
       ew: lotData.endWeight,
       c: lotData.consumptionRate,
       s: lotData.sellPrice,
+      p: lotData.periodo,
     };
     const params = new URLSearchParams(data);
     return `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
@@ -520,6 +526,16 @@ function ProteinadoCalculatorContent() {
                       value={lotData.endWeight}
                       onChange={(e) => setLotData(p => ({ ...p, endWeight: e.target.value }))}
                       className="w-full min-w-0 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5">Período (dias)</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={lotData.periodo}
+                      onChange={(e) => setLotData(p => ({ ...p, periodo: e.target.value }))}
+                      className="w-full min-w-0 bg-[#FFFDE7] border border-[#F9A825]/30 rounded-xl px-3 py-2.5 text-sm font-bold text-[#333] outline-none focus:border-[#F9A825]"
                     />
                   </div>
                 </div>
@@ -773,11 +789,18 @@ function ProteinadoCalculatorContent() {
                 isWinter: isWinterMonth(startMonth),
               });
 
-              for (let i = 1; i <= 12; i++) {
-                const monthIdx = (startMonth + i) % 12;
-                const winter = isWinterMonth(monthIdx);
-                const daysInMonth = 30;
-                const pastureGMD = winter ? 0.0 : 0.45;
+                const totalPeriodoDias = parseFloat(lotData.periodo) || 120;
+                const totalMeses = Math.ceil(totalPeriodoDias / 30);
+
+                for (let i = 1; i <= totalMeses; i++) {
+                  const monthIdx = (startMonth + i) % 12;
+                  const winter = isWinterMonth(monthIdx);
+                  // Se for o último mês e não for múltiplo de 30, usa os dias restantes
+                  const daysInMonth = (i === totalMeses && totalPeriodoDias % 30 !== 0) 
+                    ? totalPeriodoDias % 30 
+                    : 30;
+                  
+                  const pastureGMD = winter ? 0.0 : 0.45;
                 const suppGainExtra = winter
                   ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
                   : (bestMatch.veraoMin + bestMatch.veraoMax) / 2;
@@ -802,7 +825,7 @@ function ProteinadoCalculatorContent() {
                 <div className="bg-white rounded-[2.5rem] p-6 sm:p-7 border border-[#E9ECEF] shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 pb-5 border-b border-[#F8F9FA] gap-3">
                     <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
-                      <TrendingUp className="text-[#2D5A27]" size={22} /> Projeção de Peso — 12 Meses
+                      <TrendingUp className="text-[#2D5A27]" size={22} /> Projeção de Peso — {lotData.periodo} dias
                     </h2>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-[#999] uppercase tracking-wider">Consumo:</span>
@@ -813,7 +836,7 @@ function ProteinadoCalculatorContent() {
                   </div>
 
                   <p className="text-xs text-[#666] mb-5 leading-relaxed">
-                    Evolução estimada do peso médio dos animais ao longo de 12 meses.
+                    Evolução estimada do peso médio dos animais ao longo do período de {lotData.periodo} dias.
                     Linha <strong className="text-amber-600">amber tracejada</strong> = somente a pasto. Linha <strong className="text-[#2D5A27]">verde</strong> = com proteinado.
                   </p>
 
@@ -823,7 +846,7 @@ function ProteinadoCalculatorContent() {
                       <div className="text-lg font-black text-[#333]">{startWeight}<span className="text-xs text-[#999] font-bold"> kg</span></div>
                     </div>
                     <div className="bg-[#FFF7ED] rounded-xl p-3 text-center border border-amber-200">
-                      <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Só Pasto (12m)</div>
+                      <div className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Só Pasto ({lotData.periodo}d)</div>
                       <div className="text-lg font-black text-amber-700">{lastPasture}<span className="text-xs text-amber-500 font-bold"> kg</span></div>
                     </div>
                     <div className="bg-[#E9F0E8] rounded-xl p-3 text-center border border-[#2D5A27]/20">
@@ -910,7 +933,7 @@ function ProteinadoCalculatorContent() {
                     </div>
                     <div>
                       <div className="text-sm font-black text-[#2D5A27]">
-                        +{finalDifference} kg a mais em 12 meses
+                        +{finalDifference} kg a mais em {lotData.periodo} dias
                       </div>
                       <p className="text-[10px] text-[#666] mt-0.5">
                         com suplementação a {currentRate.toFixed(1)}% PV vs somente a pasto
@@ -928,27 +951,27 @@ function ProteinadoCalculatorContent() {
                     const weightGainSupplement = lastSupplement - startWeight;
                     const extraKg = weightGainSupplement - weightGainPasture;
 
-                    // Revenue from weight gain over 12 months (per animal × animals)
+                    // Revenue from weight gain over period (per animal × animals)
                     const revenuePasture = weightGainPasture * sellPrice * animals;
                     const revenueSupplement = weightGainSupplement * sellPrice * animals;
 
-                    // Supplement cost over 12 months
-                    const supplementCost12m = calculations.monthlyCost * 12;
+                    // Supplement cost over period
+                    const supplementCostPeriod = calculations.totalPeriodCost;
 
                     // Net profit (revenue minus supplement cost)
                     const profitPasture = revenuePasture; // no supplement cost
-                    const profitSupplement = revenueSupplement - supplementCost12m;
+                    const profitSupplement = revenueSupplement - supplementCostPeriod;
                     const profitDifference = profitSupplement - profitPasture;
 
                     const extraRevenuePerAnimal = extraKg * sellPrice;
-                    const supplementCostPerAnimal = animals > 0 ? supplementCost12m / animals : 0;
+                    const supplementCostPerAnimal = animals > 0 ? supplementCostPeriod / animals : 0;
                     const netPerAnimal = extraRevenuePerAnimal - supplementCostPerAnimal;
 
                     return (
                       <div className="mt-5 bg-white rounded-2xl border border-[#E9ECEF] overflow-hidden">
                         <div className="px-5 py-4 bg-gradient-to-r from-[#2D5A27]/5 to-transparent border-b border-[#E9ECEF]">
                           <h3 className="text-sm font-bold text-[#333] flex items-center gap-2">
-                            <DollarSign size={16} className="text-[#2D5A27]" /> Análise de Lucratividade (12 meses)
+                            <DollarSign size={16} className="text-[#2D5A27]" /> Análise de Lucratividade ({lotData.periodo} dias)
                           </h3>
                           <p className="text-[10px] text-[#999] mt-1">Preço de venda: R$ {sellPrice.toFixed(2)}/kg vivo · {animals} animais</p>
                         </div>
@@ -997,7 +1020,7 @@ function ProteinadoCalculatorContent() {
                               </div>
                               <div>
                                 <span className="text-[10px] text-[#999] font-medium">Custo suplemento</span>
-                                <div className="text-base font-black text-red-500">- R$ {supplementCost12m.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                <div className="text-base font-black text-red-500">- R$ {supplementCostPeriod.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                               </div>
                               <div className="pt-2 border-t border-[#2D5A27]/10">
                                 <span className="text-[10px] text-[#999] font-medium">Resultado</span>

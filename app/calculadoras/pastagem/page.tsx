@@ -108,11 +108,11 @@ function PastagemCalculatorContent() {
     if (area) setAreaHa(area);
     if (gain) {
       const [ge, l, v, dp] = gain.split(':');
-      setGainData({ 
-        gmdExtra: ge, 
-        lotacao: l, 
-        valorVenda: v, 
-        diasPastejo: dp || '120' 
+      setGainData({
+        gmdExtra: ge,
+        lotacao: l,
+        valorVenda: v,
+        diasPastejo: dp || '120'
       });
     }
     if (data) {
@@ -170,7 +170,7 @@ function PastagemCalculatorContent() {
     const daysToShow = Math.max(120, isFinite(daysToPayback) && daysToPayback > 0 ? Math.ceil(daysToPayback * 1.5) : 180);
     const evolutionStep = Math.ceil(daysToShow / 20);
     const chartDataEvolution = [];
-    
+
     // Garantir que o dia do payback esteja no gráfico para precisão visual
     const points = new Set([0]);
     for (let d = evolutionStep; d <= daysToShow; d += evolutionStep) points.add(d);
@@ -179,7 +179,7 @@ function PastagemCalculatorContent() {
       points.add(Math.ceil(daysToPayback));
     }
     points.add(daysToShow);
-    
+
     const sortedPoints = Array.from(points).sort((a, b) => a - b);
 
     for (const d of sortedPoints) {
@@ -199,7 +199,8 @@ function PastagemCalculatorContent() {
       daysToPayback,
       extraRevenuePerHaMonth: extraRevenuePerHaDay * 30,
       chartDataEvolution,
-      roi
+      roi,
+      daysToShow
     };
   }, [items, areaHa, gainData]);
 
@@ -366,187 +367,194 @@ function PastagemCalculatorContent() {
           <div className="lg:col-span-5 space-y-6 min-w-0">
 
             {/* Cards de Totais */}
-              <div className="bg-[#2D5A27] rounded-[2.5rem] p-7 text-white shadow-xl shadow-[#2D5A27]/20 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2 opacity-70">
-                    <DollarSign size={18} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Investimento Total</span>
-                  </div>
-                  <div className="text-4xl font-black mb-1">
-                    R$ {calculations.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-sm font-medium opacity-80">
-                    Média de R$ {calculations.costPerHa.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por hectare
-                  </div>
+            <div className="bg-[#2D5A27] rounded-[2.5rem] p-7 text-white shadow-xl shadow-[#2D5A27]/20 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2 opacity-70">
+                  <DollarSign size={18} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Investimento Total</span>
+                </div>
+                <div className="text-4xl font-black mb-1">
+                  R$ {calculations.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </div>
+                <div className="text-sm font-medium opacity-80">
+                  Média de R$ {calculations.costPerHa.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por hectare
                 </div>
               </div>
+            </div>
 
-              {/* Estimativa de Ganho Adicional (Movido para cima do Payback) */}
-              <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
-                <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
-                  <Beef size={18} className="text-[#8B4513]" /> Retorno sobre o Pasto
-                </h2>
-                <div className="space-y-4">
+            {/* Estimativa de Ganho Adicional (Movido para cima do Payback) */}
+            <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+              <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
+                <Beef size={18} className="text-[#8B4513]" /> Retorno sobre o Pasto
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">
+                    GMD Extra Esperado (kg/dia)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={gainData.gmdExtra}
+                    onChange={(e) => setGainData(p => ({ ...p, gmdExtra: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                  />
+                  <p className="text-[9px] text-[#999] mt-1">Quanto a mais o animal ganha por dia nesse pasto vs o antigo.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">
-                      GMD Extra Esperado (kg/dia)
-                    </label>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Lotação (cab/ha)</label>
                     <input
                       type="number"
-                      step="0.05"
-                      value={gainData.gmdExtra}
-                      onChange={(e) => setGainData(p => ({ ...p, gmdExtra: e.target.value }))}
+                      value={gainData.lotacao}
+                      onChange={(e) => setGainData(p => ({ ...p, lotacao: e.target.value }))}
                       className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
                     />
-                    <p className="text-[9px] text-[#999] mt-1">Quanto a mais o animal ganha por dia nesse pasto vs o antigo.</p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Lotação (cab/ha)</label>
-                      <input
-                        type="number"
-                        value={gainData.lotacao}
-                        onChange={(e) => setGainData(p => ({ ...p, lotacao: e.target.value }))}
-                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">R$ / kg Vivo</label>
-                      <input
-                        type="number"
-                        value={gainData.valorVenda}
-                        onChange={(e) => setGainData(p => ({ ...p, valorVenda: e.target.value }))}
-                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
-                      />
-                    </div>
-                  </div>
-
                   <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Estimativa de Dias de Pastejo</label>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">R$ / kg Vivo</label>
                     <input
                       type="number"
-                      value={gainData.diasPastejo}
-                      onChange={(e) => setGainData(p => ({ ...p, diasPastejo: e.target.value }))}
+                      value={gainData.valorVenda}
+                      onChange={(e) => setGainData(p => ({ ...p, valorVenda: e.target.value }))}
                       className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
                     />
-                    <p className="text-[9px] text-[#999] mt-1">Total de dias que os animais utilizarão esta pastagem.</p>
-                  </div>
-
-                  <div className="mt-4 p-4 bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-2xl">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-bold text-[#2D5A27] uppercase">Receita Extra / Mês</span>
-                      <span className="text-lg font-black text-[#2D5A27]">
-                        R$ {calculations.extraRevenuePerHaMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/ha
-                      </span>
-                    </div>
-                    <p className="text-[9px] text-[#2D5A27]/70 italic leading-tight">
-                      Cálculo baseado no ganho de peso adicional gerado por hectare a cada 30 dias.
-                    </p>
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-white rounded-[2.5rem] p-7 border border-[#E9ECEF] shadow-sm flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 text-[#999]">
-                    <TrendingUp size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Retorno do Investimento</span>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Estimativa de Dias de Pastejo</label>
+                  <input
+                    type="number"
+                    value={gainData.diasPastejo}
+                    onChange={(e) => setGainData(p => ({ ...p, diasPastejo: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                  />
+                  <p className="text-[9px] text-[#999] mt-1">Total de dias que os animais utilizarão esta pastagem.</p>
+                </div>
+
+                <div className="mt-4 p-4 bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-2xl">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-[#2D5A27] uppercase">Receita Extra / Mês</span>
+                    <span className="text-lg font-black text-[#2D5A27]">
+                      R$ {calculations.extraRevenuePerHaMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/ha
+                    </span>
                   </div>
-                  <div className="flex items-baseline gap-2">
+                  <p className="text-[9px] text-[#2D5A27]/70 italic leading-tight">
+                    Cálculo baseado no ganho de peso adicional gerado por hectare a cada 30 dias.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-7 border border-[#E9ECEF] shadow-sm flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-4 text-[#999]">
+                  <TrendingUp size={16} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Retorno do Investimento</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
                     <div className="text-2xl font-black text-[#333]">
                       {calculations.daysToPayback > 0
                         ? `${Math.ceil(calculations.daysToPayback)} dias`
                         : 'N/A'}
                     </div>
-                    <span className="text-[10px] text-[#999] font-bold uppercase">Payback</span>
+                    <span className="text-[10px] text-[#999] font-bold uppercase tracking-widest block mt-1">Payback</span>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-[#F8F9FA] flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-[#999] uppercase">ROI Estimado:</span>
-                    <span className={`text-sm font-black ${calculations.roi >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+
+                  <div>
+                    <div className={`text-2xl font-black ${calculations.roi >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
                       {calculations.roi.toFixed(1)}%
-                    </span>
+                    </div>
+                    <span className="text-[10px] text-[#999] font-bold uppercase tracking-widest block mt-1">ROI Estimado</span>
                   </div>
-                </div>
-                <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center shrink-0">
-                  <Wallet className="text-amber-600" size={28} />
                 </div>
               </div>
+              <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center shrink-0">
+                <Wallet className="text-amber-600" size={28} />
+              </div>
+            </div>
 
-              {/* Gráfico de Evolução do Lucro (Semelhante à calculadora GMD) */}
-              {calculations.chartDataEvolution.length > 0 && (
-                <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-sm font-bold text-[#333] flex items-center gap-2 uppercase tracking-wider">
-                        <TrendingUp size={18} className="text-[#2D5A27]" /> Evolução Financeira
-                      </h2>
-                      <p className="text-[10px] text-[#999] mt-0.5">Projeção por hectare ao longo do tempo</p>
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#2D5A27]" /> Lucro</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#E9ECEF] border" /> Custo</span>
-                    </div>
+            {/* Gráfico de Evolução do Lucro (Semelhante à calculadora GMD) */}
+            {calculations.chartDataEvolution.length > 0 && (
+              <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-sm font-bold text-[#333] flex items-center gap-2 uppercase tracking-wider">
+                      <TrendingUp size={18} className="text-[#2D5A27]" /> Evolução Financeira
+                    </h2>
+                    <p className="text-[10px] text-[#999] mt-0.5">Projeção por hectare ao longo do tempo</p>
                   </div>
-
-                  <div className="h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={calculations.chartDataEvolution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#2D5A27" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="gradCusto" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="#94A3B8" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                        <XAxis
-                          dataKey="dia"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
-                          tickFormatter={(v) => `D${v}`}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
-                          tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: '#1A1A1A',
-                            border: 'none',
-                            borderRadius: '16px',
-                            padding: '12px',
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                          }}
-                          labelStyle={{ color: '#999', fontSize: 10, fontWeight: 700, marginBottom: 4 }}
-                          itemStyle={{ fontSize: 12, fontWeight: 700, color: '#fff' }}
-                          labelFormatter={(v) => `Dia ${v}`}
-                          formatter={(value, name) => [
-                            `R$ ${Number(value).toLocaleString('pt-BR')}`,
-                            name === 'lucro' ? 'Lucro Acum.' : (name === 'receita' ? 'Receita' : 'Custo Inicial')
-                          ]}
-                        />
-                        <ReferenceLine y={0} stroke="#EF4444" strokeDasharray="4 4" />
-                        <Area type="monotone" dataKey="custo" stroke="#CBD5E1" strokeWidth={1.5} fill="url(#gradCusto)" dot={false} />
-                        <Area type="monotone" dataKey="lucro" stroke="#2D5A27" strokeWidth={2.5} fill="url(#gradLucro)" dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#2D5A27]" /> Lucro</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#E9ECEF] border" /> Custo</span>
                   </div>
-                  
-                  {calculations.daysToPayback > 0 ? (
-                    <p className="text-center text-[10px] text-[#666] mt-4 font-medium italic">
-                      📍 Break-even estimado em <strong className="text-[#2D5A27]">{Math.ceil(calculations.daysToPayback)} dias</strong>
-                    </p>
-                  ) : null}
                 </div>
-              )}
+
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={calculations.chartDataEvolution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#2D5A27" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gradCusto" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.12} />
+                          <stop offset="95%" stopColor="#94A3B8" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                      <XAxis
+                        dataKey="dia"
+                        type="number"
+                        domain={[0, 'dataMax']}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                        tickFormatter={(v) => `D${v}`}
+                        ticks={[0, Math.round(calculations.daysToShow / 2), calculations.daysToShow]}
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                        tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#1A1A1A',
+                          border: 'none',
+                          borderRadius: '16px',
+                          padding: '12px',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                        }}
+                        labelStyle={{ color: '#999', fontSize: 10, fontWeight: 700, marginBottom: 4 }}
+                        itemStyle={{ fontSize: 12, fontWeight: 700, color: '#fff' }}
+                        labelFormatter={(v) => `Dia ${v}`}
+                        formatter={(value, name) => [
+                          `R$ ${Number(value).toLocaleString('pt-BR')}`,
+                          name === 'lucro' ? 'Lucro Acum.' : (name === 'receita' ? 'Receita' : 'Custo Inicial')
+                        ]}
+                      />
+                      <ReferenceLine y={0} stroke="#EF4444" strokeDasharray="4 4" />
+                      <Area type="monotone" dataKey="custo" stroke="#CBD5E1" strokeWidth={1.5} fill="url(#gradCusto)" dot={false} />
+                      <Area type="monotone" dataKey="lucro" stroke="#2D5A27" strokeWidth={2.5} fill="url(#gradLucro)" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {calculations.daysToPayback > 0 ? (
+                  <p className="text-center text-[10px] text-[#666] mt-4 font-medium italic">
+                    📍 Break-even estimado em <strong className="text-[#2D5A27]">{Math.ceil(calculations.daysToPayback)} dias</strong>
+                  </p>
+                ) : null}
+              </div>
+            )}
 
             {/* Gráfico de Distribuição de Custos */}
             <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm min-h-[300px]">
