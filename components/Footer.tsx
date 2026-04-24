@@ -43,6 +43,9 @@ export function Footer() {
               <Link href="/termos" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
                 Termos de Uso
               </Link>
+              <Link href="/politica-de-privacidade" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
+                Política de Privacidade
+              </Link>
               <Link href="/contato" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">
                 Contato
               </Link>

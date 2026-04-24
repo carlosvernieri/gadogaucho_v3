@@ -25,7 +25,10 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  AreaChart,
+  Area,
+  ReferenceLine
 } from 'recharts';
 
 // --- Tipos e Categorias ---
@@ -73,26 +76,27 @@ function PastagemCalculatorContent() {
   const [showShareToast, setShowShareToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // --- Estado Inicial (Dados da Planilha do Usuário) ---
-  const [areaHa, setAreaHa] = useState<string>('5.5');
+  // --- Estado Inicial (Exemplo de Pastagem de Inverno - RS) ---
+  const [areaHa, setAreaHa] = useState<string>('1');
   const [items, setItems] = useState<CostItem[]>([
-    { id: '1', category: 'Maquinário', description: 'Trator - Aragem', unitPrice: 145, quantity: 5 },
-    { id: '2', category: 'Maquinário', description: 'Trator - Gradagem', unitPrice: 140, quantity: 5 },
-    { id: '3', category: 'Insumos', description: 'Adubo 5.20.10', unitPrice: 135, quantity: 16 },
-    { id: '4', category: 'Insumos', description: 'Semente Brachiaria Piatã', unitPrice: 214.86, quantity: 8 },
-    { id: '5', category: 'Insumos', description: 'Semente Milheto', unitPrice: 80, quantity: 6 },
-    { id: '6', category: 'Serviços', description: 'Drone p/ Adubo', unitPrice: 180, quantity: 5.5 },
-    { id: '7', category: 'Serviços', description: 'Drone p/ Sementes', unitPrice: 100, quantity: 5.5 },
-    { id: '8', category: 'Maquinário', description: 'Tapar Sementes (Trator)', unitPrice: 140, quantity: 5 },
-    { id: '9', category: 'Insumos', description: 'Ureia', unitPrice: 160, quantity: 5 },
-    { id: '10', category: 'Serviços', description: 'Drone p/ Ureia', unitPrice: 100, quantity: 5 },
+    { id: '1', category: 'Maquinário', description: 'Trator - Aragem', unitPrice: 145, quantity: 1 },
+    { id: '2', category: 'Maquinário', description: 'Trator - Gradagem', unitPrice: 140, quantity: 1 },
+    { id: '3', category: 'Insumos', description: 'Adubo 5.20.20', unitPrice: 168.50, quantity: 3 },
+    { id: '4', category: 'Insumos', description: 'Semente de Aveia Preta', unitPrice: 95, quantity: 1 },
+    { id: '5', category: 'Insumos', description: 'Semente de Azevém', unitPrice: 117, quantity: 1 },
+    { id: '6', category: 'Serviços', description: 'Drone p/ Adubo', unitPrice: 180, quantity: 1 },
+    { id: '7', category: 'Serviços', description: 'Drone p/ Sementes', unitPrice: 100, quantity: 1 },
+    { id: '8', category: 'Maquinário', description: 'Tapar Sementes (Trator)', unitPrice: 140, quantity: 1 },
+    { id: '9', category: 'Insumos', description: 'Ureia', unitPrice: 225.50, quantity: 1 },
+    { id: '10', category: 'Serviços', description: 'Drone p/ Ureia', unitPrice: 100, quantity: 1 },
   ]);
 
   // --- Dados de Estimativa de Ganho ---
   const [gainData, setGainData] = useState({
-    gmdExtra: '0.400', // Ganho extra por dia por animal vs campo nativo
+    gmdExtra: '0.700', // Ganho extra por dia por animal vs campo nativo
     lotacao: '2.5',    // Animais por hectare
-    valorVenda: '14.50' // R$ por kg vivo
+    valorVenda: '13.00', // R$ por kg vivo
+    diasPastejo: '120'  // Dias estimados de uso da pastagem
   });
 
   // --- Carregar da URL ---
@@ -103,8 +107,13 @@ function PastagemCalculatorContent() {
 
     if (area) setAreaHa(area);
     if (gain) {
-      const [ge, l, v] = gain.split(':');
-      setGainData({ gmdExtra: ge, lotacao: l, valorVenda: v });
+      const [ge, l, v, dp] = gain.split(':');
+      setGainData({ 
+        gmdExtra: ge, 
+        lotacao: l, 
+        valorVenda: v, 
+        diasPastejo: dp || '120' 
+      });
     }
     if (data) {
       try {
@@ -147,17 +156,50 @@ function PastagemCalculatorContent() {
     const gmd = parseFloat(gainData.gmdExtra) || 0;
     const lot = parseFloat(gainData.lotacao) || 0;
     const valor = parseFloat(gainData.valorVenda) || 0;
-    
+    const dias = parseFloat(gainData.diasPastejo) || 0;
+
     const extraKgPerHaDay = gmd * lot;
     const extraRevenuePerHaDay = extraKgPerHaDay * valor;
     const daysToPayback = extraRevenuePerHaDay > 0 ? costPerHa / extraRevenuePerHaDay : 0;
+
+    // Cálculo de ROI
+    const totalExtraRevenue = extraRevenuePerHaDay * dias;
+    const roi = costPerHa > 0 ? ((totalExtraRevenue - costPerHa) / costPerHa) * 100 : 0;
+
+    // Dados do Gráfico de Evolução (Break-even)
+    const daysToShow = Math.max(120, isFinite(daysToPayback) && daysToPayback > 0 ? Math.ceil(daysToPayback * 1.5) : 180);
+    const evolutionStep = Math.ceil(daysToShow / 20);
+    const chartDataEvolution = [];
+    
+    // Garantir que o dia do payback esteja no gráfico para precisão visual
+    const points = new Set([0]);
+    for (let d = evolutionStep; d <= daysToShow; d += evolutionStep) points.add(d);
+    if (isFinite(daysToPayback) && daysToPayback > 0 && daysToPayback < daysToShow) {
+      points.add(Math.floor(daysToPayback));
+      points.add(Math.ceil(daysToPayback));
+    }
+    points.add(daysToShow);
+    
+    const sortedPoints = Array.from(points).sort((a, b) => a - b);
+
+    for (const d of sortedPoints) {
+      const rec = extraRevenuePerHaDay * d;
+      chartDataEvolution.push({
+        dia: d,
+        receita: Math.round(rec),
+        custo: Math.round(costPerHa),
+        lucro: Math.round(rec - costPerHa)
+      });
+    }
 
     return {
       totalCost,
       costPerHa,
       chartData,
       daysToPayback,
-      extraRevenuePerHaMonth: extraRevenuePerHaDay * 30
+      extraRevenuePerHaMonth: extraRevenuePerHaDay * 30,
+      chartDataEvolution,
+      roi
     };
   }, [items, areaHa, gainData]);
 
@@ -170,7 +212,7 @@ function PastagemCalculatorContent() {
       unitPrice: 0,
       quantity: 0
     };
-    setItems([...items, newItem]);
+    setItems([newItem, ...items]);
   };
 
   const updateItem = (id: string, field: keyof CostItem, value: any) => {
@@ -181,19 +223,17 @@ function PastagemCalculatorContent() {
     setItems(items.filter(item => item.id !== id));
   };
 
-  const shareUrl = () => {
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '';
     const baseUrl = window.location.origin + window.location.pathname;
     const d = items.map(i => `${i.category}:${i.description}:${i.unitPrice}:${i.quantity}`).join(',');
-    const g = `${gainData.gmdExtra}:${gainData.lotacao}:${gainData.valorVenda}`;
+    const g = `${gainData.gmdExtra}:${gainData.lotacao}:${gainData.valorVenda}:${gainData.diasPastejo}`;
     const params = new URLSearchParams({ a: areaHa, d, g });
     return `${baseUrl}?${params.toString()}`;
-  };
+  }, [items, areaHa, gainData]);
 
   const handleShare = () => {
-    navigator.clipboard.writeText(shareUrl());
-    setToastMessage('Link de compartilhamento copiado!');
-    setShowShareToast(true);
-    setTimeout(() => setShowShareToast(false), 3000);
+    setShowShareModal(true);
   };
 
   return (
@@ -203,6 +243,12 @@ function PastagemCalculatorContent() {
         user={user}
         onLogout={() => { }}
         onAuthClick={() => { }}
+        onHomeClick={() => router.push('/')}
+        onFavoritesClick={() => router.push('/favoritos')}
+        onAdClick={() => router.push('/?ad=new')}
+        onAdminClick={() => router.push('/')}
+        onMyAdsClick={() => router.push('/meus-anuncios')}
+        onMessagesClick={() => router.push('/mensagens')}
       />
 
       <main className="max-w-6xl mx-auto w-full px-4 lg:px-8 py-8">
@@ -229,30 +275,9 @@ function PastagemCalculatorContent() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Coluna Esquerda: Configuração e Itens */}
+
+          {/* Coluna Esquerda: Itens */}
           <div className="lg:col-span-7 space-y-6 min-w-0">
-            
-            {/* Configuração da Área */}
-            <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#E9F0E8] rounded-2xl flex items-center justify-center shrink-0">
-                  <LayoutDashboard className="text-[#2D5A27]" size={24} />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1">Tamanho da Área Total</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      value={areaHa}
-                      onChange={(e) => setAreaHa(e.target.value)}
-                      className="text-2xl font-black text-[#333] bg-transparent border-b-2 border-dashed border-[#E9ECEF] focus:border-[#2D5A27] outline-none w-24"
-                    />
-                    <span className="text-lg font-bold text-[#999]">hectares (ha)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Tabela de Custos */}
             <div className="bg-white rounded-[2rem] p-5 sm:p-6 border border-[#E9ECEF] shadow-sm overflow-hidden">
@@ -339,9 +364,8 @@ function PastagemCalculatorContent() {
 
           {/* Coluna Direita: Resultados e Estimativa de Ganho */}
           <div className="lg:col-span-5 space-y-6 min-w-0">
-            
+
             {/* Cards de Totais */}
-            <div className="grid gap-4">
               <div className="bg-[#2D5A27] rounded-[2.5rem] p-7 text-white shadow-xl shadow-[#2D5A27]/20 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                 <div className="relative z-10">
@@ -358,79 +382,171 @@ function PastagemCalculatorContent() {
                 </div>
               </div>
 
+              {/* Estimativa de Ganho Adicional (Movido para cima do Payback) */}
+              <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+                <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
+                  <Beef size={18} className="text-[#8B4513]" /> Retorno sobre o Pasto
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">
+                      GMD Extra Esperado (kg/dia)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={gainData.gmdExtra}
+                      onChange={(e) => setGainData(p => ({ ...p, gmdExtra: e.target.value }))}
+                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                    />
+                    <p className="text-[9px] text-[#999] mt-1">Quanto a mais o animal ganha por dia nesse pasto vs o antigo.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Lotação (cab/ha)</label>
+                      <input
+                        type="number"
+                        value={gainData.lotacao}
+                        onChange={(e) => setGainData(p => ({ ...p, lotacao: e.target.value }))}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">R$ / kg Vivo</label>
+                      <input
+                        type="number"
+                        value={gainData.valorVenda}
+                        onChange={(e) => setGainData(p => ({ ...p, valorVenda: e.target.value }))}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Estimativa de Dias de Pastejo</label>
+                    <input
+                      type="number"
+                      value={gainData.diasPastejo}
+                      onChange={(e) => setGainData(p => ({ ...p, diasPastejo: e.target.value }))}
+                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
+                    />
+                    <p className="text-[9px] text-[#999] mt-1">Total de dias que os animais utilizarão esta pastagem.</p>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-2xl">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold text-[#2D5A27] uppercase">Receita Extra / Mês</span>
+                      <span className="text-lg font-black text-[#2D5A27]">
+                        R$ {calculations.extraRevenuePerHaMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/ha
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-[#2D5A27]/70 italic leading-tight">
+                      Cálculo baseado no ganho de peso adicional gerado por hectare a cada 30 dias.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-[2.5rem] p-7 border border-[#E9ECEF] shadow-sm flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 text-[#999]">
                     <TrendingUp size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Payback Estimado</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Retorno do Investimento</span>
                   </div>
-                  <div className="text-2xl font-black text-[#333]">
-                    {calculations.daysToPayback > 0 
-                      ? `${Math.ceil(calculations.daysToPayback)} dias`
-                      : 'N/A'}
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-2xl font-black text-[#333]">
+                      {calculations.daysToPayback > 0
+                        ? `${Math.ceil(calculations.daysToPayback)} dias`
+                        : 'N/A'}
+                    </div>
+                    <span className="text-[10px] text-[#999] font-bold uppercase">Payback</span>
                   </div>
-                  <p className="text-[10px] text-[#999] mt-1 italic">Tempo para o lucro extra pagar o plantio.</p>
+                  <div className="mt-2 pt-2 border-t border-[#F8F9FA] flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#999] uppercase">ROI Estimado:</span>
+                    <span className={`text-sm font-black ${calculations.roi >= 0 ? 'text-[#2D5A27]' : 'text-red-500'}`}>
+                      {calculations.roi.toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center">
+                <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center shrink-0">
                   <Wallet className="text-amber-600" size={28} />
                 </div>
               </div>
-            </div>
 
-            {/* Estimativa de Ganho Adicional */}
-            <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
-              <h2 className="text-sm font-bold text-[#333] mb-5 flex items-center gap-2 uppercase tracking-wider">
-                <Beef size={18} className="text-[#8B4513]" /> Retorno sobre o Pasto
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">
-                    GMD Extra Esperado (kg/dia)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={gainData.gmdExtra}
-                    onChange={(e) => setGainData(p => ({ ...p, gmdExtra: e.target.value }))}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
-                  />
-                  <p className="text-[9px] text-[#999] mt-1">Quanto a mais o animal ganha por dia nesse pasto vs o antigo.</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">Lotação (cab/ha)</label>
-                    <input
-                      type="number"
-                      value={gainData.lotacao}
-                      onChange={(e) => setGainData(p => ({ ...p, lotacao: e.target.value }))}
-                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
-                    />
+              {/* Gráfico de Evolução do Lucro (Semelhante à calculadora GMD) */}
+              {calculations.chartDataEvolution.length > 0 && (
+                <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-sm font-bold text-[#333] flex items-center gap-2 uppercase tracking-wider">
+                        <TrendingUp size={18} className="text-[#2D5A27]" /> Evolução Financeira
+                      </h2>
+                      <p className="text-[10px] text-[#999] mt-0.5">Projeção por hectare ao longo do tempo</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#2D5A27]" /> Lucro</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-1 rounded-full bg-[#E9ECEF] border" /> Custo</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 italic">R$ / kg Vivo</label>
-                    <input
-                      type="number"
-                      value={gainData.valorVenda}
-                      onChange={(e) => setGainData(p => ({ ...p, valorVenda: e.target.value }))}
-                      className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] focus:border-[#2D5A27] outline-none"
-                    />
-                  </div>
-                </div>
 
-                <div className="mt-4 p-4 bg-[#E9F0E8] border border-[#2D5A27]/20 rounded-2xl">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold text-[#2D5A27] uppercase">Receita Extra / Mês</span>
-                    <span className="text-lg font-black text-[#2D5A27]">
-                      R$ {calculations.extraRevenuePerHaMonth.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/ha
-                    </span>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={calculations.chartDataEvolution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#2D5A27" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="gradCusto" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.12} />
+                            <stop offset="95%" stopColor="#94A3B8" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
+                        <XAxis
+                          dataKey="dia"
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                          tickFormatter={(v) => `D${v}`}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fontSize: 10, fill: '#999', fontWeight: 600 }}
+                          tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#1A1A1A',
+                            border: 'none',
+                            borderRadius: '16px',
+                            padding: '12px',
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                          }}
+                          labelStyle={{ color: '#999', fontSize: 10, fontWeight: 700, marginBottom: 4 }}
+                          itemStyle={{ fontSize: 12, fontWeight: 700, color: '#fff' }}
+                          labelFormatter={(v) => `Dia ${v}`}
+                          formatter={(value, name) => [
+                            `R$ ${Number(value).toLocaleString('pt-BR')}`,
+                            name === 'lucro' ? 'Lucro Acum.' : (name === 'receita' ? 'Receita' : 'Custo Inicial')
+                          ]}
+                        />
+                        <ReferenceLine y={0} stroke="#EF4444" strokeDasharray="4 4" />
+                        <Area type="monotone" dataKey="custo" stroke="#CBD5E1" strokeWidth={1.5} fill="url(#gradCusto)" dot={false} />
+                        <Area type="monotone" dataKey="lucro" stroke="#2D5A27" strokeWidth={2.5} fill="url(#gradLucro)" dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-                  <p className="text-[9px] text-[#2D5A27]/70 italic leading-tight">
-                    Cálculo baseado no ganho de peso adicional gerado por hectare a cada 30 dias.
-                  </p>
+                  
+                  {calculations.daysToPayback > 0 ? (
+                    <p className="text-center text-[10px] text-[#666] mt-4 font-medium italic">
+                      📍 Break-even estimado em <strong className="text-[#2D5A27]">{Math.ceil(calculations.daysToPayback)} dias</strong>
+                    </p>
+                  ) : null}
                 </div>
-              </div>
-            </div>
+              )}
 
             {/* Gráfico de Distribuição de Custos */}
             <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm min-h-[300px]">
@@ -453,9 +569,9 @@ function PastagemCalculatorContent() {
                         <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name as Category]} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                       contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                       formatter={(v: any) => `R$ ${Number(v).toLocaleString('pt-BR')}`}
+                    <Tooltip
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                      formatter={(v: any) => `R$ ${Number(v).toLocaleString('pt-BR')}`}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -491,7 +607,19 @@ function PastagemCalculatorContent() {
         )}
       </AnimatePresence>
 
-      <BottomNav activeTab="calculadoras" />
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={shareUrl}
+        title="Orçamento de Formação de Pastagem - Gado Gaúcho"
+        onCopySuccess={() => {
+          setToastMessage('Link de orçamento copiado!');
+          setShowShareToast(true);
+          setTimeout(() => setShowShareToast(false), 3000);
+        }}
+      />
+
+      <BottomNav />
     </div>
   );
 }

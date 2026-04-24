@@ -42,6 +42,11 @@ export default function TermosPage() {
             <h2 className="text-xl font-bold text-[#2D5A27] mb-3">3. Uso Seguro</h2>
             <p>Recomendamos a todos os compradores prudência e checagem da procedência animal através de visitas in-loco e emissão correta da Guia de Trânsito Animal (GTA). A Gado Gaúcho nunca solicita senhas, pagamentos por fora ou comissões não declaradas no escopo do portal.</p>
           </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-[#2D5A27] mb-3">4. Privacidade e Proteção de Dados (LGPD)</h2>
+            <p>O Gado Gaúcho compromete-se a proteger a privacidade dos seus usuários. A coleta, armazenamento e tratamento de dados pessoais (como nome, telefone e e-mail) são realizados estritamente para o funcionamento da plataforma, respeitando a Lei Geral de Proteção de Dados (LGPD). Para mais detalhes sobre seus direitos e como seus dados são tratados, leia nossa <a href="/politica-de-privacidade" className="text-[#2D5A27] font-bold hover:underline">Política de Privacidade</a>.</p>
+          </section>
         </div>
 
         <div className="mt-8 pt-8 border-t border-[#E9ECEF]">

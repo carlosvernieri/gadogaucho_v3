@@ -119,7 +119,7 @@ export const ListingCard = ({
           <span>•</span>
           <span>{listing.quantity} animais</span>
           <span>•</span>
-          <span>R$ {listing.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <span>R$ {listing.price.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
         </div>
 
         <div className="flex items-center justify-between text-[10px] text-[#999] mb-4">

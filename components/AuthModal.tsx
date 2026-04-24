@@ -106,7 +106,7 @@ export function AuthModal() {
       };
 
       try {
-        const res = await fetch('/api/users', {
+        const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: safeJsonStringify(newUser)
@@ -334,6 +334,20 @@ export function AuthModal() {
                       placeholder="Digite o resultado"
                       className="w-full bg-white border border-transparent focus:border-[#2D5A27] rounded-xl px-4 py-3 text-sm outline-none transition-all focus:shadow-sm"
                     />
+                  </div>
+                )}
+
+                {authMode === 'register' && (
+                  <div className="flex items-start gap-3 mt-4">
+                    <input
+                      type="checkbox"
+                      id="lgpd-consent"
+                      required
+                      className="mt-1 w-4 h-4 rounded text-[#2D5A27] focus:ring-[#2D5A27] border-[#E9ECEF] cursor-pointer"
+                    />
+                    <label htmlFor="lgpd-consent" className="text-xs text-[#666] leading-tight cursor-pointer">
+                      Li e concordo com os <a href="/termos" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Termos de Uso</a> e a <a href="/politica-de-privacidade" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Política de Privacidade</a> do Gado Gaúcho. Aceito o tratamento dos meus dados conforme a LGPD. <span className="text-[#DC3545]">*</span>
+                    </label>
                   </div>
                 )}
 
