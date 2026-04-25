@@ -114,7 +114,7 @@ export const Sidebar = ({
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 z-50 lg:z-30 w-[280px] bg-white transition-transform duration-300 ease-in-out
+      fixed inset-y-0 left-0 z-50 lg:z-30 w-[280px] bg-white transition-transform duration-300 ease-in-out print:hidden
       ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
       ${!isDesktopHidden ? 'lg:bg-transparent lg:relative lg:block lg:translate-x-0' : 'lg:hidden'}
     `}>

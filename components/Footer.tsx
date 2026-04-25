@@ -25,16 +25,16 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <h4 className="font-bold text-[#333] text-sm uppercase tracking-wider">Acesso Rápido</h4>
             <nav className="flex flex-col gap-3">
-              <Link href="/relatorio-preco-do-gado" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+              <Link href="/relatorio-preco-do-gado" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Boletim Semanal de Preços
               </Link>
-              <Link href="/calculadoras/gmd" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+              <Link href="/calculadoras/gmd" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Calculadora GMD
               </Link>
-              <Link href="/calculadoras/proteinado" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+              <Link href="/calculadoras/proteinado" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Calculadora de Proteinado
               </Link>
-              <Link href="/calculadoras/pastagem" className="text-sm font-bold text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+              <Link href="/calculadoras/pastagem" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Calculadora de Pastagem
               </Link>
               <Link href="/precodogado" className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors w-fit">

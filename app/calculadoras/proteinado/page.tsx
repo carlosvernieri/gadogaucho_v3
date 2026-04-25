@@ -354,7 +354,6 @@ function ProteinadoCalculatorContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col pb-24 lg:pb-0">
-      <div className="print:hidden">
         <Header
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -389,7 +388,6 @@ function ProteinadoCalculatorContent() {
           setShowSuggestions={() => { }}
           isDesktopHidden={true}
         />
-      </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 lg:px-8 py-8">
 
@@ -1158,7 +1156,6 @@ function ProteinadoCalculatorContent() {
 
       </main>
 
-      <div className="print:hidden">
         {user && (
           <BottomNav
             user={user}
@@ -1166,7 +1163,6 @@ function ProteinadoCalculatorContent() {
             onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
           />
         )}
-      </div>
 
       <ShareModal
         isOpen={showShareModal}
