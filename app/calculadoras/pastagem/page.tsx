@@ -71,7 +71,7 @@ export default function PastagemCalculatorPage() {
 function PastagemCalculatorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useUser();
+  const { user, setShowAdModal, setShowAuthModal, setAuthMode } = useUser();
   const [showShareModal, setShowShareModal] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -304,29 +304,32 @@ function PastagemCalculatorContent() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       className="bg-[#F8F9FA] rounded-2xl p-4 border border-[#E9ECEF] group"
                     >
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <select
-                          value={item.category}
-                          onChange={(e) => updateItem(item.id, 'category', e.target.value)}
-                          className="text-[10px] font-bold uppercase bg-white border border-[#E9ECEF] rounded-lg px-2 py-1 outline-none focus:border-[#2D5A27]"
-                        >
-                          <option value="Maquinário">🚜 Maquinário</option>
-                          <option value="Insumos">🌱 Insumos</option>
-                          <option value="Serviços">🛸 Serviços</option>
-                          <option value="Outros">📦 Outros</option>
-                        </select>
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                          placeholder="Descrição do item"
-                          className="flex-1 min-w-[150px] bg-transparent font-bold text-[#333] text-sm border-b border-transparent focus:border-[#2D5A27] outline-none"
-                        />
+                      <div className="flex items-start justify-between gap-2 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 flex-1">
+                          <select
+                            value={item.category}
+                            onChange={(e) => updateItem(item.id, 'category', e.target.value)}
+                            className="text-[10px] font-bold uppercase bg-white border border-[#E9ECEF] rounded-lg px-2 py-1.5 outline-none focus:border-[#2D5A27] shadow-sm"
+                          >
+                            <option value="Maquinário">🚜 Maquinário</option>
+                            <option value="Insumos">🌱 Insumos</option>
+                            <option value="Serviços">🛸 Serviços</option>
+                            <option value="Outros">📦 Outros</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                            placeholder="Descrição do item"
+                            className="flex-1 min-w-[120px] bg-transparent font-bold text-[#333] text-sm border-b border-transparent focus:border-[#2D5A27] outline-none py-1"
+                          />
+                        </div>
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="text-red-400 hover:text-red-600 p-1 transition-colors opacity-0 group-hover:opacity-100"
+                          className="text-red-400 hover:text-red-600 p-2 transition-colors bg-red-50 sm:bg-transparent rounded-lg sm:rounded-none"
+                          title="Remover Item"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
 
@@ -627,7 +630,13 @@ function PastagemCalculatorContent() {
         }}
       />
 
-      <BottomNav />
+      {user && (
+        <BottomNav 
+          user={user}
+          onAdClick={() => setShowAdModal(true)}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+        />
+      )}
     </div>
   );
 }

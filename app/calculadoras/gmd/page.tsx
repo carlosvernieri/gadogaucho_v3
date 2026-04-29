@@ -204,7 +204,6 @@ function GMDCalculatorContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col pb-24 lg:pb-0">
-      <div className="print:hidden">
         <Header
           user={user}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -239,7 +238,6 @@ function GMDCalculatorContent() {
           setShowSuggestions={() => { }}
           isDesktopHidden={true}
         />
-      </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 lg:px-8 py-8">
 
@@ -273,7 +271,7 @@ function GMDCalculatorContent() {
             {/* Bloco Zootécnico */}
             <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
               <h2 className="text-sm font-bold text-[#333] mb-6 flex items-center gap-2 uppercase tracking-wider">
-                <Scale size={18} className="text-[#2D5A27]" /> Dados Biológicos
+                <Scale size={18} className="text-[#2D5A27]" /> Dados do Lote
               </h2>
 
               <div className="space-y-5">
@@ -593,7 +591,6 @@ function GMDCalculatorContent() {
 
       </main>
 
-      <div className="print:hidden">
         {user && (
           <BottomNav
             user={user}
@@ -601,7 +598,6 @@ function GMDCalculatorContent() {
             onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
           />
         )}
-      </div>
 
       <ShareModal
         isOpen={showShareModal}

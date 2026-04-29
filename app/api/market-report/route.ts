@@ -13,6 +13,9 @@ export async function GET() {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(today.getDate() - 14);
 
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(today.getDate() - 90);
+
     // 0. Load Dynamic Data from Cache/Disk
     const dynamicMarketData = await getMarketData();
 
@@ -70,24 +73,35 @@ export async function GET() {
     const { data: platformOffers } = await (supabaseAdmin
       .from('listings') as any)
       .select('price_kg, category, created_at')
-      .gte('created_at', thirtyDaysAgo.toISOString());
+      .gte('created_at', ninetyDaysAgo.toISOString());
 
     // Helper to calculate average
     const calcAvg = (data: any[], cat: string) => {
       // Map common market names to database categories
       const categoryMap: Record<string, string[]> = {
-        'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo'],
-        'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte'],
-        'Novilha': ['Novilha'],
-        'Terneiro': ['Terneiro'],
-        'Terneira': ['Terneira']
+        'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo', 'Novilhos', 'Boi'],
+        'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte', 'Vacas'],
+        'Novilha': ['Novilha', 'Novilhas'],
+        'Terneiro': ['Terneiro', 'Terneiros', 'Bezerro', 'Bezerros'],
+        'Terneira': ['Terneira', 'Terneiras', 'Bezerra', 'Bezerras']
       };
 
-      const targetCategories = categoryMap[cat] || [cat];
-      const filtered = data?.filter(item => targetCategories.includes(item.category)) || [];
+      const targetCategories = (categoryMap[cat] || [cat]).map(tc => tc.toLowerCase());
+      
+      const filtered = data?.filter(item => {
+        const itemCat = item.category?.toLowerCase();
+        return targetCategories.includes(itemCat);
+      }) || [];
       
       if (filtered.length === 0) return 0;
-      return filtered.reduce((acc, curr) => acc + curr.price_kg, 0) / filtered.length;
+      
+      const sum = filtered.reduce((acc, curr) => {
+        // Handle potential different column naming (price_kg vs priceKg)
+        const val = curr.price_kg !== undefined ? curr.price_kg : (curr.priceKg !== undefined ? curr.priceKg : 0);
+        return acc + (Number(val) || 0);
+      }, 0);
+      
+      return sum / filtered.length;
     };
 
     // Build Category Averages
