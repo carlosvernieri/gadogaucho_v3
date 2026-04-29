@@ -51,50 +51,24 @@ export async function GET() {
 
     const categories = ['Vaca', 'Novilha', 'Boi Gordo', 'Terneiro', 'Terneira'];
 
-    // 3. Aggregate Auction Data (Last 7 days vs Previous 7 days)
-    const { data: currentAuctions } = await (supabaseAdmin
-      .from('auction_offers') as any)
-      .select('price_kg, category, auctions(auction_date)')
-      .gte('auctions.auction_date', sevenDaysAgo.toISOString());
+    // 4. Get Averages using SQL RPC for high performance
+    const { data: dbStats, error } = await supabaseAdmin.rpc('get_market_averages', { 
+      target_date: today.toISOString() 
+    });
 
-    const { data: previousAuctions } = await (supabaseAdmin
-      .from('auction_offers') as any)
-      .select('price_kg, category, auctions(auction_date)')
-      .gte('auctions.auction_date', fourteenDaysAgo.toISOString())
-      .lt('auctions.auction_date', sevenDaysAgo.toISOString());
+    if (error) {
+      console.error('RPC Error (get_market_averages):', error);
+      // Fallback in case the user hasn't run the SQL script yet
+      throw new Error(`Failed to calculate averages via RPC. Make sure to run the get_market_averages SQL script. Details: ${error.message}`);
+    }
 
-    // 4. Aggregate Platform Data (Last 30 days to have more significance)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    const { data: platformOffers } = await (supabaseAdmin
-      .from('listings') as any)
-      .select('price_kg, category, created_at')
-      .gte('created_at', thirtyDaysAgo.toISOString());
-
-    // Helper to calculate average
-    const calcAvg = (data: any[], cat: string) => {
-      // Map common market names to database categories
-      const categoryMap: Record<string, string[]> = {
-        'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo'],
-        'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte'],
-        'Novilha': ['Novilha'],
-        'Terneiro': ['Terneiro'],
-        'Terneira': ['Terneira']
-      };
-
-      const targetCategories = categoryMap[cat] || [cat];
-      const filtered = data?.filter(item => targetCategories.includes(item.category)) || [];
-      
-      if (filtered.length === 0) return 0;
-      return filtered.reduce((acc, curr) => acc + curr.price_kg, 0) / filtered.length;
-    };
-
-    // Build Category Averages
+    // Format the response and calculate trends
     const categoryStats = categories.map(cat => {
-      const auctionAvg = calcAvg(currentAuctions || [], cat);
-      const prevAuctionAvg = calcAvg(previousAuctions || [], cat);
-      const platformAvg = calcAvg(platformOffers || [], cat);
+      const statsForCat = dbStats?.[cat] || { auctionAvg: 0, prevAuctionAvg: 0, platformAvg: 0 };
+      
+      const auctionAvg = typeof statsForCat.auctionAvg === 'number' ? statsForCat.auctionAvg : parseFloat(statsForCat.auctionAvg || 0);
+      const prevAuctionAvg = typeof statsForCat.prevAuctionAvg === 'number' ? statsForCat.prevAuctionAvg : parseFloat(statsForCat.prevAuctionAvg || 0);
+      const platformAvg = typeof statsForCat.platformAvg === 'number' ? statsForCat.platformAvg : parseFloat(statsForCat.platformAvg || 0);
       
       const delta = prevAuctionAvg > 0 ? ((auctionAvg - prevAuctionAvg) / prevAuctionAvg) * 100 : 0;
 
