@@ -1,8 +1,8 @@
 {
   "cepea": {
-    "price": 362.4,
-    "priceKg": "12.08",
-    "delta": -0.4,
+    "price": 358.4,
+    "priceKg": "11.95",
+    "delta": -0.64,
     "trend": "down",
     "unit": "R$/@"
   },
@@ -39,30 +39,30 @@
   "b3": [
     {
       "month": "Abril/2026",
-      "price": 357.05,
+      "price": 357,
       "priceKg": "11.90"
     },
     {
       "month": "Maio/2026",
-      "price": 343.8,
-      "priceKg": "11.46"
+      "price": 345.5,
+      "priceKg": "11.52"
     },
     {
       "month": "Junho/2026",
-      "price": 334.5,
-      "priceKg": "11.15"
+      "price": 336.25,
+      "priceKg": "11.21"
     },
     {
       "month": "Julho/2026",
-      "price": 338.6,
-      "priceKg": "11.29"
+      "price": 337,
+      "priceKg": "11.23"
     },
     {
       "month": "Agosto/2026",
-      "price": 339.25,
-      "priceKg": "11.31"
+      "price": 336.9,
+      "priceKg": "11.23"
     }
   ],
-  "timestamp": "2026-04-24T19:48:41.455Z",
-  "updatedAt": "2026-04-24T19:48:41.456Z"
+  "timestamp": "2026-04-29T16:08:53.870Z",
+  "updatedAt": "2026-04-29T16:08:53.871Z"
 }
