@@ -60,6 +60,13 @@ export default function AdminPage() {
   const [listings, setListings] = useState<any[]>([]);
   const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
 
+  const [usersPage, setUsersPage] = useState(1);
+  const [listingsPage, setListingsPage] = useState(1);
+  const [usersSearch, setUsersSearch] = useState('');
+  const [hasMoreUsers, setHasMoreUsers] = useState(true);
+  const [hasMoreListings, setHasMoreListings] = useState(true);
+  const ITEMS_PER_PAGE = 50;
+
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', city: '', password: '' });
@@ -316,25 +323,48 @@ export default function AdminPage() {
   }, [user, isAuthReady, router]);
 
   const fetchData = async () => {
+    await Promise.all([fetchUsers(1, usersSearch), fetchListings(1)]);
+  };
+
+  const fetchUsers = async (page: number = usersPage, search: string = usersSearch) => {
     try {
-      const [usersRes, listingsRes] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/listings')
-      ]);
-
-      if (usersRes.ok) {
-        const users = await usersRes.json();
+      const res = await fetch(`/api/users?page=${page}&limit=${ITEMS_PER_PAGE}&search=${encodeURIComponent(search)}`);
+      if (res.ok) {
+        const users = await res.json();
         setAllUsers(users);
+        setHasMoreUsers(users.length === ITEMS_PER_PAGE);
       }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
-      if (listingsRes.ok) {
-        const allListings = await listingsRes.json();
+  const fetchListings = async (page: number = listingsPage) => {
+    try {
+      const res = await fetch(`/api/listings?page=${page}&limit=${ITEMS_PER_PAGE}`);
+      if (res.ok) {
+        const allListings = await res.json();
         setListings(allListings);
+        setHasMoreListings(allListings.length === ITEMS_PER_PAGE);
         setVerificationRequests(allListings.filter((l: any) => l.verification_requested && !l.verified));
       }
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      console.error('Error fetching listings:', error);
     }
+  };
+
+  useEffect(() => {
+    if (adminTab === 'users') {
+      fetchUsers(usersPage, usersSearch);
+    } else if (adminTab === 'listings') {
+      fetchListings(listingsPage);
+    }
+  }, [usersPage, listingsPage, adminTab]);
+
+  const handleSearchUsers = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUsersPage(1);
+    fetchUsers(1, usersSearch);
   };
 
   const handleEditUser = (u: any) => {
@@ -663,6 +693,26 @@ export default function AdminPage() {
                     <Plus size={14} /> Novo Usuário
                   </button>
                 </div>
+
+                <form onSubmit={handleSearchUsers} className="mb-6 flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nome ou e-mail..."
+                      value={usersSearch}
+                      onChange={(e) => setUsersSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:outline-none focus:border-[#2D5A27] transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
+                  >
+                    Buscar
+                  </button>
+                </form>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
@@ -728,6 +778,27 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#F8F9FA]">
+                  <span className="text-xs text-[#999] font-medium">Página {usersPage}</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setUsersPage(prev => Math.max(1, prev - 1))}
+                      disabled={usersPage === 1}
+                      className="p-2 bg-[#F8F9FA] text-[#666] rounded-lg hover:bg-[#E9ECEF] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      onClick={() => setUsersPage(prev => prev + 1)}
+                      disabled={!hasMoreUsers}
+                      className="p-2 bg-[#F8F9FA] text-[#666] rounded-lg hover:bg-[#E9ECEF] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+
               </div>
             ) : adminTab === 'verifications' ? (
               <div>
@@ -879,6 +950,27 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#F8F9FA]">
+                  <span className="text-xs text-[#999] font-medium">Página {listingsPage}</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setListingsPage(prev => Math.max(1, prev - 1))}
+                      disabled={listingsPage === 1}
+                      className="p-2 bg-[#F8F9FA] text-[#666] rounded-lg hover:bg-[#E9ECEF] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      onClick={() => setListingsPage(prev => prev + 1)}
+                      disabled={!hasMoreListings}
+                      className="p-2 bg-[#F8F9FA] text-[#666] rounded-lg hover:bg-[#E9ECEF] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+
               </div>
             ) : adminTab === 'auctions' ? (
               <AdminAuctionManager />

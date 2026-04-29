@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
@@ -13,27 +13,28 @@ export async function GET() {
     const session = await getSession();
     if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: users, error } = await (supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const search = searchParams.get('search');
+
+    const offset = (page - 1) * limit;
+
+    let query = (supabaseAdmin
       .from('users') as any)
       .select('id, name, email, phone, city, is_admin, verified');
 
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
+
+    const { data: users, error } = await query;
+
     if (error) {
-      // If the full select fails, try a simple select
-      const { data: fallbackUsers, error: fallbackError } = await (supabaseAdmin
-        .from('users') as any)
-        .select('*');
-      
-      if (fallbackError) {
-        console.error('Supabase users fetch failed completely:', fallbackError);
-        return NextResponse.json([]);
-      }
-      
-      const mappedUsers = (fallbackUsers || []).map((u: any) => ({
-        ...u,
-        verified: u.verified ?? false,
-        rating: 0
-      }));
-      return NextResponse.json(mappedUsers);
+      console.error('Supabase users fetch failed:', error);
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(users);
