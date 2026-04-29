@@ -39,11 +39,12 @@ export async function getMarketQuotes() {
         const avgs: any = {};
         
         categories.forEach(cat => {
-          const filtered = offers.filter(o => o.category === cat);
+          const catLower = cat.toLowerCase();
+          const filtered = offers.filter(o => o.category?.toLowerCase() === catLower);
           if (filtered.length > 0) {
-            avgs[cat.toLowerCase()] = filtered.reduce((acc, curr) => acc + curr.price_kg, 0) / filtered.length;
+            avgs[catLower] = filtered.reduce((acc, curr) => acc + (Number(curr.price_kg) || Number(curr.priceKg) || 0), 0) / filtered.length;
           } else {
-            avgs[cat.toLowerCase()] = 0;
+            avgs[catLower] = 0;
           }
         });
         return avgs;

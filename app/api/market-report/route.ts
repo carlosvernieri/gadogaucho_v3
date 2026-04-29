@@ -9,9 +9,12 @@ export async function GET() {
     const today = new Date();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(today.getDate() - 7);
-    
+
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(today.getDate() - 14);
+
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(today.getDate() - 90);
 
     // 0. Load Dynamic Data from Cache/Disk
     const dynamicMarketData = await getMarketData();
@@ -29,7 +32,7 @@ export async function GET() {
         { category: 'Novilha', price: 11.40 },
       ]
     };
-    
+
     // 2. B3 Futures Data
     const b3Futures = dynamicMarketData?.b3 || [
       { month: 'Abril/26', price: 363.00, priceKg: (363.00 / 30).toFixed(2) },
@@ -52,8 +55,8 @@ export async function GET() {
     const categories = ['Vaca', 'Novilha', 'Boi Gordo', 'Terneiro', 'Terneira'];
 
     // 4. Get Averages using SQL RPC for high performance
-    const { data: dbStats, error } = await supabaseAdmin.rpc('get_market_averages', { 
-      target_date: today.toISOString() 
+    const { data: dbStats, error } = await supabaseAdmin.rpc('get_market_averages', {
+      target_date: today.toISOString()
     });
 
     if (error) {
@@ -65,11 +68,11 @@ export async function GET() {
     // Format the response and calculate trends
     const categoryStats = categories.map(cat => {
       const statsForCat = dbStats?.[cat] || { auctionAvg: 0, prevAuctionAvg: 0, platformAvg: 0 };
-      
+
       const auctionAvg = typeof statsForCat.auctionAvg === 'number' ? statsForCat.auctionAvg : parseFloat(statsForCat.auctionAvg || 0);
       const prevAuctionAvg = typeof statsForCat.prevAuctionAvg === 'number' ? statsForCat.prevAuctionAvg : parseFloat(statsForCat.prevAuctionAvg || 0);
       const platformAvg = typeof statsForCat.platformAvg === 'number' ? statsForCat.platformAvg : parseFloat(statsForCat.platformAvg || 0);
-      
+
       const delta = prevAuctionAvg > 0 ? ((auctionAvg - prevAuctionAvg) / prevAuctionAvg) * 100 : 0;
 
       return {

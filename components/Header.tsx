@@ -57,7 +57,7 @@ export const Header = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-3 sm:px-4 lg:px-8 py-4">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E9ECEF] px-3 sm:px-4 lg:px-8 py-4 print:hidden">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-4">
           <button

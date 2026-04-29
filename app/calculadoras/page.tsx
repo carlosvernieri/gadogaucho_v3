@@ -6,8 +6,8 @@ import { Calculator, TrendingUp, Sprout, FlaskConical, ArrowRight, ChevronRight 
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { Footer } from '@/components/Footer';
 import { SuggestCalculatorModal } from '@/components/SuggestCalculatorModal';
+import { useUser } from '@/context/UserContext';
 
 const CALCULATORS = [
   {
@@ -44,6 +44,7 @@ const CALCULATORS = [
 
 export default function CalculadorasPage() {
   const [isSuggestModalOpen, setIsSuggestModalOpen] = React.useState(false);
+  const { user, setShowAdModal, setShowAuthModal, setAuthMode } = useUser();
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
@@ -153,8 +154,13 @@ export default function CalculadorasPage() {
         </motion.div>
       </main>
 
-      <Footer />
-      <BottomNav />
+      {user && (
+        <BottomNav 
+          user={user}
+          onAdClick={() => setShowAdModal(true)}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+        />
+      )}
 
       <SuggestCalculatorModal 
         isOpen={isSuggestModalOpen} 
