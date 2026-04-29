@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Pencil, Trash2, MapPin, Calendar, 
   DollarSign, TrendingUp, Users, ChevronRight, 
-  ChevronDown, Info, X
+  ChevronDown, Info, X, Link, Play, Activity
 } from 'lucide-react';
 import { AuctionPlaza, Auction, AuctionOffer } from '@/types/auction';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
@@ -27,7 +27,8 @@ export function AdminAuctionManager() {
 
   const [showAuctionModal, setShowAuctionModal] = useState(false);
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
-  const [auctionForm, setAuctionForm] = useState({ plaza_id: '', auction_date: '', commission: 0 });
+  const [auctionForm, setAuctionForm] = useState({ plaza_id: '', auction_date: '', commission: 0, video_url: '' });
+  const [isProcessingOcr, setIsProcessingOcr] = useState<number | null>(null);
 
   const [expandedAuctionId, setExpandedAuctionId] = useState<number | null>(null);
   const [auctionOffers, setAuctionOffers] = useState<{ [key: number]: AuctionOffer[] }>({});
@@ -171,6 +172,32 @@ export function AdminAuctionManager() {
     }
   };
 
+  const handleProcessOcr = async (auction: Auction) => {
+    if (!auction.video_url) return showToast('Adicione um link do YouTube primeiro!', 'error');
+    
+    setIsProcessingOcr(auction.id);
+    try {
+      const res = await fetch('/api/admin/auctions/process-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auctionId: auction.id, videoUrl: auction.video_url })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message, 'success');
+        fetchOffers(auction.id);
+        if (expandedAuctionId !== auction.id) setExpandedAuctionId(auction.id);
+      } else {
+        showToast(data.error || 'Erro no processamento', 'error');
+      }
+    } catch (err) {
+      showToast('Erro ao conectar com o serviço de OCR', 'error');
+    } finally {
+      setIsProcessingOcr(null);
+    }
+  };
+
   // Offer CRUD
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,7 +322,7 @@ export function AdminAuctionManager() {
               onClick={() => {
                 if (plazas.length === 0) return showToast('Cadastre uma praça primeiro!', 'error');
                 setEditingAuction(null);
-                setAuctionForm({ plaza_id: plazas[0].id.toString(), auction_date: '', commission: 0 });
+                setAuctionForm({ plaza_id: plazas[0].id.toString(), auction_date: '', commission: 0, video_url: '' });
                 setShowAuctionModal(true);
               }}
               className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all flex items-center gap-2"
@@ -338,12 +365,21 @@ export function AdminAuctionManager() {
                       {expandedAuctionId === a.id ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </button>
                     <button 
+                      onClick={() => handleProcessOcr(a)}
+                      disabled={isProcessingOcr === a.id}
+                      className={`p-2 rounded-lg transition-all ${isProcessingOcr === a.id ? 'bg-[#F8F9FA] text-[#2D5A27]' : 'text-[#2D5A27] hover:bg-[#E9F0E8]'}`}
+                      title="Processar Vídeo via IA"
+                    >
+                      {isProcessingOcr === a.id ? <Activity size={18} className="animate-pulse" /> : <Play size={18} />}
+                    </button>
+                    <button 
                       onClick={() => {
                         setEditingAuction(a);
                         setAuctionForm({ 
                           plaza_id: a.plaza_id.toString(), 
                           auction_date: new Date(a.auction_date).toISOString().slice(0, 16), 
-                          commission: a.commission 
+                          commission: a.commission,
+                          video_url: a.video_url || ''
                         });
                         setShowAuctionModal(true);
                       }}
@@ -547,6 +583,18 @@ export function AdminAuctionManager() {
                   onChange={e => setAuctionForm({...auctionForm, commission: parseFloat(e.target.value)})}
                   className="w-full bg-[#F8F9FA] rounded-xl px-4 py-3 outline-none focus:border-[#2D5A27] border border-transparent transition-all"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#333] mb-2">Link do Vídeo (YouTube)</label>
+                <div className="relative">
+                  <Link size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" />
+                  <input 
+                    type="url" placeholder="https://www.youtube.com/watch?v=..." 
+                    value={auctionForm.video_url}
+                    onChange={e => setAuctionForm({...auctionForm, video_url: e.target.value})}
+                    className="w-full bg-[#F8F9FA] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[#2D5A27] border border-transparent transition-all"
+                  />
+                </div>
               </div>
               <button type="submit" className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg hover:bg-[#1E3D1A] transition-all">
                 Salvar Leilão

@@ -16,11 +16,11 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     const id = params.id;
     const data = await request.json();
-    const { plaza_id, auction_date, commission } = data;
+    const { plaza_id, auction_date, commission, video_url } = data;
 
     const { data: updatedAuction, error } = await (supabaseAdmin
       .from('auctions') as any)
-      .update({ plaza_id, auction_date, commission })
+      .update({ plaza_id, auction_date, commission, video_url })
       .eq('id', id)
       .select()
       .single();

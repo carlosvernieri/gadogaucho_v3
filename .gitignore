@@ -1,7 +1,13 @@
 node_modules/
 .next/
+node_modules/
+.next/
 coverage/
 .DS_Store
 *.log
 .env*
 !.env.example
+
+# OCR Outputs
+auction_ocr_poc/outputs/
+process_result.json

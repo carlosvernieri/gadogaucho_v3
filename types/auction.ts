@@ -12,10 +12,12 @@ export interface Auction {
   plaza_id: number;
   auction_date: string;
   commission: number;
+  video_url?: string;
   created_at?: string;
   // Joins
   plaza?: AuctionPlaza;
 }
+
 
 export interface AuctionOffer {
   id: number;
