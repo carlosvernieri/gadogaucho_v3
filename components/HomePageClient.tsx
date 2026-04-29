@@ -414,7 +414,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
         onAdClick={() => setShowAdModal(true)}
-        onAdminClick={() => { }}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => { logout(); setShowFavorites(false); setShowMyAds(false); }}
         onHomeClick={() => { setSelectedCategory(null); setShowFavorites(false); setShowMyAds(false); }}
         onFavoritesClick={() => router.push('/favoritos')}

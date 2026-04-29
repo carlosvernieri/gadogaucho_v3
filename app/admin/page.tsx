@@ -603,7 +603,7 @@ export default function AdminPage() {
         onMenuClick={() => { }}
         onAuthClick={() => { }}
         onAdClick={() => { }}
-        onAdminClick={() => { }}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => {
           logout();
           router.push('/');

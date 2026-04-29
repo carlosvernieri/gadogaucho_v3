@@ -93,7 +93,7 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
           onMenuClick={() => { }}
           onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
           onAdClick={() => router.push('/')}
-          onAdminClick={() => router.push('/')}
+          onAdminClick={() => router.push('/admin')}
           onLogout={() => { }}
           onHomeClick={() => router.push('/')}
           onFavoritesClick={() => router.push('/favoritos')}
@@ -116,7 +116,7 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
-        onAdminClick={() => router.push('/')}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => {
           logout();
           router.push('/');

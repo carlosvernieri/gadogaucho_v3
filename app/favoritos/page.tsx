@@ -83,7 +83,7 @@ export default function FavoritosPage() {
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={() => router.push('/?ad=new')}
-          onAdminClick={() => router.push('/')}
+          onAdminClick={() => router.push('/admin')}
           onLogout={() => {
             logout();
             router.push('/');
@@ -105,7 +105,7 @@ export default function FavoritosPage() {
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login'|'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
-        onAdminClick={() => router.push('/')}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => {
           logout();
           router.push('/');

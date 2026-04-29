@@ -209,7 +209,7 @@ function GMDCalculatorContent() {
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
           onAdClick={() => router.push('/?ad=new')}
-          onAdminClick={() => { }}
+          onAdminClick={() => router.push('/admin')}
           onLogout={() => { logout(); router.push('/'); }}
           onHomeClick={() => router.push('/')}
           onFavoritesClick={() => router.push('/favoritos')}
