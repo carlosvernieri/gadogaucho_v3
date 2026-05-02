@@ -59,13 +59,13 @@ def parse_auction_data(text_list):
 import argparse
 
 def run_extraction(video_url, auction_id, output_dir):
-    print(f"🚀 Iniciando processamento do leilão ID: {auction_id}")
+    print(f"Iniciando processamento do leilao ID: {auction_id}")
     video_filename = f"video_{auction_id}.mp4"
     video_path = os.path.join(output_dir, video_filename)
     
     # 1. Download do vídeo se necessário
     if not os.path.exists(video_path):
-        print(f"📥 Baixando vídeo do YouTube: {video_url}")
+        print(f"Baixando video do YouTube: {video_url}")
         # Tentamos baixar um formato MP4 direto para evitar necessidade de ffmpeg para merge
         cmd = [
             "yt-dlp",
@@ -77,15 +77,15 @@ def run_extraction(video_url, auction_id, output_dir):
         try:
             subprocess.run(cmd, check=True)
         except Exception as e:
-            print(f"❌ Erro no download: {e}")
+            print(f"Erro no download: {e}")
             return
 
-    # 2. Inicializa EasyOCR (Desativando GPU pois o sistema possui placa de vídeo AMD)
-    reader = easyocr.Reader(['pt'], gpu=False)
+    # 2. Inicializa EasyOCR com suporte a GPU NVIDIA (MX150)
+    reader = easyocr.Reader(['pt'], gpu=True)
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print("❌ Erro ao abrir o vídeo.")
+        print("Erro ao abrir o video.")
         return
 
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -96,6 +96,7 @@ def run_extraction(video_url, auction_id, output_dir):
     offers_found = []
 
     count = 0
+    print("Loop de processamento iniciado. Analisando frames...")
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret: break
@@ -117,7 +118,7 @@ def run_extraction(video_url, auction_id, output_dir):
                     
                     last_valid_data["screenshot"] = img_name
                     offers_found.append(last_valid_data)
-                    print(f"✅ Lote {last_lote} detectado.")
+                    print(f"Lote {last_lote} detectado.")
                 
                 last_lote = current_lote
             
@@ -141,7 +142,7 @@ def run_extraction(video_url, auction_id, output_dir):
     with open(result_json, "w", encoding="utf-8") as f:
         json.dump(offers_found, f, ensure_ascii=False, indent=4)
     
-    print(f"✨ Concluído! {len(offers_found)} ofertas encontradas.")
+    print(f"Concluido! {len(offers_found)} ofertas encontradas.")
 
 if __name__ == "__main__":
     import subprocess
