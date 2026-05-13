@@ -180,7 +180,7 @@ export function AdminAuctionManager() {
       const res = await fetch('/api/admin/auctions/process-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auctionId: auction.id, videoUrl: auction.video_url })
+        body: JSON.stringify({ auctionId: auction.id, videoUrl: auction.video_url, plazaName: auction.plaza?.name })
       });
       
       const data = await res.json();

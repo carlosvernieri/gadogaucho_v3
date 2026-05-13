@@ -26,19 +26,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { auctionId, videoUrl } = await request.json();
+    const { auctionId, videoUrl, plazaName } = await request.json();
 
     if (!auctionId || !videoUrl) {
       return NextResponse.json({ error: 'Faltando auctionId ou videoUrl' }, { status: 400 });
     }
 
+    const safePlazaName = plazaName ? plazaName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') : 'santa_ursula';
+
     // Caminhos para o script e outputs
     const pythonScriptPath = path.join(process.cwd(), 'auction_ocr_poc', 'leilao_processor_final.py');
-    const outputFolderName = `leilao_santa_ursula_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}_${auctionId}`;
+    const outputFolderName = `leilao_${safePlazaName}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}_${auctionId}`;
     const outputDir = path.join(process.cwd(), 'auction_ocr_poc', 'outputs', outputFolderName);
     const resultJsonPath = path.join(outputDir, 'process_result.json');
 
-    console.log(`[OCR] Iniciando processamento para Leilão ${auctionId}...`);
+    console.log(`[OCR] Iniciando processamento para Leilão ${auctionId} (${safePlazaName})...`);
 
     return new Promise<NextResponse>((resolve) => {
       // Executa o Python
@@ -46,7 +48,8 @@ export async function POST(request: Request) {
         '-u', // unbuffered
         pythonScriptPath,
         '--url', videoUrl,
-        '--id', auctionId.toString()
+        '--id', auctionId.toString(),
+        '--name', safePlazaName
       ], {
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
       });
