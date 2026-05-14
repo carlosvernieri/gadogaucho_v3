@@ -77,16 +77,85 @@ export async function POST(request: Request) {
 
         console.log(`[OCR] Processamento concluído. Inserindo ${offers.length} ofertas no banco...`);
 
+        // Função para extrair dados estruturados do texto da descrição
+        const parseAnimalText = (animalText: string) => {
+          // Trata possíveis erros de OCR no início da string (ex: 'O6' em vez de '06')
+          const words = animalText.split(' ');
+          if (words[0] && words[0].includes('O')) {
+             words[0] = words[0].replace(/O/g, '0');
+          }
+          const textFixedStart = words.join(' ');
+          const textUpper = textFixedStart.toUpperCase();
+          
+          // 1. Batch Size
+          let batch_size = 1;
+          const batchMatch = textFixedStart.match(/^(\d+)/);
+          if (batchMatch) {
+            batch_size = parseInt(batchMatch[1], 10);
+          }
+
+          // 2. Category
+          let category = '';
+          if (textUpper.includes('TERNEIRO')) category = 'Terneiros';
+          else if (textUpper.includes('TERNEIRA')) category = 'Terneiras';
+          else if (textUpper.includes('NOVILHO')) category = 'Novilhos';
+          else if (textUpper.includes('NOVILHA')) category = 'Novilhas';
+          else if (textUpper.includes('VACA')) {
+             if (textUpper.includes('PRENHE')) category = 'Vacas Prenhes';
+             else if (textUpper.includes('CRIA')) category = 'Vacas com Cria';
+             else category = 'Vacas';
+          }
+          else if (textUpper.includes('TOURO')) category = 'Touros';
+          else if (textUpper.includes('BOI')) category = 'Bois';
+
+          // 3. Breed
+          let breed = '';
+          const breeds = [
+            'CRUZA ANGUS', 'CRUZA BRAFORD', 'CRUZA BRANGUS', 'CRUZA RED', 'CRUZA',
+            'RED ANGUS', 'ABERDEEN', 'ANGUS', 'BRAFORD', 'BRANGUS', 'HEREFORD', 
+            'CHAROLÊS', 'CHAROLES', 'NELORE', 'DEVON', 'LIMOUSIN', 'BRAHMAN', 
+            'SENEPOL', 'SHORTHORN'
+          ];
+          for (const b of breeds) {
+            if (textUpper.includes(b)) {
+              if (b === 'ABERDEEN' || b === 'ANGUS' || b === 'RED ANGUS') {
+                 breed = textUpper.includes('RED') ? 'Red Angus' : 'Angus';
+              } else if (b === 'CHAROLES' || b === 'CHAROLÊS') {
+                 breed = 'Charolês';
+              } else if (b === 'CRUZA RED') {
+                 breed = 'Cruza Angus';
+              } else {
+                 // Title Case para as demais
+                 breed = b.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+              }
+              break;
+            }
+          }
+
+          // 4. Weight
+          let avg_weight = 0;
+          const weightMatch = textFixedStart.replace(/O/gi, '0').match(/(\d+)KG/i);
+          if (weightMatch) {
+            avg_weight = parseFloat(weightMatch[1]);
+          }
+
+          return { batch_size, category, breed, avg_weight };
+        };
+
         // Insere no banco via Supabase Admin
-        const formattedOffers = offers.map((o: any) => ({
-          auction_id: auctionId,
-          batch_size: o.Animal.includes('0') ? parseInt(o.Animal.split(' ')[0]) : 1, // heurística simples
-          category: o.Animal,
-          price_kg: parseFloat(o.Preço.replace('.', '').replace(',', '.')) || 0,
-          avg_weight: parseFloat(o.Animal.match(/\d+Kg/)?.[0].replace('Kg', '')) || 0,
-          seller_name: o.Vendedor_Origem,
-          // Outros campos podem ser nulos ou preenchidos depois
-        }));
+        const formattedOffers = offers.map((o: any) => {
+          const parsed = parseAnimalText(o.Animal || '');
+          return {
+            auction_id: auctionId,
+            batch_size: parsed.batch_size,
+            category: parsed.category,
+            breed: parsed.breed || null,
+            price_kg: parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0,
+            avg_weight: parsed.avg_weight,
+            seller_name: o.Vendedor_Origem,
+            // Outros campos podem ser nulos ou preenchidos depois
+          };
+        });
 
         const { error: dbError } = await (supabaseAdmin.from('auction_offers') as any)
           .insert(formattedOffers);
