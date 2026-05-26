@@ -2,6 +2,22 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 
+// Parse .env.local manually
+const envPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+    if (match) {
+      let value = match[2] || '';
+      if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
+        value = value.substring(1, value.length - 1);
+      }
+      process.env[match[1]] = value.trim();
+    }
+  });
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -67,7 +83,10 @@ const parseAnimalText = (animalText: string) => {
 
   // 4. Weight
   let avg_weight = 0;
-  const weightMatch = textFixedStart.replace(/O/gi, '0').match(/(\d+)KG/i);
+  const weightFixed = textFixedStart
+    .replace(/O/gi, '0')
+    .replace(/[Il|]/g, '1');
+  const weightMatch = weightFixed.match(/(\d+)KG/i);
   if (weightMatch) {
     avg_weight = parseFloat(weightMatch[1]);
   }
@@ -108,34 +127,115 @@ async function run() {
     const rawData = fs.readFileSync(filePath, 'utf8');
     const offers = JSON.parse(rawData);
 
-    const formattedOffers = offers.map((o: any) => {
+    const getMedian = (values: number[]): number => {
+      if (values.length === 0) return 0;
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+
+    const candidateOffers: any[] = [];
+    const rejectedOffers: any[] = [];
+
+    offers.forEach((o: any) => {
       const parsed = parseAnimalText(o.Animal || '');
-      return {
+      const price = parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0;
+      const price_kg = parseFloat((o.Média || '').replace(',', '.')) || 0;
+      const avg_weight = parsed.avg_weight;
+
+      const offer = {
         auction_id: auctionId,
         batch_size: parsed.batch_size,
         category: parsed.category,
         breed: parsed.breed || null,
-        price_kg: parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0,
-        avg_weight: parsed.avg_weight,
+        price,
+        price_kg,
+        avg_weight,
         seller_name: o.Vendedor_Origem,
       };
+
+      if (avg_weight === 0 || price === 0 || price_kg === 0) {
+        rejectedOffers.push({
+          ...o,
+          _audit_reason: `avg_weight: ${avg_weight}, price: ${price}, price_kg: ${price_kg}`
+        });
+      } else {
+        candidateOffers.push({ offer, original: o });
+      }
     });
 
-    console.log(`Inserindo ${formattedOffers.length} registros para ${folderName}...`);
-    // Print first 2 for debugging
-    console.log('Exemplo 1:', formattedOffers[0]);
-    console.log('Exemplo 2:', formattedOffers[1]);
+    // Detecção de Outliers por Categoria (Modified Z-Score / MAD)
+    const categoriesMap: { [cat: string]: any[] } = {};
+    candidateOffers.forEach(c => {
+      const cat = c.offer.category || 'Outros';
+      if (!categoriesMap[cat]) categoriesMap[cat] = [];
+      categoriesMap[cat].push(c);
+    });
 
-    const { error: insError } = await supabase.from('auction_offers').insert(formattedOffers);
-    if (insError) {
-       console.error(`Erro ao inserir de ${folderName}:`, insError);
+    const validOffers: any[] = [];
+
+    Object.keys(categoriesMap).forEach(cat => {
+      const catCandidates = categoriesMap[cat];
+
+      if (catCandidates.length < 3) {
+        validOffers.push(...catCandidates.map(c => c.offer));
+        return;
+      }
+
+      const prices = catCandidates.map(c => c.offer.price_kg);
+      const medianPrice = getMedian(prices);
+      const absoluteDeviations = prices.map(p => Math.abs(p - medianPrice));
+      const mad = getMedian(absoluteDeviations);
+      const dispersion = Math.max(mad, 0.1 * medianPrice);
+
+      catCandidates.forEach(c => {
+        const zScore = (0.6745 * (c.offer.price_kg - medianPrice)) / dispersion;
+        if (Math.abs(zScore) > 3.5) {
+          rejectedOffers.push({
+            ...c.original,
+            _audit_reason: `Outlier detectado na categoria ${cat} (Z-Score: ${zScore.toFixed(2)}, preço: R$ ${c.offer.price_kg.toFixed(2)}/kg, mediana: R$ ${medianPrice.toFixed(2)}/kg)`
+          });
+        } else {
+          validOffers.push(c.offer);
+        }
+      });
+    });
+
+    if (rejectedOffers.length > 0) {
+      const auditJsonPath = path.join(process.cwd(), 'auction_ocr_poc', 'outputs', folderName, 'audit_rejected.json');
+      fs.writeFileSync(auditJsonPath, JSON.stringify(rejectedOffers, null, 2), 'utf-8');
+      console.log(`[Reinsert] ${rejectedOffers.length} registros rejeitados (peso/preço zero ou outliers) salvos em ${auditJsonPath}`);
+    }
+
+    console.log(`Inserindo ${validOffers.length} registros para ${folderName}...`);
+    if (validOffers.length > 0) {
+      // Print first 2 for debugging
+      console.log('Exemplo 1:', validOffers[0]);
+      if (validOffers.length > 1) {
+        console.log('Exemplo 2:', validOffers[1]);
+      }
+
+      const { error: insError } = await supabase.from('auction_offers').insert(validOffers);
+      if (insError) {
+         console.error(`Erro ao inserir de ${folderName}:`, insError);
+      } else {
+         console.log(`Sucesso na inserção de ${folderName}!`);
+      }
     } else {
-       console.log(`Sucesso na inserção de ${folderName}!`);
+      console.log(`Nenhuma oferta válida para inserir para ${folderName}.`);
     }
   }
 
-  await insertJson('leilao_santa_ursula_2026_05_01_3');
-  await insertJson('leilao_butia_2026_05_13_20');
+  const outputsDir = path.join(process.cwd(), 'auction_ocr_poc', 'outputs');
+  const folders = fs.readdirSync(outputsDir).filter(f => {
+    const fullPath = path.join(outputsDir, f);
+    return fs.statSync(fullPath).isDirectory() && f.startsWith('leilao_') && fs.existsSync(path.join(fullPath, 'process_result.json'));
+  });
+
+  console.log(`Encontradas ${folders.length} pastas de leilão para reprocessar: ${folders.join(', ')}`);
+  for (const folder of folders) {
+    await insertJson(folder);
+  }
 
   console.log('Finalizado.');
 }

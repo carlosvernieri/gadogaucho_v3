@@ -134,7 +134,10 @@ export async function POST(request: Request) {
 
           // 4. Weight
           let avg_weight = 0;
-          const weightMatch = textFixedStart.replace(/O/gi, '0').match(/(\d+)KG/i);
+          const weightFixed = textFixedStart
+            .replace(/O/gi, '0')
+            .replace(/[Il|]/g, '1');
+          const weightMatch = weightFixed.match(/(\d+)KG/i);
           if (weightMatch) {
             avg_weight = parseFloat(weightMatch[1]);
           }
@@ -142,32 +145,103 @@ export async function POST(request: Request) {
           return { batch_size, category, breed, avg_weight };
         };
 
-        // Insere no banco via Supabase Admin
-        const formattedOffers = offers.map((o: any) => {
+        // Helper para cálculo da mediana
+        const getMedian = (values: number[]): number => {
+          if (values.length === 0) return 0;
+          const sorted = [...values].sort((a, b) => a - b);
+          const mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        };
+
+        // Valida e filtra lotes (rejeita peso ou preço igual a 0)
+        const candidateOffers: any[] = [];
+        const rejectedOffers: any[] = [];
+
+        offers.forEach((o: any) => {
           const parsed = parseAnimalText(o.Animal || '');
-          return {
+          const price = parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0;
+          const price_kg = parseFloat((o.Média || '').replace(',', '.')) || 0;
+          const avg_weight = parsed.avg_weight;
+
+          const offer = {
             auction_id: auctionId,
             batch_size: parsed.batch_size,
             category: parsed.category,
             breed: parsed.breed || null,
-            price_kg: parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0,
-            avg_weight: parsed.avg_weight,
+            price,
+            price_kg,
+            avg_weight,
             seller_name: o.Vendedor_Origem,
-            // Outros campos podem ser nulos ou preenchidos depois
           };
+
+          if (avg_weight === 0 || price === 0 || price_kg === 0) {
+            rejectedOffers.push({
+              ...o,
+              _audit_reason: `avg_weight: ${avg_weight}, price: ${price}, price_kg: ${price_kg}`
+            });
+          } else {
+            candidateOffers.push({ offer, original: o });
+          }
         });
 
-        const { error: dbError } = await (supabaseAdmin.from('auction_offers') as any)
-          .insert(formattedOffers);
+        // Detecção de Outliers por Categoria (Modified Z-Score / MAD)
+        const categoriesMap: { [cat: string]: any[] } = {};
+        candidateOffers.forEach(c => {
+          const cat = c.offer.category || 'Outros';
+          if (!categoriesMap[cat]) categoriesMap[cat] = [];
+          categoriesMap[cat].push(c);
+        });
 
-        if (dbError) {
-          console.error('[OCR] Erro ao inserir no banco:', dbError);
-          return resolve(NextResponse.json({ error: 'Erro ao salvar ofertas no banco.' }, { status: 500 }));
+        const validOffers: any[] = [];
+
+        Object.keys(categoriesMap).forEach(cat => {
+          const catCandidates = categoriesMap[cat];
+
+          if (catCandidates.length < 3) {
+            validOffers.push(...catCandidates.map(c => c.offer));
+            return;
+          }
+
+          const prices = catCandidates.map(c => c.offer.price_kg);
+          const medianPrice = getMedian(prices);
+          const absoluteDeviations = prices.map(p => Math.abs(p - medianPrice));
+          const mad = getMedian(absoluteDeviations);
+          const dispersion = Math.max(mad, 0.1 * medianPrice);
+
+          catCandidates.forEach(c => {
+            const zScore = (0.6745 * (c.offer.price_kg - medianPrice)) / dispersion;
+            if (Math.abs(zScore) > 3.5) {
+              rejectedOffers.push({
+                ...c.original,
+                _audit_reason: `Outlier detectado na categoria ${cat} (Z-Score: ${zScore.toFixed(2)}, preço: R$ ${c.offer.price_kg.toFixed(2)}/kg, mediana da categoria: R$ ${medianPrice.toFixed(2)}/kg)`
+              });
+            } else {
+              validOffers.push(c.offer);
+            }
+          });
+        });
+
+        // Grava arquivo de auditoria se houver rejeitados
+        if (rejectedOffers.length > 0) {
+          const auditJsonPath = path.join(outputDir, 'audit_rejected.json');
+          fs.writeFileSync(auditJsonPath, JSON.stringify(rejectedOffers, null, 2), 'utf-8');
+          console.log(`[OCR] Gravados ${rejectedOffers.length} registros rejeitados em: ${auditJsonPath}`);
+        }
+
+        // Insere no banco via Supabase Admin apenas os válidos
+        if (validOffers.length > 0) {
+          const { error: dbError } = await (supabaseAdmin.from('auction_offers') as any)
+            .insert(validOffers);
+
+          if (dbError) {
+            console.error('[OCR] Erro ao inserir no banco:', dbError);
+            return resolve(NextResponse.json({ error: 'Erro ao salvar ofertas no banco.' }, { status: 500 }));
+          }
         }
 
         return resolve(NextResponse.json({ 
           success: true, 
-          message: `${offers.length} ofertas processadas e salvas.`,
+          message: `${validOffers.length} ofertas processadas e salvas. ${rejectedOffers.length} ofertas (peso/preço zero ou outliers) foram rejeitadas para auditoria.`,
           folder: outputFolderName
         }));
       });

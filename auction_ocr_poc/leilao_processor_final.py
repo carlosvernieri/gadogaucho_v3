@@ -45,6 +45,14 @@ def parse_auction_data(text_list):
             
         animal_text = re.sub(r'([0-9Il|iL.,]+)(\s*kg\b)', fix_weight_ocr, animal_text, flags=re.IGNORECASE)
         data["Animal"] = animal_text
+        
+        # Busca complementar: se o texto do animal nao contiver peso, varre a lista por um padrao de peso solto
+        if "KG" not in data["Animal"].upper():
+            for t in text_list:
+                weight_match = re.search(r'\b(\d+|[0-9OIl|iL]+)\s*kg\b', t, re.IGNORECASE)
+                if weight_match:
+                    data["Animal"] += f" {weight_match.group(0)}"
+                    break
     
     # 2. Preço e Média (Procura por R$ ou RS seguido de números)
     precos = re.findall(r'R[\$S]\s*([\d\.,]+)', full_text, re.IGNORECASE)

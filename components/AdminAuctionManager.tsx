@@ -41,6 +41,7 @@ export function AdminAuctionManager() {
     category: '',
     breed: '',
     price_kg: 0,
+    price: 0,
     avg_weight: 0,
     batch_size: 1,
     seller_name: '',
@@ -408,6 +409,7 @@ export function AdminAuctionManager() {
                             category: 'Touro',
                             breed: '',
                             price_kg: 0,
+                            price: 0,
                             avg_weight: 0,
                             batch_size: 1,
                             seller_name: '',
@@ -448,7 +450,12 @@ export function AdminAuctionManager() {
                                 </td>
                                 <td className="py-3 px-2 text-center font-medium">{o.batch_size} un</td>
                                 <td className="py-3 px-2 text-center font-medium">{o.avg_weight}kg</td>
-                                <td className="py-3 px-2 text-center font-bold text-[#2D5A27]">R$ {o.price_kg.toFixed(2)}</td>
+                                <td className="py-3 px-2 text-center">
+                                  <div className="font-bold text-[#2D5A27]">R$ {o.price_kg.toFixed(2)}/kg</div>
+                                  {o.price !== undefined && o.price !== null && o.price > 0 && (
+                                    <div className="text-[10px] text-[#999]">Total: R$ {o.price.toFixed(2)}</div>
+                                  )}
+                                </td>
                                 <td className="py-3 px-2">
                                   <div className="font-medium text-[11px]">{o.seller_name || 'Desconhecido'}</div>
                                   <div className="text-[9px] text-[#999] uppercase">{o.seller_city}</div>
@@ -463,6 +470,7 @@ export function AdminAuctionManager() {
                                           category: o.category,
                                           breed: o.breed || '',
                                           price_kg: o.price_kg,
+                                          price: o.price || 0,
                                           avg_weight: o.avg_weight,
                                           batch_size: o.batch_size,
                                           seller_name: o.seller_name || '',
@@ -637,10 +645,14 @@ export function AdminAuctionManager() {
                   <option value="Nelore">Nelore</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#333] mb-2">Preço (R$/kg)</label>
                   <input type="number" step="0.01" required value={offerForm.price_kg} onChange={e => setOfferForm({...offerForm, price_kg: parseFloat(e.target.value)})} className="w-full bg-[#F8F9FA] rounded-xl px-3 py-2 border-transparent border focus:border-[#2D5A27]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#333] mb-2">Preço Total (R$)</label>
+                  <input type="number" step="0.01" required value={offerForm.price} onChange={e => setOfferForm({...offerForm, price: parseFloat(e.target.value)})} className="w-full bg-[#F8F9FA] rounded-xl px-3 py-2 border-transparent border focus:border-[#2D5A27]" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#333] mb-2">Peso Méd. (kg)</label>

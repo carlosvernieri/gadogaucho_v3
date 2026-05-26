@@ -58,7 +58,7 @@ async function uploadAuctionData(folderName, auctionName, auctionDate) {
       category: category,
       description: lot.Animal,
       seller: lot.Vendedor_Origem,
-      price_total: parseFloat(lot.Preço.replace('.', '').replace(',', '.')),
+      price: parseFloat(lot.Preço.replace('.', '').replace(',', '.')),
       price_kg: parseFloat(lot.Média.replace(',', '.')),
       screenshot_url: lot.screenshot,
       timestamp_video: lot.Timestamp_Video || ''
