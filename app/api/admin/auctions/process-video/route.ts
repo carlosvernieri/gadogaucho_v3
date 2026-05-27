@@ -18,12 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Segurança: Apenas permite execução em ambiente local (verifica pelo Host)
-  const host = request.headers.get('host') || '';
-  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-  if (!isLocal) {
-    return NextResponse.json({ error: 'Este recurso só está disponível em execução local (GPU necessária).' }, { status: 403 });
-  }
+  // Permite execução em rede interna desde que seja administrador authenticated
 
   try {
     const { auctionId, videoUrl, plazaName } = await request.json();
@@ -39,6 +34,26 @@ export async function POST(request: Request) {
     const outputFolderName = `leilao_${safePlazaName}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}_${auctionId}`;
     const outputDir = path.join(process.cwd(), 'auction_ocr_poc', 'outputs', outputFolderName);
     const resultJsonPath = path.join(outputDir, 'process_result.json');
+
+    // Remover pastas de output anteriores que terminam com _auctionId para economizar espaço
+    const outputsBaseDir = path.join(process.cwd(), 'auction_ocr_poc', 'outputs');
+    if (fs.existsSync(outputsBaseDir)) {
+      try {
+        const folders = fs.readdirSync(outputsBaseDir);
+        const targetSuffix = `_${auctionId}`;
+        for (const folder of folders) {
+          if (folder.endsWith(targetSuffix)) {
+            const folderPath = path.join(outputsBaseDir, folder);
+            if (fs.statSync(folderPath).isDirectory()) {
+              console.log(`[OCR] Removendo diretório de output antigo para economizar espaço: ${folderPath}`);
+              fs.rmSync(folderPath, { recursive: true, force: true });
+            }
+          }
+        }
+      } catch (cleanError) {
+        console.error('[OCR] Erro ao limpar diretórios antigos de output:', cleanError);
+      }
+    }
 
     console.log(`[OCR] Iniciando processamento para Leilão ${auctionId} (${safePlazaName})...`);
 
@@ -226,6 +241,16 @@ export async function POST(request: Request) {
           const auditJsonPath = path.join(outputDir, 'audit_rejected.json');
           fs.writeFileSync(auditJsonPath, JSON.stringify(rejectedOffers, null, 2), 'utf-8');
           console.log(`[OCR] Gravados ${rejectedOffers.length} registros rejeitados em: ${auditJsonPath}`);
+        }
+
+        // Limpa ofertas existentes para este leilão antes de inserir as novas
+        const { error: deleteError } = await (supabaseAdmin.from('auction_offers') as any)
+          .delete()
+          .eq('auction_id', auctionId);
+
+        if (deleteError) {
+          console.error('[OCR] Erro ao limpar ofertas existentes:', deleteError);
+          return resolve(NextResponse.json({ error: 'Erro ao limpar ofertas antigas do leilão.' }, { status: 500 }));
         }
 
         // Insere no banco via Supabase Admin apenas os válidos

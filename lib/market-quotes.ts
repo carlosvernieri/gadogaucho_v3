@@ -40,7 +40,10 @@ export async function getMarketQuotes() {
         
         categories.forEach(cat => {
           const catLower = cat.toLowerCase();
-          const filtered = offers.filter(o => o.category?.toLowerCase() === catLower);
+          const filtered = offers.filter(o => {
+            const dbCat = o.category?.toLowerCase() || '';
+            return dbCat === catLower || dbCat === (catLower + 's') || dbCat === (catLower + 'as') || dbCat.startsWith(catLower);
+          });
           if (filtered.length > 0) {
             avgs[catLower] = filtered.reduce((acc, curr) => acc + (Number(curr.price_kg) || Number(curr.priceKg) || 0), 0) / filtered.length;
           } else {

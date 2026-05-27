@@ -33,6 +33,7 @@ export function AdminAuctionManager() {
   const [expandedAuctionId, setExpandedAuctionId] = useState<number | null>(null);
   const [auctionOffers, setAuctionOffers] = useState<{ [key: number]: AuctionOffer[] }>({});
   const [loadingOffers, setLoadingOffers] = useState<number | null>(null);
+  const [offerCategoryFilter, setOfferCategoryFilter] = useState('');
 
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [editingOffer, setEditingOffer] = useState<AuctionOffer | null>(null);
@@ -358,6 +359,7 @@ export function AdminAuctionManager() {
                         if (expandedAuctionId === a.id) setExpandedAuctionId(null);
                         else {
                           setExpandedAuctionId(a.id);
+                          setOfferCategoryFilter('');
                           if (!auctionOffers[a.id]) fetchOffers(a.id);
                         }
                       }}
@@ -399,8 +401,17 @@ export function AdminAuctionManager() {
 
                 {expandedAuctionId === a.id && (
                   <div className="px-4 pb-4 border-t border-[#F8F9FA] bg-[#FDFDFD]">
-                    <div className="py-4 flex justify-between items-center">
-                      <h5 className="text-sm font-bold text-[#2D5A27]">Ofertas do Lote</h5>
+                    <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                        <h5 className="text-sm font-bold text-[#2D5A27] shrink-0">Ofertas do Lote</h5>
+                        <input
+                          type="text"
+                          placeholder="Buscar categoria (ex: Terneiros)..."
+                          value={offerCategoryFilter}
+                          onChange={(e) => setOfferCategoryFilter(e.target.value)}
+                          className="px-3 py-1.5 text-xs border border-[#E9ECEF] rounded-xl outline-none focus:border-[#2D5A27] bg-[#F8F9FA] transition-all w-full sm:w-60 placeholder:text-[#999]"
+                        />
+                      </div>
                       <button 
                         onClick={() => {
                           setEditingOffer(null);
@@ -420,7 +431,7 @@ export function AdminAuctionManager() {
                           setCitySearchOffer('');
                           setShowOfferModal(true);
                         }}
-                        className="text-xs font-bold text-[#2D5A27] hover:underline flex items-center gap-1"
+                        className="text-xs font-bold text-[#2D5A27] hover:underline flex items-center gap-1 sm:self-center"
                       >
                         <Plus size={14} /> Adicionar Oferta
                       </button>
@@ -442,7 +453,9 @@ export function AdminAuctionManager() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#F8F9FA]">
-                            {auctionOffers[a.id]?.map(o => (
+                            {(auctionOffers[a.id] || [])
+                              .filter(o => o.category.toLowerCase().includes(offerCategoryFilter.toLowerCase()))
+                              .map(o => (
                               <tr key={o.id} className="text-xs text-[#333] hover:bg-white transition-colors">
                                 <td className="py-3 px-2">
                                   <div className="font-bold">{o.category}</div>
@@ -497,8 +510,12 @@ export function AdminAuctionManager() {
                             ))}
                           </tbody>
                         </table>
-                        {(!auctionOffers[a.id] || auctionOffers[a.id].length === 0) && (
+                        {(!auctionOffers[a.id] || auctionOffers[a.id].length === 0) ? (
                           <div className="py-6 text-center text-sm text-[#999] italic">Nenhuma oferta cadastrada neste leilão.</div>
+                        ) : (
+                          (auctionOffers[a.id] || []).filter(o => o.category.toLowerCase().includes(offerCategoryFilter.toLowerCase())).length === 0 && (
+                            <div className="py-6 text-center text-sm text-[#999] italic">Nenhuma oferta encontrada para a categoria pesquisada.</div>
+                          )
                         )}
                       </div>
                     )}

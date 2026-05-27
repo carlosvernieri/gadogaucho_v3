@@ -21,9 +21,21 @@ def parse_auction_data(text_list):
     # 1. Encontra Lote e Animal por índice
     lote_idx = -1
     for i, t in enumerate(text_list):
-        if re.search(r'Lote\s*\d+', t, re.IGNORECASE):
+        match_lotes_word = re.search(r'\blotes?\b', t, re.IGNORECASE)
+        if match_lotes_word:
             lote_idx = i
-            data["Lote"] = re.search(r'Lote\s*(\d+)', t, re.IGNORECASE).group(1)
+            rest = t[match_lotes_word.end():].strip()
+            lote_seq_match = re.match(r'^(?:\d+)(?:\s*(?:e|\+|a|\/|y|,|lotes?|\s)+\s*\d+)*', rest, re.IGNORECASE)
+            if lote_seq_match:
+                lote_raw = lote_seq_match.group(0)
+                digits = re.findall(r'\d+', lote_raw)
+                data["Lote"] = "_".join(digits)
+            else:
+                first_num_match = re.search(r'\d+', rest)
+                if first_num_match:
+                    data["Lote"] = first_num_match.group(0)
+                else:
+                    data["Lote"] = ""
             break
             
     if lote_idx != -1 and lote_idx + 1 < len(text_list):
@@ -37,12 +49,41 @@ def parse_auction_data(text_list):
                 data["Animal"] += f" {weight_match.group(0)}"
                 break
     
-    # 2. Preço e Média
-    precos = re.findall(r'R[\$S]\s*([\d\.,]+)', full_text, re.IGNORECASE)
-    if len(precos) >= 1:
-        data["Preço"] = precos[0]
-    if len(precos) >= 2:
-        data["Média"] = precos[1]
+    # 2. Preço e Média (Classificação inteligente por faixas de valores)
+    precos_raw = re.findall(r'R[\$S]\s*([\d\.,]+)', full_text, re.IGNORECASE)
+    precos_numeric = []
+    
+    for p in precos_raw:
+        try:
+            # Converte para float (remove pontos de milhar, substitui vírgula decimal)
+            p_clean = p.replace('.', '')
+            if ',' in p_clean:
+                p_clean = p_clean.replace(',', '.')
+            val = float(p_clean)
+            precos_numeric.append((val, p))
+        except ValueError:
+            continue
+            
+    # Classifica os candidatos por faixa de valor
+    medias_candidates = [p_str for val, p_str in precos_numeric if 3.0 <= val < 100.0]
+    precos_candidates = [p_str for val, p_str in precos_numeric if val >= 100.0]
+    
+    if precos_candidates:
+        data["Preço"] = precos_candidates[0]
+    if medias_candidates:
+        data["Média"] = medias_candidates[0]
+        
+    # Fallback: Se não encontrar média com prefixo R$, busca por um decimal solto que pareça preço por kg
+    if not data["Média"]:
+        decimais = re.findall(r'\b(\d{1,2}[\.,]\d{2})\b', full_text)
+        for d in decimais:
+            try:
+                val = float(d.replace(',', '.'))
+                if 5.0 <= val < 100.0:
+                    data["Média"] = d
+                    break
+            except ValueError:
+                continue
 
     # 3. Vendedor
     if lote_idx != -1:
