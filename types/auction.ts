@@ -25,6 +25,7 @@ export interface AuctionOffer {
   category: string;
   breed?: string;
   price_kg: number;
+  price?: number;
   avg_weight: number;
   batch_size: number;
   seller_name?: string;

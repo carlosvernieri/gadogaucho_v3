@@ -4,22 +4,18 @@ import os
 import re
 import csv
 import json
+import glob
 from datetime import datetime
 
-# Configurações
-VIDEO_PATH = "video_leilao.mp4" # Altere para o caminho do seu arquivo caso seja diferente
-LEILAO_ID = "YhtKxcOQjqQ"
-DATA_LEILAO = "2026_04_23"
-OUTPUT_DIR = f"leilao_santa_ursula_{DATA_LEILAO}_{LEILAO_ID}"
 
-if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
 
 def parse_auction_data(text_list):
     """
     Tenta estruturar os dados com base nos padrões visuais do leilão.
-    Exemplo esperado de text_list: ['Lote 62', '05 Vacas méd. 521Kg', 'Samuel Duarte - Glorinha/RS', 'R$ 5.050,00', 'À VISTA', 'R$ 9.69', 'MÉD./KG']
     """
+    # Filtra ruídos comuns e 'VENDIDO!'
+    text_list = [t for t in text_list if "VENDIDO" not in t.upper() and len(t.strip()) > 1]
+    
     data = {
         "Lote": "",
         "Animal": "",
@@ -30,42 +26,62 @@ def parse_auction_data(text_list):
     
     full_text = " | ".join(text_list)
     
-    # 1. Lote
-    lote_match = re.search(r'Lote\s*(\d+)', full_text, re.IGNORECASE)
-    if lote_match:
-        data["Lote"] = lote_match.group(1)
+    # 1. Encontra Lote e Animal por índice
+    lote_idx = -1
+    for i, t in enumerate(text_list):
+        if re.search(r'Lote\s*\d+', t, re.IGNORECASE):
+            lote_idx = i
+            data["Lote"] = re.search(r'Lote\s*(\d+)', t, re.IGNORECASE).group(1)
+            break
+            
+    if lote_idx != -1 and lote_idx + 1 < len(text_list):
+        animal_text = text_list[lote_idx + 1]
+        
+        # Corrige comum erro de OCR: I, l, L, i em vez de 1 perto de números (ex: I80 kg -> 180 kg)
+        def fix_weight_ocr(match):
+            num_part = match.group(1)
+            num_part = re.sub(r'[Il|iL]', '1', num_part)
+            return num_part + match.group(2)
+            
+        animal_text = re.sub(r'([0-9Il|iL.,]+)(\s*kg\b)', fix_weight_ocr, animal_text, flags=re.IGNORECASE)
+        data["Animal"] = animal_text
+        
+        # Busca complementar: se o texto do animal nao contiver peso, varre a lista por um padrao de peso solto
+        if "KG" not in data["Animal"].upper():
+            for t in text_list:
+                weight_match = re.search(r'\b(\d+|[0-9OIl|iL]+)\s*kg\b', t, re.IGNORECASE)
+                if weight_match:
+                    data["Animal"] += f" {weight_match.group(0)}"
+                    break
     
-    # 2. Preço (Geralmente o primeiro valor monetário grande após o animal)
-    # Procura por R$ seguido de números
-    precos = re.findall(r'R\$\s*([\d\.,]+)', full_text)
+    # 2. Preço e Média (Procura por R$ ou RS seguido de números)
+    precos = re.findall(r'R[\$S]\s*([\d\.,]+)', full_text, re.IGNORECASE)
     if len(precos) >= 1:
         data["Preço"] = precos[0]
     if len(precos) >= 2:
         data["Média"] = precos[1]
 
-    # 3. Animal e Vendedor (Baseado na ordem da lista se o Lote foi o primeiro)
-    if len(text_list) >= 2:
-        # Se o primeiro item é o Lote, o segundo costuma ser o Animal
-        if "Lote" in text_list[0]:
-            data["Animal"] = text_list[1]
-            if len(text_list) >= 3:
-                data["Vendedor_Origem"] = text_list[2]
-        else:
-            # Caso o Lote não seja o primeiro da lista por algum erro de detecção
-            data["Animal"] = text_list[0]
+    # 3. Vendedor (Procura por nomes típicos ou pega o que vem depois do Animal/Preço)
+    # Como heurística simples, vamos tentar pegar o item depois do animal que NÃO é preço
+    if lote_idx != -1:
+        for i in range(lote_idx + 2, len(text_list)):
+            t = text_list[i]
+            if not re.search(r'R[\$S]', t, re.IGNORECASE) and not re.search(r'^\d', t):
+                data["Vendedor_Origem"] = t
+                break
         
     return data
 
 import argparse
 
 def run_extraction(video_url, auction_id, output_dir):
-    print(f"🚀 Iniciando processamento do leilão ID: {auction_id}")
+    print(f"Iniciando processamento do leilao ID: {auction_id}")
     video_filename = f"video_{auction_id}.mp4"
     video_path = os.path.join(output_dir, video_filename)
     
     # 1. Download do vídeo se necessário
     if not os.path.exists(video_path):
-        print(f"📥 Baixando vídeo do YouTube: {video_url}")
+        print(f"Baixando video do YouTube: {video_url}")
         # Tentamos baixar um formato MP4 direto para evitar necessidade de ffmpeg para merge
         cmd = [
             "yt-dlp",
@@ -77,15 +93,15 @@ def run_extraction(video_url, auction_id, output_dir):
         try:
             subprocess.run(cmd, check=True)
         except Exception as e:
-            print(f"❌ Erro no download: {e}")
+            print(f"Erro no download: {e}")
             return
 
-    # 2. Inicializa EasyOCR (Desativando GPU pois o sistema possui placa de vídeo AMD)
-    reader = easyocr.Reader(['pt'], gpu=False)
+    # 2. Inicializa EasyOCR com suporte a GPU NVIDIA (MX150)
+    reader = easyocr.Reader(['pt'], gpu=True)
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print("❌ Erro ao abrir o vídeo.")
+        print("Erro ao abrir o video.")
         return
 
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -96,6 +112,7 @@ def run_extraction(video_url, auction_id, output_dir):
     offers_found = []
 
     count = 0
+    print("Loop de processamento iniciado. Analisando frames...")
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret: break
@@ -117,7 +134,7 @@ def run_extraction(video_url, auction_id, output_dir):
                     
                     last_valid_data["screenshot"] = img_name
                     offers_found.append(last_valid_data)
-                    print(f"✅ Lote {last_lote} detectado.")
+                    print(f"Lote {last_lote} detectado.")
                 
                 last_lote = current_lote
             
@@ -132,16 +149,50 @@ def run_extraction(video_url, auction_id, output_dir):
 
     # Salva o último
     if last_valid_data:
+        if last_lote is not None:
+            img_name = f"lote_{last_lote}_final.png"
+            img_path = os.path.join(output_dir, img_name)
+            cv2.imwrite(img_path, last_valid_frame)
+            last_valid_data["screenshot"] = img_name
         offers_found.append(last_valid_data)
 
     cap.release()
     
+    print("Iniciando reprocessamento das imagens extraidas para melhorar precisão dos dados...")
+    final_results = []
+    
+    images = glob.glob(os.path.join(output_dir, "lote_*_final.png"))
+    for i, img_path in enumerate(images):
+        img_name = os.path.basename(img_path)
+        print(f"[{i+1}/{len(images)}] Reprocessando {img_name}...")
+        
+        # Read the entire image to capture all data properly
+        raw_text = reader.readtext(img_path, detail=0)
+        parsed_data = parse_auction_data(raw_text)
+        
+        # Recuperar o timestamp do offers_found
+        timestamp = ""
+        for offer in offers_found:
+            if offer.get("screenshot") == img_name:
+                timestamp = offer.get("Timestamp_Video", "")
+                break
+                
+        parsed_data["Timestamp_Video"] = timestamp
+        parsed_data["screenshot"] = img_name
+        
+        # Garantir que o Lote não se perca se o OCR falhar na imagem inteira
+        lote_match = re.search(r'lote_(\d+)_final', img_name)
+        if lote_match and not parsed_data["Lote"]:
+            parsed_data["Lote"] = lote_match.group(1)
+            
+        final_results.append(parsed_data)
+    
     # Salva o resultado final em JSON para o Next.js ler
     result_json = os.path.join(output_dir, "process_result.json")
     with open(result_json, "w", encoding="utf-8") as f:
-        json.dump(offers_found, f, ensure_ascii=False, indent=4)
+        json.dump(final_results, f, ensure_ascii=False, indent=4)
     
-    print(f"✨ Concluído! {len(offers_found)} ofertas encontradas.")
+    print(f"Concluido! {len(final_results)} ofertas encontradas e reprocessadas.")
 
 if __name__ == "__main__":
     import subprocess
@@ -149,13 +200,14 @@ if __name__ == "__main__":
     parser.add_argument("--url", required=True)
     parser.add_argument("--id", required=True)
     parser.add_argument("--date", default=datetime.now().strftime("%Y_%m_%d"))
+    parser.add_argument("--name", default="santa_ursula", help="Nome da praca/leilao")
     args = parser.parse_args()
 
     output_base = os.path.join(os.path.dirname(__file__), "outputs")
     if not os.path.exists(output_base):
         os.makedirs(output_base)
         
-    output_folder = os.path.join(output_base, f"leilao_santa_ursula_{args.date}_{args.id}")
+    output_folder = os.path.join(output_base, f"leilao_{args.name}_{args.date}_{args.id}")
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
