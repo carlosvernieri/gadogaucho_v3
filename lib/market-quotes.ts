@@ -23,24 +23,45 @@ export async function getMarketQuotes() {
 
       if (auctionsError || !plazaAuctions || plazaAuctions.length === 0) continue;
 
-      const latestAuction = plazaAuctions[0];
-      
-      // 3. Get offers for the LATEST auction
-      const { data: latestOffers, error: offersError } = await (supabaseAdmin
-        .from('auction_offers') as any)
-        .select('category, price_kg')
-        .eq('auction_id', latestAuction.id);
+      let latestOffers: any[] = [];
+      let latestAuction = plazaAuctions[0];
 
-      if (offersError) continue;
+      // Busca o leilão mais recente da praça que de fato possua ofertas cadastradas
+      for (const auction of plazaAuctions) {
+        const { data: offers, error: offersError } = await (supabaseAdmin
+          .from('auction_offers') as any)
+          .select('category, price_kg')
+          .eq('auction_id', auction.id);
+
+        if (!offersError && offers && offers.length > 0) {
+          latestOffers = offers;
+          latestAuction = auction;
+          break;
+        }
+      }
 
       // Helper to calculate average for a plaza in a specific auction
       const calculateAverages = (offers: any[]) => {
         const categories = ['Vaca', 'Novilha', 'Terneira', 'Terneiro'];
         const avgs: any = {};
+
+        // Mapeamento para suportar tanto singular quanto plural do banco de dados
+        const categoryMap: { [key: string]: string[] } = {
+          vaca: ['vaca', 'vacas', 'vaca gorda', 'vaca descarte', 'vacas prenhes', 'vacas com cria'],
+          novilha: ['novilha', 'novilhas', 'novilho', 'novilhos'],
+          terneira: ['terneira', 'terneiras'],
+          terneiro: ['terneiro', 'terneiros']
+        };
         
         categories.forEach(cat => {
           const catLower = cat.toLowerCase();
-          const filtered = offers.filter(o => o.category?.toLowerCase() === catLower);
+          const allowedNames = categoryMap[catLower] || [catLower];
+
+          const filtered = offers.filter(o => {
+            const offerCat = o.category?.toLowerCase()?.trim() || '';
+            return allowedNames.includes(offerCat);
+          });
+
           if (filtered.length > 0) {
             avgs[catLower] = filtered.reduce((acc, curr) => acc + (Number(curr.price_kg) || Number(curr.priceKg) || 0), 0) / filtered.length;
           } else {
