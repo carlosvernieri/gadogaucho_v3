@@ -201,6 +201,16 @@ export const ListingDetail = ({
               Evolução do preço médio para <strong className="text-[#333]">{listing.category}</strong>. Compare os valores das praças de leilão com a média do Gado Gaúcho.
             </p>
 
+            {!loadingInsight && insightData?.isMock && (
+              <div className="mb-6 p-4 bg-amber-50/80 border border-amber-200 rounded-2xl flex gap-3 text-amber-900 shadow-sm shadow-amber-500/5">
+                <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong className="font-bold text-amber-900 block mb-0.5">Nota de Transparência:</strong>
+                  Não encontramos dados de leilões locais recentes suficientes para a categoria <strong className="text-amber-950">{listing.category}</strong> próximos a {listing.location.split('-')[0].trim()}. Os preços apresentados no gráfico e tabela são **estimativas médias baseadas no mercado estadual**.
+                </div>
+              </div>
+            )}
+
             {loadingInsight ? (
               <div className="h-[250px] flex items-center justify-center bg-[#F8F9FA] rounded-2xl border border-dashed border-[#E9ECEF]">
                 <div className="flex flex-col items-center gap-2">
@@ -253,6 +263,7 @@ export const ListingDetail = ({
                           strokeWidth={2.5}
                           dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
                           activeDot={{ r: 5 }}
+                          connectNulls={true}
                         />
                       )}
                       {insightData.closestPlazas?.[1] && (
@@ -264,6 +275,7 @@ export const ListingDetail = ({
                           strokeWidth={2}
                           dot={{ r: 2, strokeWidth: 2, fill: '#fff' }}
                           activeDot={{ r: 4 }}
+                          connectNulls={true}
                         />
                       )}
                       {insightData.closestPlazas?.[2] && (
@@ -275,6 +287,7 @@ export const ListingDetail = ({
                           strokeWidth={2}
                           dot={{ r: 2, strokeWidth: 2, fill: '#fff' }}
                           activeDot={{ r: 4 }}
+                          connectNulls={true}
                         />
                       )}
                       <Line
@@ -286,33 +299,34 @@ export const ListingDetail = ({
                         strokeDasharray="5 5"
                         dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
                         activeDot={{ r: 5 }}
+                        connectNulls={true}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Summary Table */}
-                <div className="overflow-hidden rounded-2xl border border-[#E9ECEF] bg-white shadow-sm">
-                  <table className="w-full text-left text-[11px]">
+                <div className="overflow-x-auto rounded-2xl border border-[#E9ECEF] bg-white shadow-sm">
+                  <table className="w-full text-left text-[11px] min-w-[320px]">
                     <thead className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[#999] font-bold uppercase tracking-wider">
                       <tr>
-                        <th className="px-3 py-2">Semana</th>
+                        <th className="px-3 py-2 whitespace-nowrap">Semana</th>
                         {insightData.closestPlazas?.map((p: any) => (
-                          <th key={p.id} className="px-3 py-2 truncate max-w-[80px]">{p.name}</th>
+                          <th key={p.id} className="px-3 py-2 truncate max-w-[80px] whitespace-nowrap">{p.name}</th>
                         ))}
-                        <th className="px-3 py-2 text-[#2D5A27]">Gado Gaúcho</th>
+                        <th className="px-3 py-2 text-[#2D5A27] whitespace-nowrap">Gado Gaúcho</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F1F3F5]">
                       {insightData.tableData?.map((row: any, idx: number) => (
                         <tr key={idx} className="hover:bg-[#FDFDFD] transition-colors">
-                          <td className="px-3 py-2 font-bold text-[#666]">{row.week}</td>
+                          <td className="px-3 py-2 font-bold text-[#666] whitespace-nowrap">{row.week}</td>
                           {row.plazas.map((pPrice: any, pIdx: number) => (
-                            <td key={pIdx} className="px-3 py-2 font-medium text-[#333]">
+                            <td key={pIdx} className="px-3 py-2 font-medium text-[#333] whitespace-nowrap">
                               {pPrice.price ? `${pPrice.price.toFixed(2)}` : '-'}
                             </td>
                           ))}
-                          <td className="px-3 py-2 font-bold text-[#2D5A27] bg-[#E9F0E8]/20">
+                          <td className="px-3 py-2 font-bold text-[#2D5A27] bg-[#E9F0E8]/20 whitespace-nowrap">
                             {row.platformPrice ? `${row.platformPrice.toFixed(2)}` : '-'}
                           </td>
                         </tr>

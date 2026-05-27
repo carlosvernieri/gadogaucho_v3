@@ -60,15 +60,16 @@ export async function GET(
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
     // 3. Category Mapping (to match different names for the same animal type)
+    // Normalize keys to lowercase to avoid case-sensitivity issues with listing category names (e.g. "TERNEIRA" vs "Terneira")
     const categoryMap: Record<string, string[]> = {
-      'Boi Gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo'],
-      'Vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte'],
-      'Novilha': ['Novilha'],
-      'Terneiro': ['Terneiro'],
-      'Terneira': ['Terneira']
+      'boi gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo', 'Boi', 'Bois', 'Novilhos'],
+      'vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte', 'Vacas', 'Vacas Prenhes', 'Vacas com Cria'],
+      'novilha': ['Novilha', 'Novilhas'],
+      'terneiro': ['Terneiro', 'Terneiros'],
+      'terneira': ['Terneira', 'Terneiras']
     };
 
-    const targetCategories = categoryMap[listingCat] || [listingCat];
+    const targetCategories = categoryMap[listingCat.toLowerCase()] || [listingCat];
 
     // 4. Fetch auction offers for these categories in these plazas
     const { data: auctionData, error: auctionError } = await (supabaseAdmin
@@ -99,8 +100,10 @@ export async function GET(
     // 6. Process data into weekly averages
     const getWeekKey = (dateStr: string) => {
       const date = new Date(dateStr);
-      const diff = date.getDate() - date.getDay();
-      const startOfWeek = new Date(date.setDate(diff));
+      const day = date.getUTCDay();
+      const dateNum = date.getUTCDate();
+      const diff = dateNum - day;
+      const startOfWeek = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
       return startOfWeek.toISOString().split('T')[0];
     };
 
@@ -199,7 +202,8 @@ export async function GET(
       category: listingCat,
       chartData,
       tableData,
-      closestPlazas: closestPlazas.map((p: any) => ({ id: p.id, name: p.name, distance: typeof p.distance === 'number' ? Math.round(p.distance) : 0 }))
+      closestPlazas: closestPlazas.map((p: any) => ({ id: p.id, name: p.name, distance: typeof p.distance === 'number' ? Math.round(p.distance) : 0 })),
+      isMock: !hasAnyData
     });
 
   } catch (error: any) {
