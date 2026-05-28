@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, Video, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
-import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage } from '@/lib/utils';
+import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage, getListingUrl } from '@/lib/utils';
 import { Spinner } from '@/components/Spinner';
 
 export const AdModal = () => {
   const { user, showAdModal, setShowAdModal, editingListing, setEditingListing } = useUser();
+  const router = useRouter();
   const [isSubmittingAd, setIsSubmittingAd] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [mediaToDelete, setMediaToDelete] = useState<string[]>([]);
@@ -276,12 +278,15 @@ export const AdModal = () => {
           }
           window.dispatchEvent(new CustomEvent('ad_updated', { detail: savedAd }));
           dispatchToast('Anúncio atualizado com sucesso!');
+          setShowAdModal(false);
+          setEditingListing(null);
         } else {
           window.dispatchEvent(new CustomEvent('ad_created', { detail: savedAd }));
           dispatchToast('Anúncio criado com sucesso!');
+          setShowAdModal(false);
+          setEditingListing(null);
+          router.push(getListingUrl(savedAd));
         }
-        setShowAdModal(false);
-        setEditingListing(null);
       } else {
         const errorData = await res.json().catch(() => ({}));
         dispatchToast(`Erro ao ${editingListing ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);

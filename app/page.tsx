@@ -67,6 +67,7 @@ async function fetchListings() {
 }
 
 export default async function Page() {
+  await draftMode();
   const listings = await fetchListings();
 
   return (
