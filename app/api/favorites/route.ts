@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
   const userId = session.id;
 
   try {
-    const { data: favorites, error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { data: favorites, error } = await (supabase
       .from('favorites') as any)
       .select('listing_id')
       .eq('user_id', userId);
@@ -42,7 +44,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { listingId } = body;
 
-    const { error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { error } = await (supabase
       .from('favorites') as any)
       .upsert({ user_id: userId, listing_id: listingId }, { onConflict: 'user_id,listing_id' });
 
@@ -70,7 +73,8 @@ export async function DELETE(request: Request) {
     const body = await request.json();
     const { listingId } = body;
 
-    const { error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { error } = await (supabase
       .from('favorites') as any)
       .delete()
       .eq('user_id', userId)
@@ -87,3 +91,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

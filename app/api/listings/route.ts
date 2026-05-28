@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { safeJsonStringify, parseJsonField } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
   }
   try {
+    const supabase = await createClientServer();
     const { searchParams } = new URL(request.url);
     const seller = searchParams.get('seller');
     const userId = searchParams.get('userId');
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
     let matchingUserIds: string[] = [];
     if (search && isNaN(Number(search))) {
       try {
-        const { data: usersData } = await supabaseAdmin
+        const { data: usersData } = await supabase
           .from('users')
           .select('id')
           .ilike('name', `%${search}%`);
@@ -46,7 +48,7 @@ export async function GET(request: Request) {
 
     if (latStr && lngStr && radiusStr) {
       // Use RPC for geographic filtering
-      const { data, error: rpcError } = await (supabaseAdmin.rpc as any)('get_listings_within_radius', {
+      const { data, error: rpcError } = await (supabase.rpc as any)('get_listings_within_radius', {
         target_lat: parseFloat(latStr),
         target_lng: parseFloat(lngStr),
         max_distance_km: parseFloat(radiusStr),
@@ -62,7 +64,7 @@ export async function GET(request: Request) {
         console.error('RPC fallback required: ', rpcError);
         // Fallback to JS filtering if RPC fails or doesn't exist
         error = null;
-        let query = (supabaseAdmin.from('listings') as any).select('*, users(name, verified)');
+        let query = (supabase.from('listings') as any).select('*, users(name, verified)');
         if (!showAll) {
           query = query.or('sold.eq.false,sold.is.null'); // only active ads
         }
@@ -106,7 +108,7 @@ export async function GET(request: Request) {
       }
     } else {
       // Standard query
-      let query = (supabaseAdmin
+      let query = (supabase
         .from('listings') as any)
         .select('*, users(name, verified)');
 
@@ -185,7 +187,8 @@ export async function POST(request: Request) {
     if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = session.id;
 
-    const { data: newListing, error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { data: newListing, error } = await (supabase
       .from('listings') as any)
       .insert([
         { 
@@ -239,7 +242,8 @@ export async function DELETE() {
     const session = await getSession();
     if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    const { error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { error } = await (supabase
       .from('listings') as any)
       .delete()
       .neq('id', 0);

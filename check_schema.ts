@@ -1,23 +1,60 @@
 import { createClient } from '@supabase/supabase-js';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let supabaseUrl = '';
+let supabaseKey = '';
 
-async function checkTypes() {
-  const { data, error } = await supabase.rpc('get_listings_within_radius'); // Not with args, let's just run a raw query
-  // Wait, no raw query allowed easily from client.
-  // We can just fetch the type of each column for 'listings' and 'users' table via pg_meta or through a RPC if there's one.
-  // Better yet, I can write a small bash script that uses the supabase CLI if it exists: `npx supabase db psql` no, project might not be linked.
-  // So how to get the column types?
-  // Supabase REST API `GET /rest/v1/?apikey=...` returns the swagger definition. Let's fetch it!
+try {
+  const envPath = path.join(process.cwd(), '.env.local');
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  const lines = envContent.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const parts = trimmed.split('=');
+      const key = parts[0].trim();
+      const value = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+      if (key === 'NEXT_PUBLIC_SUPABASE_URL') {
+        supabaseUrl = value;
+      } else if (key === 'SUPABASE_SERVICE_ROLE_KEY') {
+        supabaseKey = value;
+      }
+    }
+  }
+} catch (e) {
+  console.error('Failed to load env:', e);
+}
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase config:', { supabaseUrl, supabaseKey });
+  process.exit(1);
 }
 
 async function fetchSwagger() {
     const res = await fetch(`${supabaseUrl}/rest/v1/?apikey=${supabaseKey}`);
     const swagger = await res.json();
-    const listingsProps = swagger.definitions.listings.properties;
-    console.log("listings.user_id type:", listingsProps.user_id.type, listingsProps.user_id.format);
+    
+    console.log("=== Listings Table Properties ===");
+    const listingsProps = swagger.definitions.listings?.properties;
+    if (listingsProps) {
+      for (const [propName, propVal] of Object.entries(listingsProps)) {
+        console.log(` - ${propName}: type=${(propVal as any).type}, format=${(propVal as any).format || 'none'}`);
+      }
+    } else {
+      console.log("Listings definition not found in swagger");
+    }
+
+    console.log("\n=== Users Table Properties ===");
+    const usersProps = swagger.definitions.users?.properties;
+    if (usersProps) {
+      for (const [propName, propVal] of Object.entries(usersProps)) {
+        console.log(` - ${propName}: type=${(propVal as any).type}, format=${(propVal as any).format || 'none'}`);
+      }
+    } else {
+      console.log("Users definition not found in swagger");
+    }
 }
 
 fetchSwagger();
+

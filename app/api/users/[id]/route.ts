@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { safeJsonStringify } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -9,7 +9,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { data: user, error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { data: user, error } = await (supabase
       .from('users') as any)
       .select('id, name, email, city, verified, is_admin')
       .eq('id', id)
@@ -40,7 +41,8 @@ export async function DELETE(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { error } = await (supabase
       .from('users') as any)
       .delete()
       .eq('id', id);
@@ -80,7 +82,8 @@ export async function PUT(
         allowedUpdates.verified = data.verified;
     }
 
-    const { data: updatedUser, error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { data: updatedUser, error } = await (supabase
       .from('users') as any)
       .update(allowedUpdates)
       .eq('id', id)
@@ -95,3 +98,4 @@ export async function PUT(
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
+
