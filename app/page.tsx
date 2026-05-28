@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react';
+import { draftMode } from 'next/headers';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { parseJsonField } from '@/lib/utils';
 import { HomePageClient } from '@/components/HomePageClient';
 import { Spinner } from '@/components/Spinner';
 
-export const dynamic = 'force-dynamic';
+// ISR: re-gera a cada 5 minutos. Admin com Draft Mode ativo recebe dados sempre frescos.
+export const revalidate = 300;
 
 async function fetchListings() {
   if (!isSupabaseConfigured()) {

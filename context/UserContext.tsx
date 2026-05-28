@@ -55,6 +55,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('UserContext: Perfil carregado com sucesso para:', data.email);
         setUserState(data);
         fetchFavorites(userId);
+
+        // Ativa Draft Mode se o usuário for admin (bypass de ISR)
+        if (data.role === 'admin') {
+          fetch(`/api/draft?secret=${process.env.NEXT_PUBLIC_DRAFT_MODE_SECRET}`)
+            .then(() => console.log('UserContext: Draft Mode ativado para admin.'))
+            .catch((err) => console.warn('UserContext: Falha ao ativar Draft Mode:', err));
+        }
       }
     } catch (err) {
       console.error('UserContext: Exceção ao buscar perfil:', err);
@@ -141,6 +148,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    // Desativa Draft Mode antes de fazer logout (restaura ISR normal)
+    fetch('/api/draft', { method: 'DELETE' })
+      .catch((err) => console.warn('UserContext: Falha ao desativar Draft Mode:', err));
     await supabase.auth.signOut();
   };
 
