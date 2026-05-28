@@ -4,11 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
-import { ListingCard } from '@/components/ListingCard';
 import { ListingListItem } from '@/components/ListingListItem';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { Heart, LayoutGrid, Menu as MenuIcon } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify, getListingUrl } from '@/lib/utils';
@@ -20,7 +19,7 @@ export default function FavoritosPage() {
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
 
   const fetchData = async (userId: string) => {
     try {
@@ -149,20 +148,7 @@ export default function FavoritosPage() {
                 <p className="text-sm text-[#999]">Seus anúncios salvos para acompanhar</p>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-2 bg-white p-1 rounded-xl border border-[#E9ECEF]">
-              <button 
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[#2D5A27] text-white shadow-lg' : 'text-[#999] hover:bg-[#F8F9FA]'}`}
-              >
-                <LayoutGrid size={20} />
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-[#2D5A27] text-white shadow-lg' : 'text-[#999] hover:bg-[#F8F9FA]'}`}
-              >
-                <MenuIcon size={20} />
-              </button>
-            </div>
+
           </div>
 
           {favoriteListings.length === 0 ? (
@@ -180,7 +166,7 @@ export default function FavoritosPage() {
               </button>
             </div>
           ) : (
-            <div className={viewMode === 'grid' ? "flex flex-col gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-3 sm:gap-6" : "flex flex-col gap-4"}>
+            <div className="flex flex-col gap-4">
               <AnimatePresence mode="popLayout">
                 {favoriteListings.map((item) => (
                   <motion.div
@@ -191,33 +177,12 @@ export default function FavoritosPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {viewMode === 'grid' ? (
-                      <>
-                        <div className="hidden sm:block">
-                          <ListingCard 
-                            listing={item} 
-                            isFavorite={true}
-                            onToggleFavorite={() => handleToggleFavorite(item.id)}
-                            onShare={() => {}}
-                          />
-                        </div>
-                        <div className="block sm:hidden">
-                          <ListingListItem 
-                            listing={item} 
-                            isOwner={false}
-                            onRemoveFavorite={() => handleToggleFavorite(item.id)}
-                            onView={() => router.push(getListingUrl(item))}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <ListingListItem 
-                        listing={item} 
-                        isOwner={false}
-                        onRemoveFavorite={() => handleToggleFavorite(item.id)}
-                        onView={() => router.push(getListingUrl(item))}
-                      />
-                    )}
+                    <ListingListItem
+                      listing={item}
+                      isOwner={false}
+                      onRemoveFavorite={() => handleToggleFavorite(item.id)}
+                      onView={() => router.push(getListingUrl(item))}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>

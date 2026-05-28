@@ -18,6 +18,9 @@ interface UserContextType {
   setShowAdModal: (show: boolean) => void;
   editingListing: any | null;
   setEditingListing: (listing: any | null) => void;
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -30,6 +33,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showAdModal, setShowAdModal] = useState(false);
   const [editingListing, setEditingListing] = useState<any | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Buscar perfil completo na tabela pública
   const fetchUserProfile = async (userId: string) => {
@@ -73,6 +77,34 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('UserContext: Erro ao buscar favoritos:', err);
     }
   };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('/api/messages');
+      if (res.ok) {
+        const data = await res.json();
+        const count = data.filter((m: any) => !m.is_read).length;
+        setUnreadCount(count);
+      }
+    } catch (err) {
+      console.error('UserContext: Erro ao buscar contagem de não lidas:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    fetchUnreadCount();
+
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     console.log('UserContext: Inicializando monitor de autenticação...');
@@ -119,7 +151,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       authMode, setAuthMode,
       favorites, setFavorites,
       showAdModal, setShowAdModal,
-      editingListing, setEditingListing
+      editingListing, setEditingListing,
+      unreadCount, setUnreadCount, fetchUnreadCount
     }}>
       {children}
     </UserContext.Provider>

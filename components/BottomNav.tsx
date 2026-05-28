@@ -14,7 +14,7 @@ interface BottomNavProps {
 export const BottomNav = ({ user: defaultUser, onAdClick: defaultOnAdClick, onAuthClick: defaultOnAuthClick }: BottomNavProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal } = useUser();
+  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal, unreadCount } = useUser();
   const user = defaultUser || contextUser;
 
   const handleAuth = () => {
@@ -59,7 +59,14 @@ export const BottomNav = ({ user: defaultUser, onAdClick: defaultOnAdClick, onAu
             onClick={item.action}
             className={`flex-1 flex flex-col items-center justify-center gap-1 py-1 rounded-xl transition-colors cursor-pointer ${isActive ? 'text-[#2D5A27]' : 'text-[#999]'}`}
           >
-            <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'} />
+            <div className="relative">
+              <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'} />
+              {item.label === 'Mensagens' && unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC3545] text-[9px] font-bold text-white animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] font-bold uppercase tracking-tighter w-full text-center truncate px-1">{item.label}</span>
           </button>
         );

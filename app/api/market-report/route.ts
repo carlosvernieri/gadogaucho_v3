@@ -55,14 +55,85 @@ export async function GET() {
     const categories = ['Vaca', 'Novilha', 'Boi Gordo', 'Terneiro', 'Terneira'];
 
     // 4. Get Averages using SQL RPC for high performance
-    const { data: dbStats, error } = await supabaseAdmin.rpc('get_market_averages', {
-      target_date: today.toISOString()
-    });
+    let dbStats: any = null;
+    try {
+      const { data, error } = await supabaseAdmin.rpc('get_market_averages', {
+        target_date: today.toISOString()
+      });
+      if (!error) {
+        dbStats = data;
+      } else {
+        console.error('RPC Error (get_market_averages):', error);
+      }
+    } catch (err) {
+      console.error('RPC Exception:', err);
+    }
 
-    if (error) {
-      console.error('RPC Error (get_market_averages):', error);
-      // Fallback in case the user hasn't run the SQL script yet
-      throw new Error(`Failed to calculate averages via RPC. Make sure to run the get_market_averages SQL script. Details: ${error.message}`);
+    // Check if dbStats has auction averages
+    const hasData = dbStats && Object.values(dbStats).some((val: any) => (val.auctionAvg || 0) > 0);
+
+    if (!hasData) {
+      console.log('SQL RPC returned no data or all zeros. Using JS fallback calculation.');
+      
+      const { data: auctions } = await supabaseAdmin.from('auctions').select('id, auction_date');
+      const { data: offers } = await supabaseAdmin.from('auction_offers').select('auction_id, category, price_kg');
+      const { data: listings } = await supabaseAdmin.from('listings').select('category, price_kg, created_at');
+
+      const targetDate = new Date();
+      const sevenDaysAgo = new Date(targetDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(targetDate.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(targetDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const categoryMap: Record<string, string> = {
+        'boi castrado': 'Boi Gordo', 'novilho': 'Boi Gordo', 'boi gordo': 'Boi Gordo', 'bois': 'Boi Gordo', 'novilhos': 'Boi Gordo',
+        'vaca': 'Vaca', 'vaca gorda': 'Vaca', 'vaca descarte': 'Vaca', 'vacas': 'Vaca', 'vacas prenhes': 'Vaca', 'vacas com cria': 'Vaca',
+        'novilha': 'Novilha', 'novilhas': 'Novilha',
+        'terneiro': 'Terneiro', 'terneiros': 'Terneiro',
+        'terneira': 'Terneira', 'terneiras': 'Terneira'
+      };
+
+      const stats: Record<string, { auctionAvg: number, prevAuctionAvg: number, platformAvg: number }> = {};
+      categories.forEach(cat => {
+        stats[cat] = { auctionAvg: 0, prevAuctionAvg: 0, platformAvg: 0 };
+      });
+
+      if (auctions && offers) {
+        const currentAuctionIds = auctions.filter((a: any) => new Date(a.auction_date) >= sevenDaysAgo).map((a: any) => a.id);
+        const prevAuctionIds = auctions.filter((a: any) => new Date(a.auction_date) >= fourteenDaysAgo && new Date(a.auction_date) < sevenDaysAgo).map((a: any) => a.id);
+
+        // Current Auction Averages
+        const currentOffers = offers.filter((o: any) => currentAuctionIds.includes(o.auction_id));
+        categories.forEach(cat => {
+          const catOffers = currentOffers.filter((o: any) => categoryMap[o.category?.toLowerCase()?.trim() || ''] === cat);
+          const validPrices = catOffers.map((o: any) => Number(o.price_kg) || 0).filter(p => p > 0);
+          if (validPrices.length > 0) {
+            stats[cat].auctionAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+          }
+        });
+
+        // Previous Auction Averages
+        const prevOffers = offers.filter((o: any) => prevAuctionIds.includes(o.auction_id));
+        categories.forEach(cat => {
+          const catOffers = prevOffers.filter((o: any) => categoryMap[o.category?.toLowerCase()?.trim() || ''] === cat);
+          const validPrices = catOffers.map((o: any) => Number(o.price_kg) || 0).filter(p => p > 0);
+          if (validPrices.length > 0) {
+            stats[cat].prevAuctionAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+          }
+        });
+      }
+
+      if (listings) {
+        const recentListings = listings.filter((l: any) => new Date(l.created_at) >= thirtyDaysAgo);
+        categories.forEach(cat => {
+          const catListings = recentListings.filter((l: any) => categoryMap[l.category?.toLowerCase()?.trim() || ''] === cat);
+          const validPrices = catListings.map((l: any) => Number(l.price_kg) || 0).filter(p => p > 0);
+          if (validPrices.length > 0) {
+            stats[cat].platformAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+          }
+        });
+      }
+
+      dbStats = stats;
     }
 
     // Format the response and calculate trends

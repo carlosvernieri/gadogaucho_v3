@@ -33,7 +33,7 @@ export const Header = ({
   onMessagesClick
 }: HeaderProps) => {
   const router = useRouter();
-  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal, logout } = useUser();
+  const { user: contextUser, setShowAdModal, setAuthMode, setShowAuthModal, logout, unreadCount } = useUser();
   const user = defaultUser || contextUser;
 
   const handleAuth = (mode: 'login' | 'register') => {
@@ -138,7 +138,14 @@ export const Header = ({
                   className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   title="Mensagens"
                 >
-                  <MessageSquare size={20} />
+                  <div className="relative">
+                    <MessageSquare size={20} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#DC3545] text-white text-[9px] font-extrabold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-[#DC3545]/40">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <span className="hidden xl:inline">Mensagens</span>
                 </button>
                 <button

@@ -80,7 +80,7 @@ export default function MercadoReportPage() {
       `Na plataforma Gado Gaúcho, ${betterDirect > 2 ? 'existem excelentes oportunidades de compra direta da porteira com valores abaixo da média dos leilões' : 'as ofertas diretas acompanham o ritmo do atacado, mantendo a competitividade logística'}.`;
 
     const b3Analysis = `O mercado financeiro sinaliza uma curva de ${b3Trend} até ${b3[b3.length-1]?.month || 'o final do período'}, ` +
-      `com o Boi Gordo projetado em R$ ${lastB3.toFixed(2)} /@. Esta dinâmica reflete as expectativas ${lastB3 > firstB3 ? 'positivas quanto à demanda de exportação e entressafra' : 'de maior oferta de animais de pasto nos meses de inverno'}.`;
+      `com o Boi Gordo projetado em R$ ${(lastB3 / 30).toFixed(2)} /kg (Eq. R$ ${lastB3.toFixed(2)} /@). Esta dinâmica reflete as expectativas ${lastB3 > firstB3 ? 'positivas quanto à demanda de exportação e entressafra' : 'de maior oferta de animais de pasto nos meses de inverno'}.`;
 
     return {
       summary,
@@ -92,6 +92,16 @@ export default function MercadoReportPage() {
       }
     };
   }, [reportData]);
+
+  const b3FuturesMapped = React.useMemo(() => {
+    return (reportData?.b3Futures || []).map((f: any) => {
+      const priceKgNum = typeof f.priceKg === 'number' ? f.priceKg : parseFloat(f.priceKg || 0);
+      return {
+        ...f,
+        priceKgNum: priceKgNum || (f.price / 30)
+      };
+    });
+  }, [reportData?.b3Futures]);
 
 
   if (loading) {
@@ -180,6 +190,7 @@ export default function MercadoReportPage() {
               <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
               <p className="text-xs text-white leading-snug font-medium">
                 {marketAnalysis?.highlight.category} registrou a maior valorização, com média de R$ {marketAnalysis?.highlight.price.toFixed(2)}/kg.
+                <span className="opacity-75 text-[10px] block mt-0.5">Eq. R$ {(marketAnalysis!.highlight.price * 30).toFixed(2)}/@</span>
               </p>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
@@ -214,10 +225,10 @@ export default function MercadoReportPage() {
                   <tr key={stat.category} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors">
                     <td className="px-6 py-4 font-bold text-[#333]">{stat.category}</td>
                     <td className="px-6 py-4 text-center text-[#666] font-medium">
-                      {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)}` : 'S/ DADOS'}
+                      {stat.auctionAvg > 0 ? `R$ ${stat.auctionAvg.toFixed(2)} /kg` : 'S/ DADOS'}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-[#2D5A27]">
-                      {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)}` : 'S/ DADOS'}
+                      {stat.platformAvg > 0 ? `R$ ${stat.platformAvg.toFixed(2)} /kg` : 'S/ DADOS'}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' :
@@ -306,8 +317,12 @@ export default function MercadoReportPage() {
                   SP/B3
                 </div>
               </div>
-              <h3 className="text-xl font-black text-[#333]">R$ {reportData?.cepeaData?.price.toFixed(2)}</h3>
-              <p className="text-xs text-[#2D5A27] font-bold">Eq. R$ {reportData?.cepeaData?.priceKg}/kg</p>
+              <h3 className="text-xl font-black text-[#333]">
+                R$ {typeof reportData?.cepeaData?.priceKg === 'string' ? parseFloat(reportData.cepeaData.priceKg).toFixed(2) : reportData?.cepeaData?.priceKg?.toFixed(2) || (reportData?.cepeaData?.price / 30).toFixed(2)} <span className="text-xs font-normal text-[#666]">/kg</span>
+              </h3>
+              <p className="text-[11px] text-[#999] font-semibold mt-0.5">
+                Eq. R$ {reportData?.cepeaData?.price.toFixed(2)} <span className="text-[10px] font-normal text-[#aaa]">/@</span>
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-6">
@@ -338,7 +353,7 @@ export default function MercadoReportPage() {
 
             <div className="h-[280px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={reportData?.b3Futures || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart data={b3FuturesMapped} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#2D5A27" stopOpacity={0.2} />
@@ -357,15 +372,32 @@ export default function MercadoReportPage() {
                     axisLine={false}
                     tickLine={false}
                     domain={['auto', 'auto']}
-                    tickFormatter={(value) => `R$${value}`}
+                    tickFormatter={(value) => `R$${value.toFixed(2)}`}
                   />
                   <RechartsTooltip
-                    formatter={(v: any) => [`R$ ${v}/@`, 'Cotação Futura']}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-white p-3.5 rounded-2xl border border-[#E9ECEF] shadow-lg text-xs font-bold min-w-[140px]">
+                            <p className="text-[#666] mb-1.5">{data.month}</p>
+                            <div className="space-y-1">
+                              <div className="text-sm font-black text-[#2D5A27]">
+                                R$ {data.priceKgNum?.toFixed(2)} <span className="text-[10px] font-normal text-[#999]">/kg</span>
+                              </div>
+                              <div className="text-[10px] text-[#777] font-semibold">
+                                Eq. R$ {data.price?.toFixed(2)} <span className="text-[9px] font-normal text-[#aaa]">/@</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
                   <Area
                     type="monotone"
-                    dataKey="price"
+                    dataKey="priceKgNum"
                     stroke="#2D5A27"
                     strokeWidth={4}
                     fillOpacity={1}
@@ -389,15 +421,19 @@ export default function MercadoReportPage() {
             <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm flex-1">
               <h3 className="font-bold text-[#333] mb-4 text-sm uppercase tracking-wider">Cotações Detalhadas B3</h3>
               <div className="space-y-4">
-                {reportData?.b3Futures?.slice(0, 4).map((f: any) => (
-                  <div key={f.month} className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
-                    <span className="text-sm font-bold text-[#666]">{f.month}</span>
-                    <div className="text-right">
-                      <div className="text-sm font-black text-[#2D5A27]">R$ {f.price.toFixed(2)} /@</div>
-                      <div className="text-[10px] text-[#999] font-bold">Eq. R$ {f.priceKg}/kg</div>
+                {reportData?.b3Futures?.slice(0, 4).map((f: any) => {
+                  const priceKgNum = typeof f.priceKg === 'number' ? f.priceKg : parseFloat(f.priceKg || 0);
+                  const displayPriceKg = priceKgNum || (f.price / 30);
+                  return (
+                    <div key={f.month} className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                      <span className="text-sm font-bold text-[#666]">{f.month}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-black text-[#2D5A27]">R$ {displayPriceKg.toFixed(2)} /kg</div>
+                        <div className="text-[10px] text-[#999] font-bold">Eq. R$ {f.price.toFixed(2)} /@</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
