@@ -92,16 +92,25 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
     // Load video from file
     video.src = URL.createObjectURL(file);
 
-    video.onloadeddata = () => {
+    video.onloadedmetadata = () => {
       // Seek to the specified time or midway if video is shorter
       const time = Math.min(seekTo, video.duration / 2);
       video.currentTime = time;
     };
 
     video.onseeked = () => {
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+
+      // Se o navegador falhar em carregar os metadados reais e retornar 300x150 (padrão) ou 0
+      if (!width || !height || (width === 300 && height === 150)) {
+        width = 1280;
+        height = 720;
+      }
+
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
@@ -118,7 +127,7 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
         } else {
           reject(new Error('Failed to create thumbnail blob'));
         }
-      }, 'image/jpeg', 0.85); // 85% quality JPG
+      }, 'image/jpeg', 0.90); // 90% quality JPG
     };
 
     video.onerror = (e) => {
