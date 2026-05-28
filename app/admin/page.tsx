@@ -63,6 +63,8 @@ export default function AdminPage() {
   const [usersPage, setUsersPage] = useState(1);
   const [listingsPage, setListingsPage] = useState(1);
   const [usersSearch, setUsersSearch] = useState('');
+  const [listingsSearch, setListingsSearch] = useState('');
+  const [tempListingsSearch, setTempListingsSearch] = useState('');
   const [hasMoreUsers, setHasMoreUsers] = useState(true);
   const [hasMoreListings, setHasMoreListings] = useState(true);
   const ITEMS_PER_PAGE = 50;
@@ -323,7 +325,7 @@ export default function AdminPage() {
   }, [user, isAuthReady, router]);
 
   const fetchData = async () => {
-    await Promise.all([fetchUsers(1, usersSearch), fetchListings(1)]);
+    await Promise.all([fetchUsers(1, usersSearch), fetchListings(1, listingsSearch)]);
   };
 
   const fetchUsers = async (page: number = usersPage, search: string = usersSearch) => {
@@ -339,9 +341,9 @@ export default function AdminPage() {
     }
   };
 
-  const fetchListings = async (page: number = listingsPage) => {
+  const fetchListings = async (page: number = listingsPage, search: string = listingsSearch) => {
     try {
-      const res = await fetch(`/api/listings?page=${page}&limit=${ITEMS_PER_PAGE}`);
+      const res = await fetch(`/api/listings?page=${page}&limit=${ITEMS_PER_PAGE}&search=${encodeURIComponent(search)}&showAll=true`);
       if (res.ok) {
         const allListings = await res.json();
         setListings(allListings);
@@ -357,7 +359,7 @@ export default function AdminPage() {
     if (adminTab === 'users') {
       fetchUsers(usersPage, usersSearch);
     } else if (adminTab === 'listings') {
-      fetchListings(listingsPage);
+      fetchListings(listingsPage, listingsSearch);
     }
   }, [usersPage, listingsPage, adminTab]);
 
@@ -365,6 +367,13 @@ export default function AdminPage() {
     e.preventDefault();
     setUsersPage(1);
     fetchUsers(1, usersSearch);
+  };
+
+  const handleSearchListings = (e: React.FormEvent) => {
+    e.preventDefault();
+    setListingsPage(1);
+    setListingsSearch(tempListingsSearch);
+    fetchListings(1, tempListingsSearch);
   };
 
   const handleEditUser = (u: any) => {
@@ -875,6 +884,26 @@ export default function AdminPage() {
                   <LayoutGrid size={20} className="text-[#2D5A27]" />
                   <h3 className="text-lg font-bold text-[#333]">Gerenciar Todos os Anúncios</h3>
                 </div>
+
+                <form onSubmit={handleSearchListings} className="mb-6 flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Buscar por código ou nome do vendedor..."
+                      value={tempListingsSearch}
+                      onChange={(e) => setTempListingsSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-sm focus:outline-none focus:border-[#2D5A27] transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer"
+                  >
+                    Buscar
+                  </button>
+                </form>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
@@ -883,6 +912,7 @@ export default function AdminPage() {
                         <th className="pb-4 px-4">Título</th>
                         <th className="pb-4 px-4">Vendedor</th>
                         <th className="pb-4 px-4">Status</th>
+                        <th className="pb-4 px-4">Cadastro</th>
                         <th className="pb-4 px-4">Preço</th>
                         <th className="pb-4 px-4">Ações</th>
                       </tr>
@@ -901,6 +931,9 @@ export default function AdminPage() {
                             ) : (
                               <span className="text-[10px] bg-gray-50 text-gray-400 px-2 py-1 rounded-full font-bold">PENDENTE</span>
                             )}
+                          </td>
+                          <td className="py-4 px-4 text-[#666] text-xs">
+                            {l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '---'}
                           </td>
                           <td className="py-4 px-4 text-[#2D5A27] font-bold">R$ {l.price.toLocaleString()}</td>
                           <td className="py-4 px-4">
