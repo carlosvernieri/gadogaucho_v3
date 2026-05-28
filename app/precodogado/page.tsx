@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export const revalidate = 1800;
 
 export default async function PrecoDoGadoPage() {
+  await draftMode();
   const praças = await getMarketQuotes();
 
   return <MarketIntelligenceContent praças={praças} />;

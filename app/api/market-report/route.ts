@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
+import { draftMode } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getMarketData } from '@/lib/market-scraper';
 
 // ISR: cache do relatório semanal por 1 hora.
-// Admin com Draft Mode ativo recebe dados sempre frescos (bypass automático do Next.js).
+// Admin com Draft Mode ativo recebe dados sempre frescos.
 export const revalidate = 3600;
 
 export async function GET() {
+  await draftMode();
   try {
     const today = new Date();
     const sevenDaysAgo = new Date();
