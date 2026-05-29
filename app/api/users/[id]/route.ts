@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClientServer } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase';
 import { safeJsonStringify } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -9,8 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClientServer();
-    const { data: user, error } = await (supabase
+    const { data: user, error } = await (supabaseAdmin
       .from('users') as any)
       .select('id, name, email, city, verified, is_admin')
       .eq('id', id)
@@ -41,8 +40,7 @@ export async function DELETE(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClientServer();
-    const { error } = await (supabase
+    const { error } = await (supabaseAdmin
       .from('users') as any)
       .delete()
       .eq('id', id);
@@ -82,8 +80,7 @@ export async function PUT(
         allowedUpdates.verified = data.verified;
     }
 
-    const supabase = await createClientServer();
-    const { data: updatedUser, error } = await (supabase
+    const { data: updatedUser, error } = await (supabaseAdmin
       .from('users') as any)
       .update(allowedUpdates)
       .eq('id', id)

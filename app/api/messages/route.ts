@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured } from '@/lib/supabase';
-import { createClientServer } from '@/lib/supabase-server';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -24,8 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
-    const { data, error } = await (supabase
+    const { data, error } = await (supabaseAdmin
       .from('messages') as any)
       .insert([
         { 
@@ -59,8 +57,7 @@ export async function GET(request: Request) {
     const session = await getSession();
     if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = await createClientServer();
-    const { data: messages, error } = await (supabase
+    const { data: messages, error } = await (supabaseAdmin
       .from('messages') as any)
       .select(`
         *,
@@ -104,8 +101,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
-    const { data: messageCheck } = await (supabase.from('messages') as any)
+    const { data: messageCheck } = await (supabaseAdmin.from('messages') as any)
       .select('listings(user_id)')
       .eq('id', id)
       .single();
@@ -114,7 +110,7 @@ export async function PATCH(request: Request) {
        if (!session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await (supabase
+    const { error } = await (supabaseAdmin
       .from('messages') as any)
       .update({ is_read: !!is_read })
       .eq('id', id);
@@ -146,8 +142,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
-    const { data: messageCheck } = await (supabase.from('messages') as any)
+    const { data: messageCheck } = await (supabaseAdmin.from('messages') as any)
       .select('listings(user_id)')
       .eq('id', id)
       .single();
@@ -156,7 +151,7 @@ export async function DELETE(request: Request) {
        if (!session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await (supabase
+    const { error } = await (supabaseAdmin
       .from('messages') as any)
       .delete()
       .eq('id', id);

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured } from '@/lib/supabase';
-import { createClientServer } from '@/lib/supabase-server';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: Request) {
@@ -14,8 +13,7 @@ export async function GET(request: Request) {
   const userId = session.id;
 
   try {
-    const supabase = await createClientServer();
-    const { data: favorites, error } = await (supabase
+    const { data: favorites, error } = await (supabaseAdmin
       .from('favorites') as any)
       .select('listing_id')
       .eq('user_id', userId);
@@ -44,8 +42,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { listingId } = body;
 
-    const supabase = await createClientServer();
-    const { error } = await (supabase
+    const { error } = await (supabaseAdmin
       .from('favorites') as any)
       .upsert({ user_id: userId, listing_id: listingId }, { onConflict: 'user_id,listing_id' });
 
@@ -73,8 +70,7 @@ export async function DELETE(request: Request) {
     const body = await request.json();
     const { listingId } = body;
 
-    const supabase = await createClientServer();
-    const { error } = await (supabase
+    const { error } = await (supabaseAdmin
       .from('favorites') as any)
       .delete()
       .eq('user_id', userId)
