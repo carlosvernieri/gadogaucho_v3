@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react';
+import { draftMode } from 'next/headers';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { parseJsonField } from '@/lib/utils';
 import { HomePageClient } from '@/components/HomePageClient';
 import { Spinner } from '@/components/Spinner';
 
-export const dynamic = 'force-dynamic';
+// ISR desabilitado temporariamente (revalidate = 0 para forçar renderização dinâmica)
+export const revalidate = 0;
 
 async function fetchListings() {
   if (!isSupabaseConfigured()) {
@@ -65,6 +67,7 @@ async function fetchListings() {
 }
 
 export default async function Page() {
+  await draftMode();
   const listings = await fetchListings();
 
   return (

@@ -12,10 +12,12 @@ export interface Auction {
   plaza_id: number;
   auction_date: string;
   commission: number;
+  video_url?: string;
   created_at?: string;
   // Joins
   plaza?: AuctionPlaza;
 }
+
 
 export interface AuctionOffer {
   id: number;
@@ -23,6 +25,7 @@ export interface AuctionOffer {
   category: string;
   breed?: string;
   price_kg: number;
+  price?: number;
   avg_weight: number;
   batch_size: number;
   seller_name?: string;

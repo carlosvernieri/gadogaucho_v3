@@ -36,11 +36,11 @@ export async function POST(request: Request) {
     if (!session || !session.is_admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const data = await request.json();
-    const { plaza_id, auction_date, commission } = data;
+    const { plaza_id, auction_date, commission, video_url } = data;
 
     const { data: newAuction, error } = await (supabaseAdmin
       .from('auctions') as any)
-      .insert([{ plaza_id, auction_date, commission }])
+      .insert([{ plaza_id, auction_date, commission, video_url }])
       .select()
       .single();
 

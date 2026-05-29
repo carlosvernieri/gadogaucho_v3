@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Pencil, Trash2, MapPin, Calendar, 
   DollarSign, TrendingUp, Users, ChevronRight, 
-  ChevronDown, Info, X
+  ChevronDown, Info, X, Link, Play, Activity
 } from 'lucide-react';
 import { AuctionPlaza, Auction, AuctionOffer } from '@/types/auction';
 import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
@@ -27,11 +27,13 @@ export function AdminAuctionManager() {
 
   const [showAuctionModal, setShowAuctionModal] = useState(false);
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
-  const [auctionForm, setAuctionForm] = useState({ plaza_id: '', auction_date: '', commission: 0 });
+  const [auctionForm, setAuctionForm] = useState({ plaza_id: '', auction_date: '', commission: 0, video_url: '' });
+  const [isProcessingOcr, setIsProcessingOcr] = useState<number | null>(null);
 
   const [expandedAuctionId, setExpandedAuctionId] = useState<number | null>(null);
   const [auctionOffers, setAuctionOffers] = useState<{ [key: number]: AuctionOffer[] }>({});
   const [loadingOffers, setLoadingOffers] = useState<number | null>(null);
+  const [offerCategoryFilter, setOfferCategoryFilter] = useState('');
 
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [editingOffer, setEditingOffer] = useState<AuctionOffer | null>(null);
@@ -40,6 +42,7 @@ export function AdminAuctionManager() {
     category: '',
     breed: '',
     price_kg: 0,
+    price: 0,
     avg_weight: 0,
     batch_size: 1,
     seller_name: '',
@@ -171,6 +174,32 @@ export function AdminAuctionManager() {
     }
   };
 
+  const handleProcessOcr = async (auction: Auction) => {
+    if (!auction.video_url) return showToast('Adicione um link do YouTube primeiro!', 'error');
+    
+    setIsProcessingOcr(auction.id);
+    try {
+      const res = await fetch('/api/admin/auctions/process-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auctionId: auction.id, videoUrl: auction.video_url, plazaName: auction.plaza?.name })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message, 'success');
+        fetchOffers(auction.id);
+        if (expandedAuctionId !== auction.id) setExpandedAuctionId(auction.id);
+      } else {
+        showToast(data.error || 'Erro no processamento', 'error');
+      }
+    } catch (err) {
+      showToast('Erro ao conectar com o serviço de OCR', 'error');
+    } finally {
+      setIsProcessingOcr(null);
+    }
+  };
+
   // Offer CRUD
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,7 +324,7 @@ export function AdminAuctionManager() {
               onClick={() => {
                 if (plazas.length === 0) return showToast('Cadastre uma praça primeiro!', 'error');
                 setEditingAuction(null);
-                setAuctionForm({ plaza_id: plazas[0].id.toString(), auction_date: '', commission: 0 });
+                setAuctionForm({ plaza_id: plazas[0].id.toString(), auction_date: '', commission: 0, video_url: '' });
                 setShowAuctionModal(true);
               }}
               className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl text-sm font-bold hover:bg-[#1E3D1A] transition-all flex items-center gap-2"
@@ -330,6 +359,7 @@ export function AdminAuctionManager() {
                         if (expandedAuctionId === a.id) setExpandedAuctionId(null);
                         else {
                           setExpandedAuctionId(a.id);
+                          setOfferCategoryFilter('');
                           if (!auctionOffers[a.id]) fetchOffers(a.id);
                         }
                       }}
@@ -338,12 +368,21 @@ export function AdminAuctionManager() {
                       {expandedAuctionId === a.id ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </button>
                     <button 
+                      onClick={() => handleProcessOcr(a)}
+                      disabled={isProcessingOcr === a.id}
+                      className={`p-2 rounded-lg transition-all ${isProcessingOcr === a.id ? 'bg-[#F8F9FA] text-[#2D5A27]' : 'text-[#2D5A27] hover:bg-[#E9F0E8]'}`}
+                      title="Processar Vídeo via IA"
+                    >
+                      {isProcessingOcr === a.id ? <Activity size={18} className="animate-pulse" /> : <Play size={18} />}
+                    </button>
+                    <button 
                       onClick={() => {
                         setEditingAuction(a);
                         setAuctionForm({ 
                           plaza_id: a.plaza_id.toString(), 
                           auction_date: new Date(a.auction_date).toISOString().slice(0, 16), 
-                          commission: a.commission 
+                          commission: a.commission,
+                          video_url: a.video_url || ''
                         });
                         setShowAuctionModal(true);
                       }}
@@ -362,8 +401,17 @@ export function AdminAuctionManager() {
 
                 {expandedAuctionId === a.id && (
                   <div className="px-4 pb-4 border-t border-[#F8F9FA] bg-[#FDFDFD]">
-                    <div className="py-4 flex justify-between items-center">
-                      <h5 className="text-sm font-bold text-[#2D5A27]">Ofertas do Lote</h5>
+                    <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                        <h5 className="text-sm font-bold text-[#2D5A27] shrink-0">Ofertas do Lote</h5>
+                        <input
+                          type="text"
+                          placeholder="Buscar categoria (ex: Terneiros)..."
+                          value={offerCategoryFilter}
+                          onChange={(e) => setOfferCategoryFilter(e.target.value)}
+                          className="px-3 py-1.5 text-xs border border-[#E9ECEF] rounded-xl outline-none focus:border-[#2D5A27] bg-[#F8F9FA] transition-all w-full sm:w-60 placeholder:text-[#999]"
+                        />
+                      </div>
                       <button 
                         onClick={() => {
                           setEditingOffer(null);
@@ -372,6 +420,7 @@ export function AdminAuctionManager() {
                             category: 'Touro',
                             breed: '',
                             price_kg: 0,
+                            price: 0,
                             avg_weight: 0,
                             batch_size: 1,
                             seller_name: '',
@@ -382,7 +431,7 @@ export function AdminAuctionManager() {
                           setCitySearchOffer('');
                           setShowOfferModal(true);
                         }}
-                        className="text-xs font-bold text-[#2D5A27] hover:underline flex items-center gap-1"
+                        className="text-xs font-bold text-[#2D5A27] hover:underline flex items-center gap-1 sm:self-center"
                       >
                         <Plus size={14} /> Adicionar Oferta
                       </button>
@@ -404,7 +453,9 @@ export function AdminAuctionManager() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#F8F9FA]">
-                            {auctionOffers[a.id]?.map(o => (
+                            {(auctionOffers[a.id] || [])
+                              .filter(o => o.category.toLowerCase().includes(offerCategoryFilter.toLowerCase()))
+                              .map(o => (
                               <tr key={o.id} className="text-xs text-[#333] hover:bg-white transition-colors">
                                 <td className="py-3 px-2">
                                   <div className="font-bold">{o.category}</div>
@@ -412,7 +463,12 @@ export function AdminAuctionManager() {
                                 </td>
                                 <td className="py-3 px-2 text-center font-medium">{o.batch_size} un</td>
                                 <td className="py-3 px-2 text-center font-medium">{o.avg_weight}kg</td>
-                                <td className="py-3 px-2 text-center font-bold text-[#2D5A27]">R$ {o.price_kg.toFixed(2)}</td>
+                                <td className="py-3 px-2 text-center">
+                                  <div className="font-bold text-[#2D5A27]">R$ {o.price_kg.toFixed(2)}/kg</div>
+                                  {o.price !== undefined && o.price !== null && o.price > 0 && (
+                                    <div className="text-[10px] text-[#999]">Total: R$ {o.price.toFixed(2)}</div>
+                                  )}
+                                </td>
                                 <td className="py-3 px-2">
                                   <div className="font-medium text-[11px]">{o.seller_name || 'Desconhecido'}</div>
                                   <div className="text-[9px] text-[#999] uppercase">{o.seller_city}</div>
@@ -427,6 +483,7 @@ export function AdminAuctionManager() {
                                           category: o.category,
                                           breed: o.breed || '',
                                           price_kg: o.price_kg,
+                                          price: o.price || 0,
                                           avg_weight: o.avg_weight,
                                           batch_size: o.batch_size,
                                           seller_name: o.seller_name || '',
@@ -453,8 +510,12 @@ export function AdminAuctionManager() {
                             ))}
                           </tbody>
                         </table>
-                        {(!auctionOffers[a.id] || auctionOffers[a.id].length === 0) && (
+                        {(!auctionOffers[a.id] || auctionOffers[a.id].length === 0) ? (
                           <div className="py-6 text-center text-sm text-[#999] italic">Nenhuma oferta cadastrada neste leilão.</div>
+                        ) : (
+                          (auctionOffers[a.id] || []).filter(o => o.category.toLowerCase().includes(offerCategoryFilter.toLowerCase())).length === 0 && (
+                            <div className="py-6 text-center text-sm text-[#999] italic">Nenhuma oferta encontrada para a categoria pesquisada.</div>
+                          )
                         )}
                       </div>
                     )}
@@ -548,6 +609,18 @@ export function AdminAuctionManager() {
                   className="w-full bg-[#F8F9FA] rounded-xl px-4 py-3 outline-none focus:border-[#2D5A27] border border-transparent transition-all"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-bold text-[#333] mb-2">Link do Vídeo (YouTube)</label>
+                <div className="relative">
+                  <Link size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" />
+                  <input 
+                    type="url" placeholder="https://www.youtube.com/watch?v=..." 
+                    value={auctionForm.video_url}
+                    onChange={e => setAuctionForm({...auctionForm, video_url: e.target.value})}
+                    className="w-full bg-[#F8F9FA] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[#2D5A27] border border-transparent transition-all"
+                  />
+                </div>
+              </div>
               <button type="submit" className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg hover:bg-[#1E3D1A] transition-all">
                 Salvar Leilão
               </button>
@@ -589,10 +662,14 @@ export function AdminAuctionManager() {
                   <option value="Nelore">Nelore</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#333] mb-2">Preço (R$/kg)</label>
                   <input type="number" step="0.01" required value={offerForm.price_kg} onChange={e => setOfferForm({...offerForm, price_kg: parseFloat(e.target.value)})} className="w-full bg-[#F8F9FA] rounded-xl px-3 py-2 border-transparent border focus:border-[#2D5A27]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#333] mb-2">Preço Total (R$)</label>
+                  <input type="number" step="0.01" required value={offerForm.price} onChange={e => setOfferForm({...offerForm, price: parseFloat(e.target.value)})} className="w-full bg-[#F8F9FA] rounded-xl px-3 py-2 border-transparent border focus:border-[#2D5A27]" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#333] mb-2">Peso Méd. (kg)</label>

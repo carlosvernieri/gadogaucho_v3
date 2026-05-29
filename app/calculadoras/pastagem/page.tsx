@@ -247,7 +247,7 @@ function PastagemCalculatorContent() {
         onHomeClick={() => router.push('/')}
         onFavoritesClick={() => router.push('/favoritos')}
         onAdClick={() => router.push('/?ad=new')}
-        onAdminClick={() => router.push('/')}
+        onAdminClick={() => router.push('/admin')}
         onMyAdsClick={() => router.push('/meus-anuncios')}
         onMessagesClick={() => router.push('/mensagens')}
       />

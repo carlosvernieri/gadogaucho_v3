@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { safeJsonStringify, parseJsonField } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const verified = searchParams.get('verified') === 'true';
+    const showAll = searchParams.get('showAll') === 'true';
     const latStr = searchParams.get('lat');
     const lngStr = searchParams.get('lng');
     const radiusStr = searchParams.get('radius');
@@ -26,6 +28,22 @@ export async function GET(request: Request) {
 
     let listings = [];
     let error = null;
+
+    // Fetch matching user IDs if search term exists and is not numeric (for seller name search)
+    let matchingUserIds: string[] = [];
+    if (search && isNaN(Number(search))) {
+      try {
+        const { data: usersData } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .ilike('name', `%${search}%`);
+        if (usersData) {
+          matchingUserIds = usersData.map((u: any) => u.id);
+        }
+      } catch (err) {
+        console.error('Error matching users by name:', err);
+      }
+    }
 
     if (latStr && lngStr && radiusStr) {
       // Use RPC for geographic filtering
@@ -46,14 +64,19 @@ export async function GET(request: Request) {
         // Fallback to JS filtering if RPC fails or doesn't exist
         error = null;
         let query = (supabaseAdmin.from('listings') as any).select('*, users(name, verified)');
-        query = query.or('sold.eq.false,sold.is.null'); // only active ads
+        if (!showAll) {
+          query = query.or('sold.eq.false,sold.is.null'); // only active ads
+        }
         if (category) query = query.ilike('category', category);
         if (search) {
+          let orConditions = [`title.ilike.%${search}%`];
           if (!isNaN(Number(search))) {
-             query = query.or(`title.ilike.%${search}%,id.eq.${search}`);
-          } else {
-             query = query.ilike('title', `%${search}%`);
+            orConditions.push(`id.eq.${search}`);
           }
+          if (matchingUserIds.length > 0) {
+            orConditions.push(`user_id.in.(${matchingUserIds.join(',')})`);
+          }
+          query = query.or(orConditions.join(','));
         }
         if (verified) query = query.eq('verified', true);
         query = query.order('id', { ascending: false });
@@ -93,7 +116,7 @@ export async function GET(request: Request) {
       }
       if (userId) {
         query = query.eq('user_id', userId);
-      } else {
+      } else if (!showAll) {
         // If not looking for a specific user's listings, only show available (not sold)
         query = query.or('sold.eq.false,sold.is.null');
       }
@@ -102,11 +125,14 @@ export async function GET(request: Request) {
         query = query.ilike('category', category);
       }
       if (search) {
+        let orConditions = [`title.ilike.%${search}%`];
         if (!isNaN(Number(search))) {
-           query = query.or(`title.ilike.%${search}%,id.eq.${search}`);
-        } else {
-           query = query.ilike('title', `%${search}%`);
+          orConditions.push(`id.eq.${search}`);
         }
+        if (matchingUserIds.length > 0) {
+          orConditions.push(`user_id.in.(${matchingUserIds.join(',')})`);
+        }
+        query = query.or(orConditions.join(','));
       }
       
       if (verified) {

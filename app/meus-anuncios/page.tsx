@@ -168,7 +168,7 @@ export default function MeusAnunciosPage() {
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
           onAdClick={openNewAdModal}
-          onAdminClick={() => router.push('/')}
+          onAdminClick={() => router.push('/admin')}
           onLogout={() => {
             logout();
             router.push('/');
@@ -192,7 +192,7 @@ export default function MeusAnunciosPage() {
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={openNewAdModal}
-        onAdminClick={() => router.push('/')}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => {
           logout();
           router.push('/');

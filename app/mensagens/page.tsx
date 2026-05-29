@@ -15,7 +15,7 @@ import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 
 export default function MensagensPage() {
   const router = useRouter();
-  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, fetchUnreadCount } = useUser();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -91,6 +91,7 @@ export default function MensagensPage() {
 
       if (res.ok) {
         setMessages(messages.map(m => m.id === id ? { ...m, is_read: !currentRead ? 1 : 0 } : m));
+        fetchUnreadCount();
       }
     } catch (error) {
       console.error('Error updating message:', error);
@@ -112,6 +113,7 @@ export default function MensagensPage() {
           if (res.ok) {
             setMessages(prev => prev.filter(m => m.id !== id));
             showToast('Mensagem excluída com sucesso!', 'success');
+            fetchUnreadCount();
           } else {
             showToast('Erro ao excluir mensagem.', 'error');
           }
@@ -159,7 +161,7 @@ export default function MensagensPage() {
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onAuthClick={(mode) => { setAuthMode(mode as 'login' | 'register'); setShowAuthModal(true); }}
         onAdClick={() => router.push('/?ad=new')}
-        onAdminClick={() => router.push('/')}
+        onAdminClick={() => router.push('/admin')}
         onLogout={() => {
           logout();
           router.push('/');

@@ -29,9 +29,34 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANTE: Isso garante que a sessão seja atualizada e o cookie renovado.
   // Refresh do token acontece aqui automaticamente se necessário.
-  await supabase.auth.getUser()
+  try {
+    const { error } = await supabase.auth.getUser()
+    if (error) {
+      console.warn('Middleware session update warning:', error.message)
+      // Se for um erro de token expirado ou inválido, limpamos os cookies para evitar loops de erro.
+      if (error.message?.toLowerCase().includes('refresh token') || error.status === 400) {
+        clearAuthCookies(request, supabaseResponse)
+      }
+    }
+  } catch (error: any) {
+    console.error('Error refreshing session in middleware:', error)
+    clearAuthCookies(request, supabaseResponse)
+  }
 
   return supabaseResponse
+}
+
+function clearAuthCookies(request: NextRequest, response: NextResponse) {
+  try {
+    const allCookies = request.cookies.getAll()
+    allCookies.forEach((cookie) => {
+      if (cookie.name.startsWith('sb-') || cookie.name.includes('auth-token')) {
+        response.cookies.delete(cookie.name)
+      }
+    })
+  } catch (cookieError) {
+    console.error('Error clearing cookies in middleware:', cookieError)
+  }
 }
 
 export async function middleware(request: NextRequest) {
