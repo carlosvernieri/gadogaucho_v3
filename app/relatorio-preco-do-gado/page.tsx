@@ -103,6 +103,59 @@ export default function MercadoReportPage() {
     });
   }, [reportData?.b3Futures]);
 
+  const exchangeRatio = React.useMemo(() => {
+    if (!reportData) return null;
+
+    const stats = reportData.categoryStats || [];
+    const boiStat = stats.find((s: any) => s.category === 'Boi Gordo');
+    const terneiroStat = stats.find((s: any) => s.category === 'Terneiro');
+
+    // Preço kg do Boi Gordo: Leilão -> Gado Gaúcho -> CEPEA fallback -> Scot RS fallback
+    const boiPrice = boiStat?.auctionAvg || boiStat?.platformAvg || (reportData.cepeaData?.price / 30) || 11.50;
+    
+    // Preço kg do Terneiro: Leilão -> Gado Gaúcho -> Scot RS fallback
+    const terneiroPrice = terneiroStat?.auctionAvg || terneiroStat?.platformAvg || 12.50;
+
+    // Faturamento e custos padronizados (Boi Gordo 15@ = 450kg, Terneiro 200kg)
+    const boiWeight = 450;
+    const terneiroWeight = 200;
+
+    const boiRevenue = boiPrice * boiWeight;
+    const terneiroCost = terneiroPrice * terneiroWeight;
+
+    // Quantidade de terneiros que se compra com 1 boi gordo
+    const ratio = boiRevenue / terneiroCost;
+
+    // Classificação
+    let text = '';
+    let colorClass = '';
+    
+    if (ratio >= 2.15) {
+      text = 'Altamente favorável para compra (Reposição barata)';
+      colorClass = 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    } else if (ratio <= 1.85) {
+      text = 'Altamente favorável para venda (Terneiro valorizado)';
+      colorClass = 'text-blue-600 bg-blue-50 border-blue-200';
+    } else {
+      text = 'Equilíbrio no mercado de reposição';
+      colorClass = 'text-amber-600 bg-amber-50 border-amber-200';
+    }
+
+    // Normalização para o slider (min: 1.5, max: 2.5)
+    const percent = Math.max(0, Math.min(100, ((ratio - 1.5) / (2.5 - 1.5)) * 100));
+
+    return {
+      ratio: parseFloat(ratio.toFixed(2)),
+      boiPrice,
+      terneiroPrice,
+      boiRevenue,
+      terneiroCost,
+      text,
+      colorClass,
+      percent
+    };
+  }, [reportData]);
+
 
   if (loading) {
     return <LoadingScreen message="Consolidando dados do mercado..." />;
@@ -192,7 +245,7 @@ export default function MercadoReportPage() {
             </p>
           </div>
 
-          <div className="bg-[#2D5A27] rounded-3xl p-6 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between">
+          <div className="bg-[#2D5A27] rounded-3xl p-6 text-white shadow-lg shadow-[#2D5A27]/20 flex flex-col justify-between self-start w-full">
             <div>
               <h3 className="text-sm font-bold mb-1 opacity-80 uppercase tracking-widest text-[10px]">Destaque RS</h3>
               <p className="text-xs text-white leading-snug font-medium">
@@ -206,6 +259,89 @@ export default function MercadoReportPage() {
             </div>
           </div>
         </div>
+
+        {/* Termômetro de Relação de Troca */}
+        {exchangeRatio && (
+          <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E9ECEF] shadow-sm mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#2D5A27]/5 rounded-bl-full -mr-8 -mt-8" />
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-[#333] flex items-center gap-2">
+                  <ArrowRightLeft className="text-[#2D5A27]" size={20} /> Relação de Troca (Boi Gordo / Terneiro)
+                </h2>
+                <p className="text-xs text-[#999] mt-1">
+                  Indicador de poder de compra de reposição no Rio Grande do Sul
+                </p>
+              </div>
+              <div className={`px-4 py-1.5 rounded-full text-xs font-bold border ${exchangeRatio.colorClass}`}>
+                {exchangeRatio.text}
+              </div>
+            </div>
+
+            <div className="bg-[#F8F9FA] rounded-2xl p-6 border border-[#E9ECEF] mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                {/* Indicador Principal */}
+                <div className="text-center md:text-left md:border-r border-[#E9ECEF] md:pr-6">
+                  <span className="text-[10px] uppercase font-bold text-[#999] tracking-wider block mb-1">Preço Relativo</span>
+                  <span className="text-3xl font-black text-[#2D5A27] tracking-tight">{exchangeRatio.ratio} <span className="text-sm font-normal text-[#666]">terneiros/boi</span></span>
+                  <span className="text-xs text-[#666] block mt-1">
+                    Com a venda de 1 Boi Gordo (15@), compra-se {exchangeRatio.ratio} Terneiros (200kg)
+                  </span>
+                </div>
+
+                {/* Detalhamento de Valores */}
+                <div className="md:col-span-2 grid grid-cols-2 gap-4 text-center md:text-left">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#999] tracking-wider block mb-1">Ref. Boi Gordo (15@)</span>
+                    <span className="text-sm font-bold text-[#333]">R$ {exchangeRatio.boiRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-[10px] text-[#666] block mt-0.5">Média: R$ {exchangeRatio.boiPrice.toFixed(2)}/kg</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#999] tracking-wider block mb-1">Ref. Terneiro (200kg)</span>
+                    <span className="text-sm font-bold text-[#333]">R$ {exchangeRatio.terneiroCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-[10px] text-[#666] block mt-0.5">Média: R$ {exchangeRatio.terneiroPrice.toFixed(2)}/kg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Thermometer Gauge */}
+            <div className="relative pt-6 pb-2">
+              <div className="flex justify-between text-[10px] font-bold text-[#999] mb-2 uppercase tracking-widest px-1">
+                <span>Criador em Vantagem (Terneiro Caro)</span>
+                <span>Equilíbrio</span>
+                <span>Terminador em Vantagem (Reposição Barata)</span>
+              </div>
+              
+              {/* Thermometer Bar */}
+              <div className="h-3 w-full bg-gradient-to-r from-blue-400 via-amber-400 to-emerald-500 rounded-full relative shadow-inner">
+                {/* Target pointers */}
+                <div className="absolute left-[35%] top-0 bottom-0 w-0.5 bg-white/50" title="Limite favorável ao criador" />
+                <div className="absolute left-[65%] top-0 bottom-0 w-0.5 bg-white/50" title="Limite favorável à engorda" />
+                
+                {/* Current Value Pointer */}
+                <div 
+                  className="absolute -top-1.5 w-6.5 h-6.5 bg-white border-4 border-[#2D5A27] rounded-full shadow-md flex items-center justify-center transform -translate-x-1/2 transition-all duration-1000"
+                  style={{ left: `${exchangeRatio.percent}%` }}
+                >
+                  <div className="w-1.5 h-1.5 bg-[#2D5A27] rounded-full" />
+                </div>
+              </div>
+
+              {/* Rulers */}
+              <div className="flex justify-between text-[10px] font-semibold text-[#bbb] mt-2 px-1">
+                <span>1.50</span>
+                <span>1.70</span>
+                <span>1.85 (Limite Criador)</span>
+                <span>2.00 (Histórico)</span>
+                <span>2.15 (Limite Engorda)</span>
+                <span>2.30</span>
+                <span>2.50+</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Comparativo Principal */}
         <div className="bg-white rounded-3xl border border-[#E9ECEF] overflow-hidden shadow-sm mb-8">
