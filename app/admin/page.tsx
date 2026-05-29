@@ -35,7 +35,7 @@ import {
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
 import Image from 'next/image';
-import { RS_CITIES } from '@/lib/data';
+import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import imageCompression from 'browser-image-compression';
 
 const formatPhone = (val: string) => {
@@ -1515,14 +1515,16 @@ export default function AdminPage() {
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
                       <select
                         required
-                        value={adForm.category}
+                        value={CATEGORIES_LIST.find(c => c.toLowerCase() === adForm.category.toLowerCase()) || adForm.category}
                         onChange={(e) => setAdForm({ ...adForm, category: e.target.value })}
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
                       >
-                        <option value="Touro">Touro</option>
-                        <option value="Vaca">Vaca</option>
-                        <option value="Bezerro">Bezerro(a)</option>
-                        <option value="Novilha">Novilha(o)</option>
+                        <option value="" disabled>Selecione uma categoria...</option>
+                        {CATEGORIES_LIST.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
