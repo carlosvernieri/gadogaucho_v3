@@ -11,3 +11,7 @@ coverage/
 # OCR Outputs
 auction_ocr_poc/outputs/
 process_result.json
+
+# TypeScript compile cache
+tsconfig.tsbuildinfo
+
