@@ -81,14 +81,23 @@ const parseAnimalText = (animalText: string) => {
     }
   }
 
-  // 4. Weight
+  // 4. Weight (Robust replacement for common OCR typos)
   let avg_weight = 0;
-  const weightFixed = textFixedStart
-    .replace(/O/gi, '0')
-    .replace(/[Il|]/g, '1');
-  const weightMatch = weightFixed.match(/(\d+)KG/i);
+  const weightMatch = textUpper.match(/\b([0-9OILI|BSZG]+)\s*(?:KG|K9|K|G)\b/);
   if (weightMatch) {
-    avg_weight = parseFloat(weightMatch[1]);
+    let rawWeight = weightMatch[1];
+    let cleanWeight = rawWeight
+      .replace(/[O]/g, '0')
+      .replace(/[IL|]/g, '1')
+      .replace(/[B]/g, '8')
+      .replace(/[S]/g, '5')
+      .replace(/[Z]/g, '2')
+      .replace(/[G]/g, '6');
+    
+    const parsedWeight = parseInt(cleanWeight, 10);
+    if (!isNaN(parsedWeight) && parsedWeight > 0) {
+      avg_weight = parsedWeight;
+    }
   }
 
   return { batch_size, category, breed, avg_weight };
@@ -139,9 +148,30 @@ async function run() {
 
     offers.forEach((o: any) => {
       const parsed = parseAnimalText(o.Animal || '');
-      const price = parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0;
-      const price_kg = parseFloat((o.Média || '').replace(',', '.')) || 0;
-      const avg_weight = parsed.avg_weight;
+      let price = parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0;
+      let price_kg = parseFloat((o.Média || '').replace(',', '.')) || 0;
+      let avg_weight = parsed.avg_weight;
+
+      // Camada de Recuperação Matemática: se 2 das 3 variáveis são conhecidas, calcula a 3ª
+      if (avg_weight === 0 && price > 0 && price_kg > 0) {
+        const recovered = Math.round(price / price_kg);
+        if (recovered >= 30 && recovered <= 1000) {
+          avg_weight = recovered;
+          console.log(`[Reinsert Recovery] Recuperado peso: ${avg_weight}Kg para Lote ${o.Lote} (Preço: ${price} / Média: ${price_kg})`);
+        }
+      } else if (price === 0 && avg_weight > 0 && price_kg > 0) {
+        const recovered = Math.round(price_kg * avg_weight);
+        if (recovered >= 100 && recovered <= 30000) {
+          price = recovered;
+          console.log(`[Reinsert Recovery] Recuperado preço: R$ ${price} para Lote ${o.Lote} (Média: ${price_kg} * Peso: ${avg_weight})`);
+        }
+      } else if (price_kg === 0 && price > 0 && avg_weight > 0) {
+        const recovered = Math.round((price / avg_weight) * 100) / 100;
+        if (recovered >= 3.0 && recovered <= 100.0) {
+          price_kg = recovered;
+          console.log(`[Reinsert Recovery] Recuperada média/Kg: R$ ${price_kg} para Lote ${o.Lote} (Preço: ${price} / Peso: ${avg_weight})`);
+        }
+      }
 
       const offer = {
         auction_id: auctionId,
@@ -201,10 +231,15 @@ async function run() {
       });
     });
 
+    const auditJsonPath = path.join(process.cwd(), 'auction_ocr_poc', 'outputs', folderName, 'audit_rejected.json');
     if (rejectedOffers.length > 0) {
-      const auditJsonPath = path.join(process.cwd(), 'auction_ocr_poc', 'outputs', folderName, 'audit_rejected.json');
       fs.writeFileSync(auditJsonPath, JSON.stringify(rejectedOffers, null, 2), 'utf-8');
       console.log(`[Reinsert] ${rejectedOffers.length} registros rejeitados (peso/preço zero ou outliers) salvos em ${auditJsonPath}`);
+    } else {
+      if (fs.existsSync(auditJsonPath)) {
+        fs.unlinkSync(auditJsonPath);
+      }
+      console.log(`[Reinsert] Todos os registros foram processados e validados! audit_rejected.json removido.`);
     }
 
     console.log(`Inserindo ${validOffers.length} registros para ${folderName}...`);

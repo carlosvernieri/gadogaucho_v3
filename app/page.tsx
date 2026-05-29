@@ -5,8 +5,8 @@ import { parseJsonField } from '@/lib/utils';
 import { HomePageClient } from '@/components/HomePageClient';
 import { Spinner } from '@/components/Spinner';
 
-// ISR: re-gera a cada 5 minutos. Admin com Draft Mode ativo recebe dados sempre frescos.
-export const revalidate = 300;
+// ISR desabilitado temporariamente (revalidate = 0 para forçar renderização dinâmica)
+export const revalidate = 0;
 
 async function fetchListings() {
   if (!isSupabaseConfigured()) {

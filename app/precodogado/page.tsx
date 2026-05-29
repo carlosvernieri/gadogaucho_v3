@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: 'Consulte os preços médios do Quilo Vivo (R$/kg) nas principais praças pecuárias do Rio Grande do Sul.',
 };
 
-// ISR: re-gera a cada 30 minutos. Admin com Draft Mode ativo recebe dados sempre frescos.
-export const revalidate = 1800;
+// ISR desabilitado temporariamente (revalidate = 0 para forçar renderização dinâmica)
+export const revalidate = 0;
 
 export default async function PrecoDoGadoPage() {
   await draftMode();

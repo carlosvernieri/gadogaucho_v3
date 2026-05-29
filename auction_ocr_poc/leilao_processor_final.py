@@ -9,6 +9,29 @@ from datetime import datetime
 
 
 
+def extract_weight_from_text(text):
+    if not text:
+        return 0
+    normalized = text.upper()
+    match = re.search(r'\b([0-9OILI|BSZG]+)\s*(?:KG|K9|K[gG9]|K|G)\b', normalized)
+    if match:
+        raw_weight = match.group(1)
+        clean_weight = raw_weight
+        clean_weight = re.sub(r'[O]', '0', clean_weight)
+        clean_weight = re.sub(r'[IL|]', '1', clean_weight)
+        clean_weight = re.sub(r'[B]', '8', clean_weight)
+        clean_weight = re.sub(r'[S]', '5', clean_weight)
+        clean_weight = re.sub(r'[Z]', '2', clean_weight)
+        clean_weight = re.sub(r'[G]', '6', clean_weight)
+        try:
+            val = int(clean_weight)
+            if val > 0:
+                return val
+        except ValueError:
+            pass
+    return 0
+
+
 def parse_auction_data(text_list):
     """
     Tenta estruturar os dados com base nos padrões visuais do leilão.
@@ -49,21 +72,20 @@ def parse_auction_data(text_list):
     if lote_idx != -1 and lote_idx + 1 < len(text_list):
         animal_text = text_list[lote_idx + 1]
         
-        # Corrige comum erro de OCR: I, l, L, i em vez de 1 perto de números (ex: I80 kg -> 180 kg)
-        def fix_weight_ocr(match):
-            num_part = match.group(1)
-            num_part = re.sub(r'[Il|iL]', '1', num_part)
-            return num_part + match.group(2)
-            
-        animal_text = re.sub(r'([0-9Il|iL.,]+)(\s*kg\b)', fix_weight_ocr, animal_text, flags=re.IGNORECASE)
+        # Tenta extrair e corrigir o peso na string do Animal
+        weight = extract_weight_from_text(animal_text)
+        if weight > 0:
+            match = re.search(r'\b([0-9OIl|iLBSZGBSZgG]+)\s*(?:KG|K9|K[gG9]|K|G)\b', animal_text, re.IGNORECASE)
+            if match:
+                animal_text = animal_text.replace(match.group(0), f"{weight}Kg")
         data["Animal"] = animal_text
         
         # Busca complementar: se o texto do animal nao contiver peso, varre a lista por um padrao de peso solto
         if "KG" not in data["Animal"].upper():
             for t in text_list:
-                weight_match = re.search(r'\b(\d+|[0-9OIl|iL]+)\s*kg\b', t, re.IGNORECASE)
-                if weight_match:
-                    data["Animal"] += f" {weight_match.group(0)}"
+                weight = extract_weight_from_text(t)
+                if weight > 0:
+                    data["Animal"] += f" {weight}Kg"
                     break
     
     # 2. Preço e Média (Classificação inteligente por faixas de valores)
