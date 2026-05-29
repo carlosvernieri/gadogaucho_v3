@@ -74,10 +74,10 @@ export default function MercadoReportPage() {
     const b3Trend = lastB3 > firstB3 ? 'contango (alta)' : 'backwardation (baixa)';
 
     // Build Summary
-    const summary = `O mercado gaúcho apresenta um cenário de ${mainTrend} nas principais praças pesquisadas. ` +
+    const summary = reportData.aiSummary || (`O mercado gaúcho apresenta um cenário de ${mainTrend} nas principais praças pesquisadas. ` +
       `${cepea?.trend === 'up' ? 'Acompanhando a firmeza do Indicador CEPEA (SP),' : 'Apesar da oscilação no Indicador CEPEA (SP),'} ` +
       `o estado registra preços ${mainTrend === 'valorização' ? 'em ascensão' : 'sustentados'} principalmente pela ${highlight?.delta > 0 ? 'valorização do ' + highlight.category : 'baixa oferta de animais terminados'}. ` +
-      `Na plataforma Gado Gaúcho, ${betterDirect > 2 ? 'existem excelentes oportunidades de compra direta da porteira com valores abaixo da média dos leilões' : 'as ofertas diretas acompanham o ritmo do atacado, mantendo a competitividade logística'}.`;
+      `Na plataforma Gado Gaúcho, ${betterDirect > 2 ? 'existem excelentes oportunidades de compra direta da porteira com valores abaixo da média dos leilões' : 'as ofertas diretas acompanham o ritmo do atacado, mantendo a competitividade logística'}.`);
 
     const b3Analysis = `O mercado financeiro sinaliza uma curva de ${b3Trend} até ${b3[b3.length-1]?.month || 'o final do período'}, ` +
       `com o Boi Gordo projetado em R$ ${(lastB3 / 30).toFixed(2)} /kg (Eq. R$ ${lastB3.toFixed(2)} /@). Esta dinâmica reflete as expectativas ${lastB3 > firstB3 ? 'positivas quanto à demanda de exportação e entressafra' : 'de maior oferta de animais de pasto nos meses de inverno'}.`;
@@ -177,10 +177,17 @@ export default function MercadoReportPage() {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="md:col-span-2 bg-white rounded-3xl p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#2D5A27]/5 rounded-bl-full -mr-8 -mt-8" />
-            <h2 className="text-xl font-bold text-[#333] mb-4 flex items-center gap-2">
-              <Info className="text-[#2D5A27]" size={22} /> Resumo do Comportamento
+            <h2 className="text-xl font-bold text-[#333] mb-4 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Info className="text-[#2D5A27]" size={22} /> Resumo do Comportamento
+              </span>
+              {reportData?.aiSummary && (
+                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded-full border border-emerald-200 font-bold uppercase tracking-wider print:hidden">
+                  Gemini 3.5 Flash
+                </span>
+              )}
             </h2>
-            <p className="text-[#666] leading-relaxed relative z-10 text-sm">
+            <p className="text-[#666] leading-relaxed relative z-10 text-sm whitespace-pre-line">
               {marketAnalysis?.summary}
             </p>
           </div>

@@ -499,7 +499,7 @@ export const RS_CITIES = [
 ];
 
 export const CATEGORIES_LIST = [
-  'Boi Castrado',
+  'Boi',
   'Gado de Leite',
   'Novilha',
   'Novilho',

@@ -47,7 +47,7 @@ export async function getMarketQuotes() {
 
         // Mapeamento para suportar tanto singular quanto plural do banco de dados
         const categoryMap: { [key: string]: string[] } = {
-          vaca: ['vaca', 'vacas', 'vaca gorda', 'vaca descarte', 'vacas prenhes', 'vacas com cria'],
+          vaca: ['vaca', 'vacas', 'vaca gorda', 'vaca descarte', 'vacas prenhes', 'vacas com cria', 'vaca prenha', 'vaca com cria'],
           novilha: ['novilha', 'novilhas', 'novilho', 'novilhos'],
           terneira: ['terneira', 'terneiras'],
           terneiro: ['terneiro', 'terneiros']

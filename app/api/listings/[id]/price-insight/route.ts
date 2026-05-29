@@ -62,14 +62,18 @@ export async function GET(
     // 3. Category Mapping (to match different names for the same animal type)
     // Normalize keys to lowercase to avoid case-sensitivity issues with listing category names (e.g. "TERNEIRA" vs "Terneira")
     const categoryMap: Record<string, string[]> = {
-      'boi gordo': ['Boi Castrado', 'Novilho', 'Boi Gordo', 'Boi', 'Bois', 'Novilhos'],
-      'vaca': ['Vaca', 'Vaca Gorda', 'Vaca Descarte', 'Vacas', 'Vacas Prenhes', 'Vacas com Cria'],
-      'novilha': ['Novilha', 'Novilhas'],
-      'terneiro': ['Terneiro', 'Terneiros'],
-      'terneira': ['Terneira', 'Terneiras']
+      'boi': ['Boi', 'Novilho'],
+      'novilho': ['Boi', 'Novilho'],
+      'boi gordo': ['Boi', 'Novilho'],
+      'vaca': ['Vaca', 'Vaca com Cria', 'Vaca Prenha'],
+      'vaca com cria': ['Vaca', 'Vaca com Cria', 'Vaca Prenha'],
+      'vaca prenha': ['Vaca', 'Vaca com Cria', 'Vaca Prenha'],
+      'novilha': ['Novilha'],
+      'terneiro': ['Terneiro'],
+      'terneira': ['Terneira']
     };
 
-    const targetCategories = categoryMap[listingCat.toLowerCase()] || [listingCat];
+    const targetCategories = categoryMap[listingCat.toLowerCase().trim()] || [listingCat];
 
     // 4. Fetch auction offers for these categories in these plazas
     const { data: auctionData, error: auctionError } = await (supabaseAdmin
