@@ -35,7 +35,7 @@ import {
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
 import Image from 'next/image';
-import { RS_CITIES } from '@/lib/data';
+import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import imageCompression from 'browser-image-compression';
 
 const formatPhone = (val: string) => {
@@ -51,10 +51,16 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions' | 'ocr-audit'>('users');
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
   const [isSyncingMarket, setIsSyncingMarket] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
+  const [promptConfig, setPromptConfig] = useState('');
+  const [editedSummary, setEditedSummary] = useState('');
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [isSavingSummary, setIsSavingSummary] = useState(false);
+  const [ocrAuditRecords, setOcrAuditRecords] = useState<any[]>([]);
+  const [loadingOcrAudit, setLoadingOcrAudit] = useState(false);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -311,6 +317,75 @@ export default function AdminPage() {
     } catch (e) { }
   };
 
+  const fetchPromptConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/market-sync/save-prompt');
+      if (res.ok) {
+        const data = await res.json();
+        setPromptConfig(data.prompt || '');
+      }
+    } catch (err) {}
+  };
+
+  const fetchOcrAudit = async () => {
+    setLoadingOcrAudit(true);
+    try {
+      const res = await fetch('/api/admin/auctions/ocr-audit');
+      if (res.ok) {
+        const data = await res.json();
+        setOcrAuditRecords(data);
+      }
+    } catch (err) {}
+    setLoadingOcrAudit(false);
+  };
+
+  const handleSavePrompt = async () => {
+    setIsSavingPrompt(true);
+    try {
+      const res = await fetch('/api/admin/market-sync/save-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify({ prompt: promptConfig })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Instruções do prompt salvas com sucesso!', 'success');
+      } else {
+        showToast(data.error || 'Erro ao salvar prompt.', 'error');
+      }
+    } catch (err) {
+      showToast('Erro de conexão.', 'error');
+    }
+    setIsSavingPrompt(false);
+  };
+
+  const handleSaveSummary = async () => {
+    setIsSavingSummary(true);
+    try {
+      const res = await fetch('/api/admin/market-sync/save-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify({ aiSummary: editedSummary })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Resumo de IA atualizado com sucesso!', 'success');
+        setMarketData((prev: any) => ({ ...prev, aiSummary: editedSummary }));
+      } else {
+        showToast(data.error || 'Erro ao salvar resumo.', 'error');
+      }
+    } catch (err) {
+      showToast('Erro de conexão.', 'error');
+    }
+    setIsSavingSummary(false);
+  };
+
+  useEffect(() => {
+    if (marketData?.aiSummary) {
+      setEditedSummary(marketData.aiSummary);
+    }
+  }, [marketData]);
+
   useEffect(() => {
     if (isAuthReady) {
       if (!user || !user.is_admin) {
@@ -319,6 +394,7 @@ export default function AdminPage() {
       } else {
         fetchData();
         fetchMarketStatus();
+        fetchPromptConfig();
       }
       setLoading(false);
     }
@@ -360,6 +436,8 @@ export default function AdminPage() {
       fetchUsers(usersPage, usersSearch);
     } else if (adminTab === 'listings') {
       fetchListings(listingsPage, listingsSearch);
+    } else if (adminTab === 'ocr-audit') {
+      fetchOcrAudit();
     }
   }, [usersPage, listingsPage, adminTab]);
 
@@ -672,6 +750,12 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'suggestions' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Sugestões
+                </button>
+                <button
+                  onClick={() => setAdminTab('ocr-audit')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'ocr-audit' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Auditoria OCR
                 </button>
               </div>
             </div>
@@ -1108,13 +1192,142 @@ export default function AdminPage() {
                            R$ {marketData.b3?.[0]?.price?.toFixed(2) || '---'}
                          </div>
                          <span className="text-[10px] text-[#666]">{marketData.b3?.[0]?.month || '---'}</span>
-                      </div>
+                       </div>
                     </div>
                   )}
+
+                  {/* AI Summary Editor */}
+                  <div className="mt-8 pt-6 border-t border-[#E9ECEF] space-y-4">
+                    <div>
+                      <h5 className="font-bold text-[#333] text-sm mb-1">Resumo Executivo Gerado pela IA</h5>
+                      <p className="text-xs text-[#999] mb-3">Você pode revisar e alterar o resumo que será exibido aos usuários do portal.</p>
+                      <textarea
+                        value={editedSummary}
+                        onChange={(e) => setEditedSummary(e.target.value)}
+                        rows={5}
+                        placeholder="Nenhum resumo gerado ou disponível."
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#2D5A27] transition-all"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSaveSummary}
+                        disabled={isSavingSummary}
+                        className="px-6 py-2 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        {isSavingSummary ? (
+                          <>
+                            <Spinner size="sm" variant="white" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar Resumo Editado'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AI Prompt Settings Editor */}
+                  <div className="mt-8 pt-6 border-t border-[#E9ECEF] space-y-4">
+                    <div>
+                      <h5 className="font-bold text-[#333] text-sm mb-1">Diretrizes do Prompt da IA (Gemini 3.5 Flash)</h5>
+                      <p className="text-xs text-[#999] mb-3">Defina as instruções de sistema que guiarão o analista de IA a redigir o resumo executivo.</p>
+                      <textarea
+                        value={promptConfig}
+                        onChange={(e) => setPromptConfig(e.target.value)}
+                        rows={6}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-xs outline-none focus:bg-white focus:border-[#2D5A27] font-mono transition-all"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSavePrompt}
+                        disabled={isSavingPrompt}
+                        className="px-6 py-2 bg-[#2D5A27] text-white rounded-xl text-xs font-bold hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        {isSavingPrompt ? (
+                          <>
+                            <Spinner size="sm" variant="white" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar Diretrizes de Prompt'
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : adminTab === 'suggestions' ? (
               <AdminCalculatorSuggestions />
+            ) : adminTab === 'ocr-audit' ? (
+              <div>
+                <div className="flex items-center gap-2 mb-6">
+                  <ShieldCheck className="text-[#2D5A27]" size={20} />
+                  <h3 className="text-lg font-bold text-[#333]">Auditoria de Lotes Rejeitados (OCR)</h3>
+                </div>
+
+                {loadingOcrAudit ? (
+                  <div className="py-20 text-center">
+                    <Loader2 className="animate-spin text-[#2D5A27] mx-auto mb-4" size={40} />
+                    <p className="text-sm text-[#666]">Carregando logs de auditoria do OCR...</p>
+                  </div>
+                ) : ocrAuditRecords && ocrAuditRecords.length > 0 ? (
+                  <div className="space-y-8">
+                    {ocrAuditRecords.map((audit: any) => (
+                      <div key={audit.folder} className="bg-white rounded-2xl border border-[#E9ECEF] overflow-hidden shadow-sm">
+                        <div className="p-4 bg-[#F8F9FA] border-b border-[#E9ECEF] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-[#999] uppercase">Praça: {audit.plaza}</span>
+                            <h4 className="font-bold text-[#333] text-sm mt-0.5">Leilão #{audit.auctionId} ({audit.date})</h4>
+                          </div>
+                          <span className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-bold border border-red-100">
+                            {audit.items?.length || 0} Lotes Rejeitados
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="bg-[#F8F9FA] text-[10px] uppercase tracking-widest text-[#999] font-bold border-b border-[#E9ECEF]">
+                                <th className="px-4 py-3">Lote</th>
+                                <th className="px-4 py-3">Texto Original OCR</th>
+                                <th className="px-4 py-3 text-center">Qtd</th>
+                                <th className="px-4 py-3 text-center">Peso Méd. (Kg)</th>
+                                <th className="px-4 py-3 text-center">Preço (R$)</th>
+                                <th className="px-4 py-3 text-center">Média/Kg</th>
+                                <th className="px-4 py-3">Motivo da Rejeição</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {audit.items?.map((item: any, idx: number) => (
+                                <tr key={idx} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors">
+                                  <td className="px-4 py-3 font-bold text-[#333]">#{item.Lote || 'N/A'}</td>
+                                  <td className="px-4 py-3 font-medium text-[#666] font-mono max-w-[200px] truncate" title={item.Animal}>
+                                    {item.Animal}
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-[#666]">{item.Qtd || item.Quantidade || '---'}</td>
+                                  <td className="px-4 py-3 text-center text-[#666]">{item.Peso || '---'} Kg</td>
+                                  <td className="px-4 py-3 text-center text-[#666]">R$ {item.Preço || '---'}</td>
+                                  <td className="px-4 py-3 text-center text-[#666]">R$ {item.Média || '---'}</td>
+                                  <td className="px-4 py-3 text-red-600 font-medium max-w-[250px] break-words">
+                                    {item._audit_reason || 'Inconsistência de Peso/Preço/Média'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
+                    <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                    <p className="text-lg font-bold text-[#333]">Nenhum lote inconsistente encontrado</p>
+                    <p className="text-sm text-[#666]">Os logs de lotes rejeitados pelo processador OCR serão listados aqui.</p>
+                  </div>
+                )}
+              </div>
             ) : null}
           </div>
         </motion.div>
@@ -1302,14 +1515,16 @@ export default function AdminPage() {
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Categoria</label>
                       <select
                         required
-                        value={adForm.category}
+                        value={CATEGORIES_LIST.find(c => c.toLowerCase() === adForm.category.toLowerCase()) || adForm.category}
                         onChange={(e) => setAdForm({ ...adForm, category: e.target.value })}
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all appearance-none"
                       >
-                        <option value="Touro">Touro</option>
-                        <option value="Vaca">Vaca</option>
-                        <option value="Bezerro">Bezerro(a)</option>
-                        <option value="Novilha">Novilha(o)</option>
+                        <option value="" disabled>Selecione uma categoria...</option>
+                        {CATEGORIES_LIST.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>

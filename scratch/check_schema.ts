@@ -35,24 +35,14 @@ async function fetchSwagger() {
     const res = await fetch(`${supabaseUrl}/rest/v1/?apikey=${supabaseKey}`);
     const swagger = await res.json();
     
-    console.log("=== Listings Table Properties ===");
-    const listingsProps = swagger.definitions.listings?.properties;
-    if (listingsProps) {
-      for (const [propName, propVal] of Object.entries(listingsProps)) {
+    console.log("=== auction_offers Table Properties ===");
+    const props = swagger.definitions.auction_offers?.properties;
+    if (props) {
+      for (const [propName, propVal] of Object.entries(props)) {
         console.log(` - ${propName}: type=${(propVal as any).type}, format=${(propVal as any).format || 'none'}`);
       }
     } else {
-      console.log("Listings definition not found in swagger");
-    }
-
-    console.log("\n=== Users Table Properties ===");
-    const usersProps = swagger.definitions.users?.properties;
-    if (usersProps) {
-      for (const [propName, propVal] of Object.entries(usersProps)) {
-        console.log(` - ${propName}: type=${(propVal as any).type}, format=${(propVal as any).format || 'none'}`);
-      }
-    } else {
-      console.log("Users definition not found in swagger");
+      console.log("auction_offers definition not found in swagger");
     }
 }
 

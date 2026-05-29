@@ -88,11 +88,24 @@ export async function GET() {
       const thirtyDaysAgo = new Date(targetDate.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       const categoryMap: Record<string, string> = {
-        'boi castrado': 'Boi Gordo', 'novilho': 'Boi Gordo', 'boi gordo': 'Boi Gordo', 'bois': 'Boi Gordo', 'novilhos': 'Boi Gordo',
-        'vaca': 'Vaca', 'vaca gorda': 'Vaca', 'vaca descarte': 'Vaca', 'vacas': 'Vaca', 'vacas prenhes': 'Vaca', 'vacas com cria': 'Vaca',
-        'novilha': 'Novilha', 'novilhas': 'Novilha',
-        'terneiro': 'Terneiro', 'terneiros': 'Terneiro',
-        'terneira': 'Terneira', 'terneiras': 'Terneira'
+        'boi': 'Boi Gordo',
+        'boi castrado': 'Boi Gordo',
+        'bois': 'Boi Gordo',
+        'novilho': 'Boi Gordo',
+        'novilhos': 'Boi Gordo',
+        'boi gordo': 'Boi Gordo',
+        'vaca': 'Vaca',
+        'vacas': 'Vaca',
+        'vaca com cria': 'Vaca',
+        'vacas com cria': 'Vaca',
+        'vaca prenha': 'Vaca',
+        'vacas prenhes': 'Vaca',
+        'novilha': 'Novilha',
+        'novilhas': 'Novilha',
+        'terneiro': 'Terneiro',
+        'terneiros': 'Terneiro',
+        'terneira': 'Terneira',
+        'terneiras': 'Terneira'
       };
 
       const stats: Record<string, { auctionAvg: number, prevAuctionAvg: number, platformAvg: number }> = {};
@@ -159,12 +172,16 @@ export async function GET() {
       };
     });
 
+    // Read the pre-generated AI summary from the cached market data JSON
+    const aiSummary = dynamicMarketData?.aiSummary || null;
+
     return NextResponse.json({
       reportDate: today.toISOString(),
       scotData,
       cepeaData,
       b3Futures,
-      categoryStats
+      categoryStats,
+      aiSummary
     });
 
   } catch (error: any) {

@@ -185,3 +185,33 @@ export async function getMarketData() {
     return {}; // Return empty object instead of null for safer spread
   }
 }
+
+const PROMPT_PATH = path.join(process.cwd(), 'src/data/market/prompt_settings.json');
+
+export async function getPromptSettings() {
+  try {
+    const content = await fs.readFile(PROMPT_PATH, 'utf-8');
+    return JSON.parse(content);
+  } catch (error) {
+    return {
+      prompt: `Você é um analista de mercado agropecuário especialista no estado do Rio Grande do Sul.
+Com base nas seguintes cotações coletadas para esta semana, elabore um resumo executivo de 2 a 3 parágrafos curtos sobre o comportamento do preço do gado. Fale sobre as tendências, compare a média de venda direta na plataforma com a média de leilões, e mencione o indicador CEPEA e futuros B3 se forem relevantes.
+
+IMPORTANTE SOBRE UNIDADES DE MEDIDA:
+No Rio Grande do Sul, a negociação de gado é feita tradicionalmente em preço por QUILOGRAMA VIVO (R$/kg), e não em arroba (@). Por isso, sempre que mencionar valores do Indicador CEPEA ou de contratos futuros da B3 (que originalmente são em arroba), você DEVE obrigatoriamente traduzir e citar esses valores em Reais por Quilograma (R$/kg) (ex: "R$ 12,23/kg"). Você pode citar o valor em arroba entre parênteses apenas como referência complementar, mas o valor principal no texto deve ser sempre em kg.
+
+Seja profissional, direto e use tom analítico de mercado. Não mencione formatos JSON ou códigos na resposta.`
+    };
+  }
+}
+
+export async function savePromptSettings(settings: { prompt: string }) {
+  try {
+    await fs.mkdir(path.dirname(PROMPT_PATH), { recursive: true });
+    await fs.writeFile(PROMPT_PATH, JSON.stringify(settings, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving prompt settings:', error);
+    return false;
+  }
+}

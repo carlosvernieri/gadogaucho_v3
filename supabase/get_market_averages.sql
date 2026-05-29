@@ -12,8 +12,8 @@ DECLARE
   result JSONB;
 BEGIN
   WITH mapped_categories AS (
-    SELECT 'Boi Gordo' AS cat, unnest(ARRAY['Boi Castrado', 'Novilho', 'Boi Gordo', 'Bois', 'Novilhos']) AS subcat
-    UNION ALL SELECT 'Vaca', unnest(ARRAY['Vaca', 'Vaca Gorda', 'Vaca Descarte', 'Vacas', 'Vacas Prenhes', 'Vacas com Cria'])
+    SELECT 'Boi Gordo' AS cat, unnest(ARRAY['Boi', 'Novilho', 'Boi Castrado', 'Bois', 'Novilhos', 'Boi Gordo']) AS subcat
+    UNION ALL SELECT 'Vaca', unnest(ARRAY['Vaca', 'Vaca com Cria', 'Vaca Prenha', 'Vacas', 'Vacas Prenhes', 'Vacas com Cria', 'Vaca Gorda', 'Vaca Descarte'])
     UNION ALL SELECT 'Novilha', unnest(ARRAY['Novilha', 'Novilhas'])
     UNION ALL SELECT 'Terneiro', unnest(ARRAY['Terneiro', 'Terneiros'])
     UNION ALL SELECT 'Terneira', unnest(ARRAY['Terneira', 'Terneiras'])

@@ -32,7 +32,10 @@ export async function updateSession(request: NextRequest) {
   try {
     const { error } = await supabase.auth.getUser()
     if (error) {
-      console.warn('Middleware session update warning:', error.message)
+      // Não spamma o terminal com aviso para requisições de usuários não autenticados normais
+      if (error.message !== 'Auth session missing!') {
+        console.warn('Middleware session update warning:', error.message);
+      }
       // Se for um erro de token expirado ou inválido, limpamos os cookies para evitar loops de erro.
       if (error.message?.toLowerCase().includes('refresh token') || error.status === 400) {
         clearAuthCookies(request, supabaseResponse)
