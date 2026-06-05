@@ -141,7 +141,7 @@ export const Header = ({
                   <div className="relative">
                     <MessageSquare size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#DC3545] text-white text-[9px] font-extrabold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-[#DC3545]/40">
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#DC3545] text-white text-[9px] font-extrabold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center shadow-sm shadow-[#DC3545]/40">
                         {unreadCount}
                       </span>
                     )}
