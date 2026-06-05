@@ -110,8 +110,8 @@ export const AdModal = () => {
         dispatchToast('A imagem é muito grande. Máximo 5MB.');
         continue;
       }
-      if (type === 'videos' && file.size > 20 * 1024 * 1024) {
-        dispatchToast('O vídeo é muito grande. Máximo 20MB.');
+      if (type === 'videos' && file.size > 50 * 1024 * 1024) {
+        dispatchToast('O vídeo é muito grande. Máximo 50MB.');
         continue;
       }
 
