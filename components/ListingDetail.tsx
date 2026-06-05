@@ -306,7 +306,7 @@ export const ListingDetail = ({
                 </div>
 
                 {/* Summary Table */}
-                <div className="overflow-x-auto rounded-2xl border border-[#E9ECEF] bg-white shadow-sm">
+                <div className="overflow-x-auto rounded-2xl border border-[#E9ECEF] bg-white shadow-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <table className="w-full text-left text-[11px] min-w-[320px]">
                     <thead className="bg-[#F8F9FA] border-b border-[#E9ECEF] text-[#999] font-bold uppercase tracking-wider">
                       <tr>

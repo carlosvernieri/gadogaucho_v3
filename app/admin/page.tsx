@@ -132,11 +132,13 @@ export default function AdminPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
-        showToast('A imagem é muito grande. Máximo 5MB.', 'error');
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`, 'error');
         continue;
       }
       if (type === 'videos' && file.size > 50 * 1024 * 1024) {
-        showToast('O vídeo é muito grande. Máximo 50MB.', 'error');
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 50MB.`, 'error');
         continue;
       }
 
@@ -157,13 +159,16 @@ export default function AdminPage() {
           }
         }
 
-        const fileExt = file.name.split('.').pop();
+        const fileExt = (file.name.split('.').pop() || '').toLowerCase();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('gado_gaucho_media')
-          .upload(filePath, fileToUpload);
+          .upload(filePath, fileToUpload, {
+            contentType: type === 'images' ? 'image/webp' : (file.type || undefined),
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
 
@@ -179,7 +184,10 @@ export default function AdminPage() {
             const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
             const { error: thumbErr } = await supabase.storage
               .from('gado_gaucho_media')
-              .upload(`images/${thumbName}`, thumbBlob);
+              .upload(`images/${thumbName}`, thumbBlob, {
+                contentType: 'image/jpeg',
+                upsert: false
+              });
 
             if (!thumbErr) {
               const { data: thumbData } = supabase.storage
@@ -1658,6 +1666,13 @@ export default function AdminPage() {
                         {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Video size={24} />}
                         <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                       </button>
+                    </div>
+
+                    <div className="text-[11px] text-[#666] bg-[#F8F9FA] rounded-xl p-3 border border-[#E9ECEF] flex flex-col gap-1 mt-3">
+                      <span className="font-bold text-[#2D5A27] uppercase tracking-wider text-[9px]">Dica para iPhone (iOS):</span>
+                      <p className="leading-relaxed">
+                        Se o vídeo for muito grande e o envio não iniciar, tente selecioná-lo usando a opção <strong>"Escolher Arquivo"</strong> (Files) em vez de "Fototeca", ou envie um vídeo mais curto (até 15 segundos ou 50MB).
+                      </p>
                     </div>
 
                     {(adForm.images.length > 0 || adForm.videos.length > 0) && (

@@ -84,10 +84,22 @@ export function getListingUrl(listing: any) {
 
 export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> => {
   return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Thumbnail generation timed out after 4 seconds'));
+    }, 4000);
+
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      try {
+        URL.revokeObjectURL(video.src);
+      } catch (e) {}
+    };
 
     // Load video from file
     video.src = URL.createObjectURL(file);
@@ -114,14 +126,14 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        URL.revokeObjectURL(video.src);
+        cleanup();
         return reject(new Error('Canvas context not available'));
       }
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       canvas.toBlob((blob) => {
-        URL.revokeObjectURL(video.src);
+        cleanup();
         if (blob) {
           resolve(blob);
         } else {
@@ -131,7 +143,7 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
     };
 
     video.onerror = (e) => {
-      URL.revokeObjectURL(video.src);
+      cleanup();
       reject(new Error('Failed to load video file: ' + String(e)));
     };
   });
