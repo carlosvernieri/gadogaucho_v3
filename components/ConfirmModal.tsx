@@ -6,21 +6,43 @@ import { X, AlertTriangle, Loader2, CheckCircle2, Info, AlertCircle } from 'luci
 import { Spinner } from './Spinner';
 
 // Simple toast implementation
-export const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-  const event = new CustomEvent('app-toast', { detail: { message, type } });
+export const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info', duration?: number) => {
+  const event = new CustomEvent('app-toast', { detail: { message, type, duration } });
   window.dispatchEvent(event);
 };
 
 export const ToastContainer = () => {
-  const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info'; duration?: number } | null>(null);
+  const timerRef = React.useRef<any>(null);
+
+  const closeToast = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setToast(null);
+  };
 
   React.useEffect(() => {
     const handleToast = (e: any) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
       setToast(e.detail);
-      setTimeout(() => setToast(null), 3000);
+
+      // Default to 6 seconds for errors, and 3 seconds for others
+      const toastDuration = e.detail.duration || (e.detail.type === 'error' ? 4500 : 3000);
+
+      timerRef.current = setTimeout(() => {
+        setToast(null);
+        timerRef.current = null;
+      }, toastDuration);
     };
     window.addEventListener('app-toast', handleToast);
-    return () => window.removeEventListener('app-toast', handleToast);
+    return () => {
+      window.removeEventListener('app-toast', handleToast);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   return (
@@ -34,15 +56,15 @@ export const ToastContainer = () => {
         >
           <div className={`
             flex items-center gap-3 p-4 rounded-2xl shadow-2xl border backdrop-blur-md
-            ${toast.type === 'success' ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' : 
-              toast.type === 'error' ? 'bg-red-50/90 border-red-200 text-red-800' : 
-              'bg-blue-50/90 border-blue-200 text-blue-800'}
+            ${toast.type === 'success' ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' :
+              toast.type === 'error' ? 'bg-red-50/90 border-red-200 text-red-800' :
+                'bg-blue-50/90 border-blue-200 text-blue-800'}
           `}>
             {toast.type === 'success' && <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />}
             {toast.type === 'error' && <AlertCircle size={20} className="text-red-600 shrink-0" />}
             {toast.type === 'info' && <Info size={20} className="text-blue-600 shrink-0" />}
             <span className="text-sm font-bold leading-tight">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="ml-auto text-current opacity-50 hover:opacity-100">
+            <button onClick={closeToast} className="ml-auto text-current opacity-50 hover:opacity-100">
               <X size={16} />
             </button>
           </div>

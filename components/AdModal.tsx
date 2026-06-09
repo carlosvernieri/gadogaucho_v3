@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
 import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage, getListingUrl } from '@/lib/utils';
 import { Spinner } from '@/components/Spinner';
+import { showToast } from '@/components/ConfirmModal';
 
 export const AdModal = () => {
   const { user, showAdModal, setShowAdModal, editingListing, setEditingListing } = useUser();
@@ -92,8 +93,8 @@ export const AdModal = () => {
     return adForm.weight * adForm.priceKg;
   }, [adForm.weight, adForm.priceKg]);
 
-  const dispatchToast = (msg: string) => {
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: msg }));
+  const dispatchToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    showToast(msg, type);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
@@ -108,12 +109,12 @@ export const AdModal = () => {
       const file = files[i];
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        dispatchToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`);
+        dispatchToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`, 'error');
         continue;
       }
       if (type === 'videos' && file.size > 50 * 1024 * 1024) {
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        dispatchToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 50MB.`);
+        dispatchToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 50MB.`, 'error');
         continue;
       }
 
@@ -179,7 +180,7 @@ export const AdModal = () => {
 
       } catch (err) {
         console.error('Upload Error:', err);
-        dispatchToast(`Erro ao enviar ${file.name}.`);
+        dispatchToast(`Erro ao enviar ${file.name}.`, 'error');
       }
     }
 
@@ -201,7 +202,7 @@ export const AdModal = () => {
     e.target.value = '';
 
     if (newFiles.length > 0) {
-      dispatchToast('Mídia adicionada com sucesso!');
+      dispatchToast('Mídia adicionada com sucesso!', 'success');
     }
     setIsUploadingMedia(false);
   };
@@ -240,7 +241,7 @@ export const AdModal = () => {
   const handleSubmitAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      dispatchToast('Você precisa estar logado.');
+      dispatchToast('Você precisa estar logado.', 'error');
       return;
     }
 
@@ -285,23 +286,23 @@ export const AdModal = () => {
             setMediaToDelete([]);
           }
           window.dispatchEvent(new CustomEvent('ad_updated', { detail: savedAd }));
-          dispatchToast('Anúncio atualizado com sucesso!');
+          dispatchToast('Anúncio atualizado com sucesso!', 'success');
           setShowAdModal(false);
           setEditingListing(null);
         } else {
           window.dispatchEvent(new CustomEvent('ad_created', { detail: savedAd }));
-          dispatchToast('Anúncio criado com sucesso!');
+          dispatchToast('Anúncio criado com sucesso!', 'success');
           setShowAdModal(false);
           setEditingListing(null);
           router.push(getListingUrl(savedAd));
         }
       } else {
         const errorData = await res.json().catch(() => ({}));
-        dispatchToast(`Erro ao ${editingListing ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);
+        dispatchToast(`Erro ao ${editingListing ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`, 'error');
       }
     } catch (error: any) {
       console.error(`Error ${editingListing ? 'updating' : 'creating'} ad:`, error);
-      dispatchToast(`Erro: ${error.message || 'Tente novamente.'}`);
+      dispatchToast(`Erro: ${error.message || 'Tente novamente.'}`, 'error');
     } finally {
       setIsSubmittingAd(false);
     }
@@ -515,13 +516,6 @@ export const AdModal = () => {
                       {isUploadingMedia ? <Spinner size="sm" variant="default" /> : <Video size={24} />}
                       <span className="text-[10px] font-bold uppercase">{isUploadingMedia ? 'Enviando...' : 'Adicionar Vídeos'}</span>
                     </button>
-                  </div>
-
-                  <div className="text-[11px] text-[#666] bg-[#F8F9FA] rounded-xl p-3 border border-[#E9ECEF] flex flex-col gap-1">
-                    <span className="font-bold text-[#2D5A27] uppercase tracking-wider text-[9px]">Dica para iPhone (iOS):</span>
-                    <p className="leading-relaxed">
-                      Se o vídeo for muito grande e o envio não iniciar, tente selecioná-lo usando a opção <strong>"Escolher Arquivo"</strong> (Files) em vez de "Fototeca", ou envie um vídeo mais curto (até 15 segundos ou 50MB).
-                    </p>
                   </div>
 
                   {/* Previews */}

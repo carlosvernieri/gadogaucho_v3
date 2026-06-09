@@ -1668,13 +1668,6 @@ export default function AdminPage() {
                       </button>
                     </div>
 
-                    <div className="text-[11px] text-[#666] bg-[#F8F9FA] rounded-xl p-3 border border-[#E9ECEF] flex flex-col gap-1 mt-3">
-                      <span className="font-bold text-[#2D5A27] uppercase tracking-wider text-[9px]">Dica para iPhone (iOS):</span>
-                      <p className="leading-relaxed">
-                        Se o vídeo for muito grande e o envio não iniciar, tente selecioná-lo usando a opção <strong>"Escolher Arquivo"</strong> (Files) em vez de "Fototeca", ou envie um vídeo mais curto (até 15 segundos ou 50MB).
-                      </p>
-                    </div>
-
                     {(adForm.images.length > 0 || adForm.videos.length > 0) && (
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
                         {adForm.images.map((img, idx) => (
