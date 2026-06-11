@@ -1,8 +1,8 @@
 {
   "cepea": {
-    "price": 349.25,
-    "priceKg": "11.64",
-    "delta": 0.27,
+    "price": 353.55,
+    "priceKg": "11.79",
+    "delta": 0.11,
     "trend": "up",
     "unit": "R$/@"
   },
@@ -10,7 +10,7 @@
     "pelotas": [
       {
         "category": "Boi Gordo",
-        "price": 12.4
+        "price": 12.35
       },
       {
         "category": "Vaca Gorda",
@@ -24,7 +24,7 @@
     "oeste": [
       {
         "category": "Boi Gordo",
-        "price": 12.45
+        "price": 12.3
       },
       {
         "category": "Vaca Gorda",
@@ -38,32 +38,32 @@
   },
   "b3": [
     {
-      "month": "Maio/2026",
-      "price": 348.2,
-      "priceKg": "11.61"
-    },
-    {
       "month": "Junho/2026",
-      "price": 353.25,
-      "priceKg": "11.78"
+      "price": 348.5,
+      "priceKg": "11.62"
     },
     {
       "month": "Julho/2026",
-      "price": 345.7,
-      "priceKg": "11.52"
+      "price": 339.7,
+      "priceKg": "11.32"
     },
     {
       "month": "Agosto/2026",
-      "price": 343,
-      "priceKg": "11.43"
+      "price": 337.65,
+      "priceKg": "11.25"
     },
     {
       "month": "Setembro/2026",
-      "price": 344.3,
-      "priceKg": "11.48"
+      "price": 340.55,
+      "priceKg": "11.35"
+    },
+    {
+      "month": "Outubro/2026",
+      "price": 349.75,
+      "priceKg": "11.66"
     }
   ],
-  "timestamp": "2026-05-29T19:34:25.072Z",
-  "updatedAt": "2026-05-29T19:34:42.876Z",
-  "aiSummary": "O mercado pecuário gaúcho apresentou comportamento misto nesta semana, caracterizado pela valorização nas categorias de fêmeas e recuo nos machos. Destaca-se a alta de 6% na vaca, cuja média na plataforma de venda direta (Gado Gaúcho) atingiu R$ 10,76/kg, superando a média dos leilões (R$ 9,82/kg), tendência também observada nas novilhas, comercializadas a R$ 11,94/kg na venda direta contra R$ 11,41/kg nas pistas. Em contrapartida, o boi gordo registrou retração semanal de 3,4%, com os leilões sustentando médias superiores (R$ 11,33/kg) frente à plataforma direta (R$ 8,18/kg), embora as praças físicas de Pelotas e da região Oeste (Scot Consultoria) indiquem negócios mais aquecidos, variando entre R$ 12,40/kg e R$ 12,45/kg.\n\nNo cenário nacional, o Indicador CEPEA reforça o viés de firmeza ao operar em alta, cotado a R$ 11,64/kg (R$ 349,25/@), servindo de balizador positivo para o Rio Grande do Sul. Essa sustentação encontra respaldo nas projeções para o mercado futuro na B3, cujos contratos para meados de 2026 sinalizam estabilidade em patamares elevados, oscilando entre R$ 11,43/kg (R$ 343,00/@) em agosto e R$ 11,78/kg (R$ 353,25/@) no vencimento de junho. Este panorama externo favorável oferece um horizonte de segurança para o pecuarista gaúcho planejar suas vendas e reposição ao longo dos próximos meses."
+  "timestamp": "2026-06-10T15:35:29.657Z",
+  "updatedAt": "2026-06-10T15:35:29.658Z",
+  "aiSummary": null
 }

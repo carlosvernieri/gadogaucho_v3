@@ -70,13 +70,36 @@ ${categoryStats.map(s => `- ${s.category}: Média Leilões (Atacado) = R$ ${s.au
 ${(b3 || []).map((f: any) => `- ${f.month}: R$ ${f.price}/@ (R$ ${f.priceKg}/kg)`).join('\n')}
 `;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: dataPrompt
-        });
+        let retries = 3;
+        let delay = 1000;
         
-        if (response.text) {
-          aiSummary = response.text.trim();
+        while (retries > 0) {
+          try {
+            console.log(`Generating AI summary with Gemini 3.5 Flash (Retries left: ${retries - 1})...`);
+            const response = await ai.models.generateContent({
+              model: 'gemini-3.5-flash',
+              contents: dataPrompt
+            });
+            
+            if (response.text) {
+              aiSummary = response.text.trim();
+              console.log('Successfully generated AI summary using Gemini 3.5 Flash');
+              break;
+            }
+          } catch (err: any) {
+            const errorText = err.message || JSON.stringify(err);
+            console.warn(`Failed with Gemini 3.5 Flash (retries left ${retries - 1}):`, errorText);
+            
+            // Se for um erro 503 (Unavailable) ou 429 (Rate Limit), tenta novamente
+            const isRetryable = errorText.includes('503') || errorText.includes('UNAVAILABLE') || errorText.includes('429') || errorText.includes('RESOURCE_EXHAUSTED');
+            if (isRetryable && retries > 1) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2; // exponential backoff
+              retries--;
+            } else {
+              break;
+            }
+          }
         }
       } catch (geminiError) {
         console.error('Error generating AI market summary:', geminiError);

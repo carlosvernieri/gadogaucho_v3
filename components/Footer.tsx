@@ -1,9 +1,13 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Instagram, MessageCircle, ShieldCheck } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { user } = useUser();
 
   return (
     <footer className="bg-white border-t border-[#E9ECEF] pt-12 pb-24 lg:pb-12 mt-auto">
@@ -25,9 +29,11 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <h4 className="font-bold text-[#333] text-sm uppercase tracking-wider">Acesso Rápido</h4>
             <nav className="flex flex-col gap-3">
-              <Link href="/relatorio-preco-do-gado" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
-                Boletim Semanal de Preços
-              </Link>
+              {user?.is_admin && (
+                <Link href="/relatorio-preco-do-gado" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
+                  Boletim Semanal de Preços
+                </Link>
+              )}
               <Link href="/calculadoras/gmd" className="text-sm text-[#2D5A27] hover:text-[#1E3D1A] transition-colors w-fit flex items-center gap-1">
                 Calculadora GMD
               </Link>

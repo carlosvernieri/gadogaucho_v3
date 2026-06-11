@@ -23,7 +23,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function MercadoReportPage() {
   const router = useRouter();
-  const { user, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -44,8 +44,15 @@ export default function MercadoReportPage() {
   };
 
   useEffect(() => {
-    fetchReport();
-  }, []);
+    if (isAuthReady) {
+      if (!user || !user.is_admin) {
+        console.log('MercadoReportPage: Acesso restrito a administradores. Redirecionando...');
+        router.push('/');
+      } else {
+        fetchReport();
+      }
+    }
+  }, [user, isAuthReady, router]);
 
   const marketAnalysis = React.useMemo(() => {
     if (!reportData) return null;
