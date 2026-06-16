@@ -170,3 +170,33 @@ export const deleteMediaFromStorage = async (urls: string[]) => {
     console.error('Failed to delete media from storage:', err);
   }
 };
+
+/**
+ * Formats a city name to capitalize each word except prepositions (de, do, da, dos, das).
+ * Handles hyphens as in "Não-Me-Toque".
+ */
+export function formatCityName(city: string): string {
+  if (!city) return '';
+  const exceptions = ['de', 'do', 'da', 'dos', 'das'];
+  
+  const formatWord = (word: string, index: number) => {
+    if (exceptions.includes(word) && index !== 0) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  };
+
+  return city
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, index) => {
+      if (word.includes('-')) {
+        return word
+          .split('-')
+          .map((subword, subIdx) => formatWord(subword, index + subIdx))
+          .join('-');
+      }
+      return formatWord(word, index);
+    })
+    .join(' ');
+}

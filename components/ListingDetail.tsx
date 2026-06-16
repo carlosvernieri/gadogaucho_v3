@@ -11,7 +11,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { slugify } from '@/lib/utils';
+import { slugify, formatCityName } from '@/lib/utils';
 import { Badge } from './Badge';
 import { InterestForm } from './InterestForm';
 
@@ -174,7 +174,9 @@ export const ListingDetail = ({
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-[#333] mb-2 leading-tight">{listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()} em {listing.location.charAt(0).toUpperCase() + listing.location.slice(1).toLowerCase()}</h1>
+          <h1 className="text-2xl font-bold text-[#333] mb-2 leading-tight">
+            {listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase()} em {formatCityName(listing.location.split('-')[0].trim())}
+          </h1>
           <p className="text-sm text-[#666] leading-relaxed mb-10">
             {listing.description}
           </p>
@@ -206,7 +208,7 @@ export const ListingDetail = ({
                 <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
                   <strong className="font-bold text-amber-900 block mb-0.5">Nota de Transparência:</strong>
-                  Não encontramos dados de leilões locais recentes suficientes para a categoria <strong className="text-amber-950">{listing.category}</strong> próximos a {listing.location.split('-')[0].trim()}. Os preços apresentados no gráfico e tabela são **estimativas médias baseadas no mercado estadual**.
+                  Não encontramos dados de leilões locais recentes suficientes para a categoria <strong className="text-amber-950">{listing.category}</strong> próximos a {formatCityName(listing.location.split('-')[0].trim())}. Os preços apresentados no gráfico e tabela são **estimativas médias baseadas no mercado estadual**.
                 </div>
               </div>
             )}

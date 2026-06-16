@@ -14,6 +14,7 @@ const grandHotel = Grand_Hotel({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://gadogaucho.com'),
   title: 'Gado Gaúcho - Anúncios de Gado',
   description: 'A maior plataforma de compra e venda de gado do RS. Anuncie seu gado e encontre o que precisa.',
 };
