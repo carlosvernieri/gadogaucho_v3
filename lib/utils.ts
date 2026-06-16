@@ -152,7 +152,7 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
 export const deleteMediaFromStorage = async (urls: string[]) => {
   if (!urls || urls.length === 0) return;
   
-  const validUrls = urls.filter(url => url && url.includes('supabase.co') && url.includes('gado_gaucho_media/'));
+  const validUrls = urls.filter(url => url && url.includes('media.gadogaucho.com'));
   if (validUrls.length === 0) return;
 
   try {

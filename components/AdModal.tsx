@@ -112,9 +112,9 @@ export const AdModal = () => {
         dispatchToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`, 'error');
         continue;
       }
-      if (type === 'videos' && file.size > 50 * 1024 * 1024) {
+      if (type === 'videos' && file.size > 100 * 1024 * 1024) {
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        dispatchToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 50MB.`, 'error');
+        dispatchToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 100MB.`, 'error');
         continue;
       }
 
@@ -140,38 +140,57 @@ export const AdModal = () => {
 
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
+        const mimeType = type === 'images' ? 'image/webp' : (file.type || 'video/mp4');
 
-        const { error: uploadError } = await supabase.storage
-          .from('gado_gaucho_media')
-          .upload(filePath, fileToUpload, {
-            contentType: type === 'images' ? 'image/webp' : (file.type || undefined),
-            upsert: false
-          });
+        // 1. Obter URL assinada do R2
+        const presignRes = await fetch('/api/storage/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filePath, contentType: mimeType })
+        });
 
-        if (uploadError) throw uploadError;
+        if (!presignRes.ok) {
+          throw new Error('Falha ao obter URL de upload do R2');
+        }
 
-        const { data } = supabase.storage
-          .from('gado_gaucho_media')
-          .getPublicUrl(filePath);
+        const { uploadUrl, publicUrl } = await presignRes.json();
 
-        newFiles.push(data.publicUrl);
+        // 2. Fazer upload para o R2 usando PUT
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': mimeType },
+          body: fileToUpload
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Erro no upload para o Cloudflare R2');
+        }
+
+        newFiles.push(publicUrl);
 
         if (type === 'videos' && adForm.images.length === 0 && newImages.length === 0) {
           try {
             const thumbBlob = await generateVideoThumbnail(file);
-            const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
-            const { error: thumbErr } = await supabase.storage
-              .from('gado_gaucho_media')
-              .upload(`images/${thumbName}`, thumbBlob, {
-                contentType: 'image/jpeg',
-                upsert: false
+            const thumbName = `images/thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
+
+            const thumbPresign = await fetch('/api/storage/presign', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: thumbName, contentType: 'image/jpeg' })
+            });
+
+            if (thumbPresign.ok) {
+              const { uploadUrl: thumbUploadUrl, publicUrl: thumbPublicUrl } = await thumbPresign.json();
+              
+              const thumbUploadRes = await fetch(thumbUploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'image/jpeg' },
+                body: thumbBlob
               });
 
-            if (!thumbErr) {
-              const { data: thumbData } = supabase.storage
-                .from('gado_gaucho_media')
-                .getPublicUrl(`images/${thumbName}`);
-              newImages.push(thumbData.publicUrl);
+              if (thumbUploadRes.ok) {
+                newImages.push(thumbPublicUrl);
+              }
             }
           } catch (err) {
             console.error('Failed to generate video thumbnail:', err);
