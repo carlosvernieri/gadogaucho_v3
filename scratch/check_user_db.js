@@ -25,13 +25,18 @@ const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-async function main() {
-  const { data, error } = await supabase.from('users').select('*').eq('email', 'admin@admin.com');
+async function checkUser() {
+  console.log('Querying all rows in public.users...');
+  
+  const { data, error } = await supabase
+    .from('users')
+    .select('*');
+    
   if (error) {
-    console.error('Error querying users:', error);
+    console.error('Error querying public.users:', error);
   } else {
-    console.log('User admin@admin.com data:', data);
+    console.log('All rows in public.users:', data);
   }
 }
 
-main().catch(console.error);
+checkUser().catch(console.error);

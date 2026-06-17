@@ -90,9 +90,22 @@ export async function PUT(
     if (error) throw error;
 
     return NextResponse.json(updatedUser);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Supabase error updating user:', safeJsonStringify(error, 2));
-    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const logPath = path.join(process.cwd(), 'scratch', 'api_error.log');
+      fs.appendFileSync(
+        logPath,
+        `\n\n--- ERROR ${new Date().toISOString()} ---\n` +
+          JSON.stringify(error, null, 2) +
+          `\nMessage: ${error?.message}\nStack: ${error?.stack}\n`
+      );
+    } catch (e) {
+      console.error('Failed to log error to file:', e);
+    }
+    return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
   }
 }
 

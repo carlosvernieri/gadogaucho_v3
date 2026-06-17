@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, TrendingDown, Minus, Info, ChevronDown, ChevronUp, Share2, Mail, Loader2 } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, Share2, Mail } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
 import { BottomNav } from '@/components/BottomNav';
@@ -33,14 +33,6 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
     }
   };
 
-  const renderTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up': return <TrendingUp size={16} className="text-emerald-600" />;
-      case 'down': return <TrendingDown size={16} className="text-red-500" />;
-      default: return <Minus size={16} className="text-gray-400" />;
-    }
-  };
-
   const renderChart = (history: any[]) => (
     <div className="w-full h-[250px] mt-4">
       <ResponsiveContainer width="100%" height="100%">
@@ -55,6 +47,7 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
           <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
           <Line type="monotone" dataKey="vaca" name="Vaca" stroke="#2D5A27" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
           <Line type="monotone" dataKey="novilha" name="Novilha" stroke="#87C036" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="novilho" name="Novilho" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
           <Line type="monotone" dataKey="terneira" name="Terneira" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
           <Line type="monotone" dataKey="terneiro" name="Terneiro" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
         </LineChart>
@@ -151,16 +144,16 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
                     <th className="p-4 font-bold">Praça Geográfica</th>
                     <th className="p-4 font-bold text-center">Vaca</th>
                     <th className="p-4 font-bold text-center">Novilha</th>
+                    <th className="p-4 font-bold text-center">Novilho</th>
                     <th className="p-4 font-bold text-center">Terneira</th>
                     <th className="p-4 font-bold text-center">Terneiro</th>
-                    <th className="p-4 text-center font-bold">Tendência</th>
                     <th className="p-4 text-center font-bold w-12"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {!praças || praças.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-[#999] text-sm italic">
+                      <td colSpan={6} className="p-8 text-center text-[#999] text-sm italic">
                         Nenhuma cotação disponível no momento.
                       </td>
                     </tr>
@@ -180,15 +173,13 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
                           R$ {praca.novilha.toFixed(2)}
                         </td>
                         <td className="p-4 text-center text-[#666] font-medium">
+                          R$ {praca.novilho.toFixed(2)}
+                        </td>
+                        <td className="p-4 text-center text-[#666] font-medium">
                           R$ {praca.terneira.toFixed(2)}
                         </td>
                         <td className="p-4 text-center text-[#666] font-medium">
                           R$ {praca.terneiro.toFixed(2)}
-                        </td>
-                        <td className="p-4 flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full bg-white border border-[#E9ECEF] flex items-center justify-center shadow-sm">
-                            {renderTrendIcon(praca.tendencia)}
-                          </div>
                         </td>
                         <td className="p-4 text-[#999]">
                           {expandedCity === praca.cidade ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -198,7 +189,7 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
                       {/* Gaveta do Accordion Desktop */}
                       {expandedCity === praca.cidade && (
                         <tr className="bg-[#FDFDFD] border-b border-[#E9ECEF]">
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={6} className="p-0">
                             <div className="p-6 lg:p-8 flex flex-col items-center">
                               <h3 className="text-[#333] font-bold text-lg mb-2">Evolução Gráfica - {praca.cidade}</h3>
                               <p className="text-sm text-[#666] mb-4">Veja a flutuação do Kg Vivo nas últimas 4 semanas de amostragem.</p>
@@ -218,41 +209,42 @@ export function MarketIntelligenceContent({ praças }: MarketIntelligenceContent
               {praças && praças.map((praca, idx) => (
                 <div key={praca.cidade} className={`flex flex-col ${idx !== praças.length - 1 ? 'border-b border-[#E9ECEF]' : ''}`}>
 
-                  {/* Cabeçalho do Card (Clicável) */}
-                  <div
-                    className="p-5 flex flex-col gap-4 cursor-pointer hover:bg-[#F8F9FA] transition-colors active:bg-[#E9ECEF]"
-                    onClick={() => toggleCity(praca.cidade)}
-                  >
-                    <div className="flex items-center justify-between border-b border-[#F8F9FA] pb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-[#333] text-lg">{praca.cidade}</span>
-                        <div className="w-8 h-8 rounded-full bg-[#F8F9FA] border border-[#E9ECEF] flex items-center justify-center shadow-sm">
-                          {renderTrendIcon(praca.tendencia)}
-                        </div>
-                      </div>
-                      <div className="text-[#999]">
-                        {expandedCity === praca.cidade ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca</span>
-                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vaca.toFixed(2)}</span>
-                      </div>
-                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilha</span>
-                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilha.toFixed(2)}</span>
-                      </div>
-                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneira</span>
-                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneira.toFixed(2)}</span>
-                      </div>
-                      <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
-                        <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
-                        <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
+                   {/* Cabeçalho do Card (Clicável) */}
+                   <div
+                     className="p-5 flex flex-col gap-4 cursor-pointer hover:bg-[#F8F9FA] transition-colors active:bg-[#E9ECEF]"
+                     onClick={() => toggleCity(praca.cidade)}
+                   >
+                     <div className="flex items-center justify-between border-b border-[#F8F9FA] pb-3">
+                       <div className="flex items-center gap-3">
+                         <span className="font-bold text-[#333] text-lg">{praca.cidade}</span>
+                       </div>
+                       <div className="text-[#999]">
+                         {expandedCity === praca.cidade ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                       </div>
+                     </div>
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                       <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                         <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Vaca</span>
+                         <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.vaca.toFixed(2)}</span>
+                       </div>
+                       <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                         <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilha</span>
+                         <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilha.toFixed(2)}</span>
+                       </div>
+                       <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                         <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Novilho</span>
+                         <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.novilho.toFixed(2)}</span>
+                       </div>
+                       <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center">
+                         <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneira</span>
+                         <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneira.toFixed(2)}</span>
+                       </div>
+                       <div className="flex flex-col bg-[#F8F9FA] p-3 rounded-xl border border-[#E9ECEF] items-center text-center col-span-2 sm:col-span-1">
+                         <span className="text-[10px] uppercase font-bold text-[#999] mb-1 tracking-wider">Terneiro</span>
+                         <span className="text-[15px] font-bold text-[#2D5A27]">R$ {praca.terneiro.toFixed(2)}</span>
+                       </div>
+                     </div>
+                   </div>
 
                   {/* Gaveta do Accordion Mobile */}
                   {expandedCity === praca.cidade && (

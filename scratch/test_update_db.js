@@ -25,13 +25,29 @@ const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-async function main() {
-  const { data, error } = await supabase.from('users').select('*').eq('email', 'admin@admin.com');
+async function testUpdate() {
+  const id = '8af27169-1141-460f-8b24-d8a2956a578b';
+  
+  const allowedUpdates = {
+    name: 'Administrador Teste',
+    phone: '(51) 9819 26800',
+    city: 'Mariana Pimentel',
+    email: 'admin@admin.com'
+  };
+  
+  console.log(`Running update on public.users for ID: ${id} with:`, allowedUpdates);
+  
+  const { data, error } = await supabase
+    .from('users')
+    .update(allowedUpdates)
+    .eq('id', id)
+    .select();
+    
   if (error) {
-    console.error('Error querying users:', error);
+    console.error('DATABASE UPDATE ERROR:', error);
   } else {
-    console.log('User admin@admin.com data:', data);
+    console.log('Update success! Returned data:', data);
   }
 }
 
-main().catch(console.error);
+testUpdate().catch(console.error);

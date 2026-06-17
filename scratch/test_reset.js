@@ -25,13 +25,30 @@ const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-async function main() {
-  const { data, error } = await supabase.from('users').select('*').eq('email', 'admin@admin.com');
-  if (error) {
-    console.error('Error querying users:', error);
+async function testReset() {
+  const email = 'admin@admin.com';
+  console.log(`Checking if user exists in auth: ${email}`);
+  
+  const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+  
+  if (listError) {
+    console.error('Error listing users:', listError);
+    return;
+  }
+  
+  const targetUser = users.find(u => u.email === email);
+  if (targetUser) {
+    console.log('User found in Auth! Details:', {
+      id: targetUser.id,
+      email: targetUser.email,
+      created_at: targetUser.created_at,
+      last_sign_in_at: targetUser.last_sign_in_at,
+      email_confirmed_at: targetUser.email_confirmed_at
+    });
   } else {
-    console.log('User admin@admin.com data:', data);
+    console.log(`User ${email} NOT found in Supabase Auth!`);
+    console.log('Available users in Auth database:', users.map(u => u.email));
   }
 }
 
-main().catch(console.error);
+testReset().catch(console.error);

@@ -42,13 +42,14 @@ export async function getMarketQuotes() {
 
       // Helper to calculate average for a plaza in a specific auction
       const calculateAverages = (offers: any[]) => {
-        const categories = ['Vaca', 'Novilha', 'Terneira', 'Terneiro'];
+        const categories = ['Vaca', 'Novilha', 'Novilho', 'Terneira', 'Terneiro'];
         const avgs: any = {};
 
         // Mapeamento para suportar tanto singular quanto plural do banco de dados
         const categoryMap: { [key: string]: string[] } = {
           vaca: ['vaca', 'vacas', 'vaca gorda', 'vaca descarte', 'vacas prenhes', 'vacas com cria', 'vaca prenha', 'vaca com cria'],
-          novilha: ['novilha', 'novilhas', 'novilho', 'novilhos'],
+          novilha: ['novilha', 'novilhas'],
+          novilho: ['novilho', 'novilhos'],
           terneira: ['terneira', 'terneiras'],
           terneiro: ['terneiro', 'terneiros']
         };
