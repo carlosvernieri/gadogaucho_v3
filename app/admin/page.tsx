@@ -65,6 +65,13 @@ export default function AdminPage() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [submittingUserVerify, setSubmittingUserVerify] = useState<string | null>(null);
+  const [showRejectUserModal, setShowRejectUserModal] = useState(false);
+  const [rejectingUserId, setRejectingUserId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [activeVerifSubTab, setActiveVerifSubTab] = useState<'users' | 'listings'>('users');
 
   const [usersPage, setUsersPage] = useState(1);
   const [listingsPage, setListingsPage] = useState(1);
@@ -132,11 +139,13 @@ export default function AdminPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
-        showToast('A imagem é muito grande. Máximo 5MB.', 'error');
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`, 'error');
         continue;
       }
-      if (type === 'videos' && file.size > 50 * 1024 * 1024) {
-        showToast('O vídeo é muito grande. Máximo 50MB.', 'error');
+      if (type === 'videos' && file.size > 100 * 1024 * 1024) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 100MB.`, 'error');
         continue;
       }
 
@@ -157,35 +166,60 @@ export default function AdminPage() {
           }
         }
 
-        const fileExt = file.name.split('.').pop();
+        const fileExt = (file.name.split('.').pop() || '').toLowerCase();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
+        const mimeType = type === 'images' ? 'image/webp' : (file.type || 'video/mp4');
 
-        const { error: uploadError } = await supabase.storage
-          .from('gado_gaucho_media')
-          .upload(filePath, fileToUpload);
+        // 1. Obter URL assinada do R2
+        const presignRes = await fetch('/api/storage/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filePath, contentType: mimeType })
+        });
 
-        if (uploadError) throw uploadError;
+        if (!presignRes.ok) {
+          throw new Error('Falha ao obter URL de upload do R2');
+        }
 
-        const { data } = supabase.storage
-          .from('gado_gaucho_media')
-          .getPublicUrl(filePath);
+        const { uploadUrl, publicUrl } = await presignRes.json();
 
-        newFiles.push(data.publicUrl);
+        // 2. Fazer upload para o R2 usando PUT
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': mimeType },
+          body: fileToUpload
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Erro no upload para o Cloudflare R2');
+        }
+
+        newFiles.push(publicUrl);
 
         if (type === 'videos' && adForm.images.length === 0 && newImages.length === 0) {
           try {
             const thumbBlob = await generateVideoThumbnail(file);
-            const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
-            const { error: thumbErr } = await supabase.storage
-              .from('gado_gaucho_media')
-              .upload(`images/${thumbName}`, thumbBlob);
+            const thumbName = `images/thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
 
-            if (!thumbErr) {
-              const { data: thumbData } = supabase.storage
-                .from('gado_gaucho_media')
-                .getPublicUrl(`images/${thumbName}`);
-              newImages.push(thumbData.publicUrl);
+            const thumbPresign = await fetch('/api/storage/presign', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: thumbName, contentType: 'image/jpeg' })
+            });
+
+            if (thumbPresign.ok) {
+              const { uploadUrl: thumbUploadUrl, publicUrl: thumbPublicUrl } = await thumbPresign.json();
+              
+              const thumbUploadRes = await fetch(thumbUploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'image/jpeg' },
+                body: thumbBlob
+              });
+
+              if (thumbUploadRes.ok) {
+                newImages.push(thumbPublicUrl);
+              }
             }
           } catch (err) {
             console.error('Failed to generate video thumbnail:', err);
@@ -400,8 +434,87 @@ export default function AdminPage() {
     }
   }, [user, isAuthReady, router]);
 
+  const fetchPendingUsers = async () => {
+    try {
+      const res = await fetch('/api/users?status=pending');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching pending users:', error);
+    }
+  };
+
+  const handleApproveUserVerification = async (userId: string) => {
+    setSubmittingUserVerify(userId);
+    try {
+      const res = await fetch('/api/admin/users/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'approve' })
+      });
+
+      if (res.ok) {
+        setPendingUsers(prev => prev.filter(u => u.id !== userId));
+        showToast('Usuário verificado com sucesso!', 'success');
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Erro ao aprovar usuário.', 'error');
+      }
+    } catch (err) {
+      console.error('Error approving user:', err);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setSubmittingUserVerify(null);
+    }
+  };
+
+  const handleStartRejectUser = (userId: string) => {
+    setRejectingUserId(userId);
+    setRejectionReason('');
+    setShowRejectUserModal(true);
+  };
+
+  const handleConfirmRejectUser = async () => {
+    if (!rejectingUserId || !rejectionReason.trim()) {
+      showToast('O motivo da rejeição é obrigatório.', 'error');
+      return;
+    }
+
+    setSubmittingUserVerify(rejectingUserId);
+    setShowRejectUserModal(false);
+
+    try {
+      const res = await fetch('/api/admin/users/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: rejectingUserId, action: 'reject', reason: rejectionReason })
+      });
+
+      if (res.ok) {
+        setPendingUsers(prev => prev.filter(u => u.id !== rejectingUserId));
+        showToast('Solicitação de verificação rejeitada.', 'success');
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Erro ao rejeitar verificação.', 'error');
+      }
+    } catch (err) {
+      console.error('Error rejecting user:', err);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setSubmittingUserVerify(null);
+      setRejectingUserId(null);
+      setRejectionReason('');
+    }
+  };
+
   const fetchData = async () => {
-    await Promise.all([fetchUsers(1, usersSearch), fetchListings(1, listingsSearch)]);
+    await Promise.all([
+      fetchUsers(1, usersSearch),
+      fetchListings(1, listingsSearch),
+      fetchPendingUsers()
+    ]);
   };
 
   const fetchUsers = async (page: number = usersPage, search: string = usersSearch) => {
@@ -438,6 +551,9 @@ export default function AdminPage() {
       fetchListings(listingsPage, listingsSearch);
     } else if (adminTab === 'ocr-audit') {
       fetchOcrAudit();
+    } else if (adminTab === 'verifications') {
+      fetchPendingUsers();
+      fetchListings(1, listingsSearch);
     }
   }, [usersPage, listingsPage, adminTab]);
 
@@ -727,9 +843,9 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Verificações
-                  {verificationRequests.length > 0 && (
+                  {(verificationRequests.length + pendingUsers.length) > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                      {verificationRequests.length}
+                      {verificationRequests.length + pendingUsers.length}
                     </span>
                   )}
                 </button>
@@ -895,72 +1011,180 @@ export default function AdminPage() {
               </div>
             ) : adminTab === 'verifications' ? (
               <div>
-                <div className="flex items-center gap-2 mb-6">
-                  <ShieldCheck className="text-[#2D5A27]" size={20} />
-                  <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação de Anúncios</h3>
+                {/* Sub-abas de Verificação */}
+                <div className="flex border-b border-[#E9ECEF] mb-6 gap-6">
+                  <button
+                    onClick={() => setActiveVerifSubTab('users')}
+                    className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${
+                      activeVerifSubTab === 'users' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                    }`}
+                  >
+                    Verificação de Usuários ({pendingUsers.length})
+                    {activeVerifSubTab === 'users' && (
+                      <motion.div
+                        layoutId="activeVerifSubTabUnderline"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                      />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveVerifSubTab('listings')}
+                    className={`pb-3 text-sm font-bold transition-all relative cursor-pointer ${
+                      activeVerifSubTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                    }`}
+                  >
+                    Verificação de Anúncios ({verificationRequests.length})
+                    {activeVerifSubTab === 'listings' && (
+                      <motion.div
+                        layoutId="activeVerifSubTabUnderline"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                      />
+                    )}
+                  </button>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  {verificationRequests.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
-                            <th className="pb-4 px-4">Anúncio</th>
-                            <th className="pb-4 px-4">Preço</th>
-                            <th className="pb-4 px-4">Vendedor</th>
-                            <th className="pb-4 px-4 text-right">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {verificationRequests.map(req => (
-                            <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-gray-100">
-                                    <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-[#333] text-sm truncate max-w-[200px]">{req.title}</span>
-                                    <span className="text-[10px] text-[#999]">{req.location}</span>
-                                  </div>
+                {activeVerifSubTab === 'users' ? (
+                  <div className="flex flex-col gap-4">
+                    {pendingUsers.length > 0 ? (
+                      pendingUsers.map(u => (
+                        <div key={u.id} className="bg-white border border-[#E9ECEF] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between hover:border-[#2D5A27]/20 transition-all">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-[#333] text-lg truncate">{u.name}</h4>
+                            <p className="text-xs text-[#999] mt-0.5">ID: #{u.id} • Cadastrado em: {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '---'}</p>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 text-xs text-[#666]">
+                              <div><strong>E-mail:</strong> {u.email}</div>
+                              <div><strong>Cidade:</strong> {u.city}</div>
+                              <div><strong>Telefone:</strong> {formatPhone(u.phone)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-4 w-full md:w-auto my-4 md:my-0">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-[#999] font-bold uppercase ml-1">Documento</span>
+                              <div 
+                                onClick={() => setZoomImage(u.verification_document_url)}
+                                className="relative w-28 h-20 rounded-xl overflow-hidden border border-[#E9ECEF] bg-gray-50 cursor-zoom-in group shadow-sm flex-shrink-0"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={u.verification_document_url} alt="Documento" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                  Ampliar
                                 </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <span className="text-sm font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</span>
-                              </td>
-                              <td className="py-4 px-4 text-sm text-[#666]">{req.seller}</td>
-                              <td className="py-4 px-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => handleApproveVerification(req.id)}
-                                    className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
-                                    title="Aprovar"
-                                  >
-                                    <Check size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleRejectVerification(req.id)}
-                                    className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
-                                    title="Rejeitar"
-                                  >
-                                    <X size={14} />
-                                  </button>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-[#999] font-bold uppercase ml-1">Selfie</span>
+                              <div 
+                                onClick={() => setZoomImage(u.verification_selfie_url)}
+                                className="relative w-28 h-20 rounded-xl overflow-hidden border border-[#E9ECEF] bg-gray-50 cursor-zoom-in group shadow-sm flex-shrink-0"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={u.verification_selfie_url} alt="Selfie" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                  Ampliar
                                 </div>
-                              </td>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex md:flex-col gap-2 w-full md:w-auto flex-shrink-0">
+                            <button
+                              onClick={() => handleApproveUserVerification(u.id)}
+                              disabled={submittingUserVerify === u.id}
+                              className="flex-1 md:w-32 py-2.5 bg-[#2D5A27] text-white rounded-xl font-bold text-xs hover:bg-[#1E3D1A] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              {submittingUserVerify === u.id ? <Spinner size="sm" className="text-white" /> : <Check size={14} />}
+                              Aprovar
+                            </button>
+                            <button
+                              onClick={() => handleStartRejectUser(u.id)}
+                              disabled={submittingUserVerify === u.id}
+                              className="flex-1 md:w-32 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <X size={14} />
+                              Rejeitar
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
+                        <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de usuário pendente</p>
+                        <p className="text-sm text-[#666]">Novas solicitações de identidade de vendedores aparecerão aqui.</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ShieldCheck className="text-[#2D5A27]" size={20} />
+                      <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação de Anúncios</h3>
+                    </div>
+
+                    {verificationRequests.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                              <th className="pb-4 px-4">Anúncio</th>
+                              <th className="pb-4 px-4">Preço</th>
+                              <th className="pb-4 px-4">Vendedor</th>
+                              <th className="pb-4 px-4 text-right">Ações</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
-                      <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
-                      <p className="text-lg font-bold text-[#333]">Nenhuma solicitação pendente</p>
-                      <p className="text-sm text-[#666]">Novas solicitações de verificação aparecerão aqui.</p>
-                    </div>
-                  )}
-                </div>
+                          </thead>
+                          <tbody>
+                            {verificationRequests.map(req => (
+                              <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-gray-100">
+                                      <Image src={req.image} alt={req.title} fill className="object-cover" referrerPolicy="no-referrer" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-bold text-[#333] text-sm truncate max-w-[200px]">{req.title}</span>
+                                      <span className="text-[10px] text-[#999]">{req.location}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <span className="text-sm font-bold text-[#2D5A27]">R$ {req.price.toLocaleString('pt-BR')}</span>
+                                </td>
+                                <td className="py-4 px-4 text-sm text-[#666]">{req.seller}</td>
+                                <td className="py-4 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleApproveVerification(req.id)}
+                                      className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
+                                      title="Aprovar"
+                                    >
+                                      <Check size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectVerification(req.id)}
+                                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
+                                      title="Rejeitar"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
+                        <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de anúncio pendente</p>
+                        <p className="text-sm text-[#666]">Novas solicitações de verificação de anúncios aparecerão aqui.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : adminTab === 'listings' ? (
               <div>
@@ -1734,6 +1958,91 @@ export default function AdminPage() {
           onAuthClick={() => router.push('/?auth=login')}
         />
       )}
+
+      {/* Modal de Rejeição de Verificação de Usuário */}
+      <AnimatePresence>
+        {showRejectUserModal && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRejectUserModal(false)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#E9ECEF] p-6"
+            >
+              <h3 className="text-lg font-bold text-[#333] mb-4">Rejeitar Verificação</h3>
+              <p className="text-xs text-[#666] mb-4">
+                Por favor, descreva detalhadamente o motivo da rejeição. O usuário verá esta mensagem e poderá corrigir o problema e reenviar os documentos.
+              </p>
+              
+              <div className="mb-6">
+                <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">Motivo da Rejeição</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Ex: A foto da selfie está borrada ou o documento de identidade está inelegível."
+                  className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmRejectUser}
+                  className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all cursor-pointer text-xs"
+                >
+                  Confirmar Rejeição
+                </button>
+                <button
+                  onClick={() => setShowRejectUserModal(false)}
+                  className="flex-1 py-3 bg-white border border-[#D1D1D1] text-[#666] hover:bg-[#F8F9FA] font-bold rounded-xl transition-all cursor-pointer text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Zoom de Imagem */}
+      <AnimatePresence>
+        {zoomImage && (
+          <div 
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-zoom-out"
+            onClick={() => setZoomImage(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={zoomImage} 
+                alt="Documento ampliado" 
+                className="max-w-full max-h-[90vh] object-contain rounded-2xl animate-in fade-in duration-200"
+                referrerPolicy="no-referrer"
+              />
+              <button 
+                type="button"
+                onClick={() => setZoomImage(null)}
+                className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white font-bold px-3 py-1.5 rounded-full text-xs shadow transition-colors cursor-pointer"
+              >
+                Fechar
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

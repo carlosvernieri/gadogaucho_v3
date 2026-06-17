@@ -181,13 +181,13 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const { category, breed, title, price, priceKg, avgWeight, quantity, location, lat, lng, image, description, images, videos } = data;
-    
     const session = await getSession();
     if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = session.id;
 
-    const { data: newListing, error } = await (supabaseAdmin
-      .from('listings') as any)
+    const supabase = await createClientServer();
+    const { data: newListing, error } = await supabase
+      .from('listings')
       .insert([
         { 
           category, 

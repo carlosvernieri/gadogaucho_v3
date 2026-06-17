@@ -85,14 +85,16 @@ export const Header = ({
             <span className="hidden sm:inline">Cotações</span>
           </button>
 
-          <button
-            onClick={() => router.push('/relatorio-preco-do-gado')}
-            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
-            title="Boletim de Inteligência"
-          >
-            <BarChart3 size={20} />
-            <span className="hidden sm:inline">Boletim</span>
-          </button>
+          { /* user?.is_admin && (
+            <button
+              onClick={() => router.push('/relatorio-preco-do-gado')}
+              className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+              title="Boletim de Inteligência"
+            >
+              <BarChart3 size={20} />
+              <span className="hidden sm:inline">Boletim</span>
+            </button>
+          ) */ }
 
           <button
             onClick={() => router.push('/calculadoras')}
@@ -141,7 +143,7 @@ export const Header = ({
                   <div className="relative">
                     <MessageSquare size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#DC3545] text-white text-[9px] font-extrabold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-[#DC3545]/40">
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#DC3545] text-white text-[9px] font-extrabold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center shadow-sm shadow-[#DC3545]/40">
                         {unreadCount}
                       </span>
                     )}

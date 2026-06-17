@@ -26,6 +26,8 @@ export function AuthModal() {
   } = useUser();
 
   const [authError, setAuthError] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
   const [authForm, setAuthForm] = useState({
     name: '',
     phone: '',
@@ -64,6 +66,8 @@ export function AuthModal() {
       document.body.style.overflow = '';
       // Reset state on close
       setAuthError(null);
+      setEmailSuccess(false);
+      setSendingEmail(false);
       setAuthForm({
         name: '', phone: '', email: '', city: '', password: '', confirmPassword: ''
       });
@@ -78,6 +82,32 @@ export function AuthModal() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setEmailSuccess(false);
+
+    if (authMode === 'forgot') {
+      setSendingEmail(true);
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: safeJsonStringify({ email: authForm.email })
+        });
+
+        if (res.ok) {
+          setEmailSuccess(true);
+        } else {
+          const err = await res.json();
+          setAuthError(err.error || 'Erro ao enviar e-mail de recuperação.');
+        }
+      } catch (err) {
+        console.error('Error sending reset e-mail:', err);
+        setAuthError('Erro de conexão ao servidor.');
+      } finally {
+        setSendingEmail(false);
+      }
+      return;
+    }
+
     if (authMode === 'register') {
       if (parseInt(captchaAuth.answer) !== captchaAuth.num1 + captchaAuth.num2) {
         setAuthError('Verificação de segurança incorreta. Tente novamente.');
@@ -189,7 +219,7 @@ export function AuthModal() {
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-[#333]">
-                  {authMode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}
+                  {authMode === 'login' ? 'Bem-vindo de volta' : authMode === 'register' ? 'Crie sua conta' : 'Recuperar Senha'}
                 </h2>
                 <button onClick={() => setShowAuthModal(false)} className="text-[#999] hover:text-[#333] cursor-pointer">
                   <X size={24} />
@@ -207,165 +237,214 @@ export function AuthModal() {
                     {authError}
                   </motion.div>
                 )}
-                {authMode === 'register' && (
+
+                {emailSuccess ? (
+                  <div className="bg-green-50 border border-green-100 text-green-700 p-6 rounded-2xl text-xs mb-4 space-y-2 animate-in fade-in duration-200">
+                    <p className="font-bold flex items-center gap-2 text-green-800">
+                      <span className="w-1.5 h-1.5 bg-green-600 rounded-full" />
+                      Link de Recuperação Enviado!
+                    </p>
+                    <p className="text-[#555] leading-relaxed">
+                      Enviamos as instruções para redefinir sua senha para o endereço <strong>{authForm.email}</strong>. 
+                      Por favor, verifique sua caixa de entrada e pasta de spam.
+                    </p>
+                  </div>
+                ) : (
                   <>
+                    {authMode === 'register' && (
+                      <>
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                            Nome Completo <span className="text-[#DC3545]">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={authForm.name}
+                            onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                            placeholder="Como quer ser chamado?"
+                            className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                            Telefone <span className="text-[#DC3545]">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={authForm.phone}
+                            onChange={(e) => setAuthForm({ ...authForm, phone: formatPhone(e.target.value) })}
+                            placeholder="(00) 0000 00000"
+                            className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                            Município <span className="text-[#DC3545]">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              value={citySearchAuth}
+                              onChange={(e) => {
+                                setCitySearchAuth(e.target.value);
+                                setAuthForm({ ...authForm, city: e.target.value });
+                                setShowAuthSuggestions(true);
+                              }}
+                              onFocus={() => setShowAuthSuggestions(true)}
+                              onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
+                              placeholder="Busque o município..."
+                              className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
+                            />
+                            {citySuggestionsAuth.length > 0 && (
+                              <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                                {citySuggestionsAuth.map((city: any) => (
+                                  <button
+                                    key={city.name}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      setAuthForm({ ...authForm, city: city.name });
+                                      setCitySearchAuth(city.name);
+                                      setShowAuthSuggestions(false);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
+                                  >
+                                    <span>{city.name}</span>
+                                    <span className="text-[10px] text-[#999]">RS</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     <div>
                       <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                        Nome Completo <span className="text-[#DC3545]">*</span>
+                        E-mail <span className="text-[#DC3545]">*</span>
                       </label>
                       <input
-                        type="text"
+                        type="email"
                         required
-                        value={authForm.name}
-                        onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
-                        placeholder="Como quer ser chamado?"
+                        value={authForm.email}
+                        onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                        placeholder="seu@email.com"
                         className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                        Telefone <span className="text-[#DC3545]">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={authForm.phone}
-                        onChange={(e) => setAuthForm({ ...authForm, phone: formatPhone(e.target.value) })}
-                        placeholder="(00) 0000 00000"
-                        className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                        Município <span className="text-[#DC3545]">*</span>
-                      </label>
-                      <div className="relative">
+
+                    {authMode !== 'forgot' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                          Senha <span className="text-[#DC3545]">*</span>
+                        </label>
                         <input
-                          type="text"
+                          type="password"
                           required
-                          value={citySearchAuth}
-                          onChange={(e) => {
-                            setCitySearchAuth(e.target.value);
-                            setAuthForm({ ...authForm, city: e.target.value });
-                            setShowAuthSuggestions(true);
-                          }}
-                          onFocus={() => setShowAuthSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowAuthSuggestions(false), 200)}
-                          placeholder="Busque o município..."
+                          value={authForm.password}
+                          onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                          placeholder="••••••••"
                           className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
                         />
-                        {citySuggestionsAuth.length > 0 && (
-                          <div className="absolute top-full left-0 w-full bg-white border border-[#E9ECEF] rounded-xl mt-1 shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
-                            {citySuggestionsAuth.map((city: any) => (
-                              <button
-                                key={city.name}
-                                type="button"
-                                onMouseDown={() => {
-                                  // use onMouseDown to fire before onBlur
-                                  setAuthForm({ ...authForm, city: city.name });
-                                  setCitySearchAuth(city.name);
-                                  setShowAuthSuggestions(false);
-                                }}
-                                className="w-full text-left px-4 py-3 text-sm hover:bg-[#F8F9FA] transition-colors flex items-center justify-between cursor-pointer"
-                              >
-                                <span>{city.name}</span>
-                                <span className="text-[10px] text-[#999]">RS</span>
-                              </button>
-                            ))}
+                        {authMode === 'login' && (
+                          <div className="flex justify-end mt-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAuthMode('forgot');
+                                setAuthError(null);
+                              }}
+                              className="text-[10px] font-bold text-[#999] hover:text-[#2D5A27] transition-all cursor-pointer bg-transparent border-0 outline-none"
+                            >
+                              Esqueceu sua senha?
+                            </button>
                           </div>
                         )}
                       </div>
-                    </div>
+                    )}
+
+                    {authMode === 'register' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
+                          Confirmar Senha <span className="text-[#DC3545]">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          value={authForm.confirmPassword}
+                          onChange={(e) => setAuthForm({ ...authForm, confirmPassword: e.target.value })}
+                          placeholder="••••••••"
+                          className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
+                        />
+                      </div>
+                    )}
+
+                    {authMode === 'register' && (
+                      <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#E9ECEF]">
+                        <label className="block text-[10px] font-bold text-[#999] uppercase mb-2">
+                          Segurança: Quanto é {captchaAuth.num1} + {captchaAuth.num2}? <span className="text-[#DC3545]">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          value={captchaAuth.answer}
+                          onChange={(e) => setCaptchaAuth({ ...captchaAuth, answer: e.target.value })}
+                          placeholder="Digite o resultado"
+                          className="w-full bg-white border border-transparent focus:border-[#2D5A27] rounded-xl px-4 py-3 text-sm outline-none transition-all focus:shadow-sm"
+                        />
+                      </div>
+                    )}
+
+                    {authMode === 'register' && (
+                      <div className="flex items-start gap-3 mt-4">
+                        <input
+                          type="checkbox"
+                          id="lgpd-consent"
+                          required
+                          className="mt-1 w-4 h-4 rounded text-[#2D5A27] focus:ring-[#2D5A27] border-[#E9ECEF] cursor-pointer"
+                        />
+                        <label htmlFor="lgpd-consent" className="text-xs text-[#666] leading-tight cursor-pointer">
+                          Li e concordo com os <a href="/termos" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Termos de Uso</a> e a <a href="/politica-de-privacidade" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Política de Privacidade</a> do Gado Gaúcho. Aceito o tratamento dos meus dados conforme a LGPD. <span className="text-[#DC3545]">*</span>
+                        </label>
+                      </div>
+                    )}
                   </>
                 )}
-                <div>
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                    E-mail <span className="text-[#DC3545]">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={authForm.email}
-                    onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                    placeholder="seu@email.com"
-                    className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                    Senha <span className="text-[#DC3545]">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={authForm.password}
-                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
-                  />
-                </div>
 
-                {authMode === 'register' && (
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-1 ml-2">
-                      Confirmar Senha <span className="text-[#DC3545]">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={authForm.confirmPassword}
-                      onChange={(e) => setAuthForm({ ...authForm, confirmPassword: e.target.value })}
-                      placeholder="••••••••"
-                      className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all required:border-[#DC3545]/20"
-                    />
-                  </div>
-                )}
-
-                {authMode === 'register' && (
-                  <div className="bg-[#F8F9FA] p-4 rounded-xl border border-[#E9ECEF]">
-                    <label className="block text-[10px] font-bold text-[#999] uppercase mb-2">
-                      Segurança: Quanto é {captchaAuth.num1} + {captchaAuth.num2}? <span className="text-[#DC3545]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={captchaAuth.answer}
-                      onChange={(e) => setCaptchaAuth({ ...captchaAuth, answer: e.target.value })}
-                      placeholder="Digite o resultado"
-                      className="w-full bg-white border border-transparent focus:border-[#2D5A27] rounded-xl px-4 py-3 text-sm outline-none transition-all focus:shadow-sm"
-                    />
-                  </div>
-                )}
-
-                {authMode === 'register' && (
-                  <div className="flex items-start gap-3 mt-4">
-                    <input
-                      type="checkbox"
-                      id="lgpd-consent"
-                      required
-                      className="mt-1 w-4 h-4 rounded text-[#2D5A27] focus:ring-[#2D5A27] border-[#E9ECEF] cursor-pointer"
-                    />
-                    <label htmlFor="lgpd-consent" className="text-xs text-[#666] leading-tight cursor-pointer">
-                      Li e concordo com os <a href="/termos" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Termos de Uso</a> e a <a href="/politica-de-privacidade" target="_blank" className="text-[#2D5A27] font-bold hover:underline">Política de Privacidade</a> do Gado Gaúcho. Aceito o tratamento dos meus dados conforme a LGPD. <span className="text-[#DC3545]">*</span>
-                    </label>
-                  </div>
-                )}
-
-                <button className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer">
-                  {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
+                <button 
+                  disabled={sendingEmail}
+                  className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all mt-4 cursor-pointer disabled:opacity-50"
+                >
+                  {authMode === 'login' ? 'Entrar' : authMode === 'register' ? 'Cadastrar' : (sendingEmail ? 'Enviando...' : 'Enviar Link de Recuperação')}
                 </button>
               </form>
 
               <div className="mt-8 text-center">
-                <button
-                  onClick={() => {
-                    setAuthMode(authMode === 'login' ? 'register' : 'login');
-                    setAuthError(null);
-                  }}
-                  className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer"
-                >
-                  {authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-                </button>
+                {authMode === 'forgot' ? (
+                  <button
+                    onClick={() => {
+                      setAuthMode('login');
+                      setAuthError(null);
+                      setEmailSuccess(false);
+                    }}
+                    className="text-sm font-bold text-[#2D5A27] hover:underline transition-colors cursor-pointer bg-transparent border-0 outline-none"
+                  >
+                    Voltar para o Login
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setAuthMode(authMode === 'login' ? 'register' : 'login');
+                      setAuthError(null);
+                    }}
+                    className="text-sm text-[#666] hover:text-[#2D5A27] transition-colors cursor-pointer bg-transparent border-0 outline-none"
+                  >
+                    {authMode === 'login' ? 'Ainda não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

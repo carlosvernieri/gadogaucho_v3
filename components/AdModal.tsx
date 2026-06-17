@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
 import { safeJsonStringify, generateVideoThumbnail, deleteMediaFromStorage, getListingUrl } from '@/lib/utils';
 import { Spinner } from '@/components/Spinner';
+import { showToast } from '@/components/ConfirmModal';
 
 export const AdModal = () => {
   const { user, showAdModal, setShowAdModal, editingListing, setEditingListing } = useUser();
@@ -92,8 +93,8 @@ export const AdModal = () => {
     return adForm.weight * adForm.priceKg;
   }, [adForm.weight, adForm.priceKg]);
 
-  const dispatchToast = (msg: string) => {
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: msg }));
+  const dispatchToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    showToast(msg, type);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'images' | 'videos') => {
@@ -107,17 +108,19 @@ export const AdModal = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (type === 'images' && file.size > 5 * 1024 * 1024) {
-        dispatchToast('A imagem é muito grande. Máximo 5MB.');
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        dispatchToast(`A imagem é muito grande (${fileSizeMB}MB). O limite máximo permitido é 5MB.`, 'error');
         continue;
       }
-      if (type === 'videos' && file.size > 20 * 1024 * 1024) {
-        dispatchToast('O vídeo é muito grande. Máximo 20MB.');
+      if (type === 'videos' && file.size > 100 * 1024 * 1024) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        dispatchToast(`O vídeo é muito grande (${fileSizeMB}MB). O limite máximo permitido é 100MB.`, 'error');
         continue;
       }
 
       try {
         let fileToUpload: File | Blob = file;
-        let fileExt = file.name.split('.').pop();
+        let fileExt = (file.name.split('.').pop() || '').toLowerCase();
 
         if (type === 'images') {
           try {
@@ -137,32 +140,57 @@ export const AdModal = () => {
 
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${type}/${fileName}`;
+        const mimeType = type === 'images' ? 'image/webp' : (file.type || 'video/mp4');
 
-        const { error: uploadError } = await supabase.storage
-          .from('gado_gaucho_media')
-          .upload(filePath, fileToUpload);
+        // 1. Obter URL assinada do R2
+        const presignRes = await fetch('/api/storage/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: filePath, contentType: mimeType })
+        });
 
-        if (uploadError) throw uploadError;
+        if (!presignRes.ok) {
+          throw new Error('Falha ao obter URL de upload do R2');
+        }
 
-        const { data } = supabase.storage
-          .from('gado_gaucho_media')
-          .getPublicUrl(filePath);
+        const { uploadUrl, publicUrl } = await presignRes.json();
 
-        newFiles.push(data.publicUrl);
+        // 2. Fazer upload para o R2 usando PUT
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': mimeType },
+          body: fileToUpload
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Erro no upload para o Cloudflare R2');
+        }
+
+        newFiles.push(publicUrl);
 
         if (type === 'videos' && adForm.images.length === 0 && newImages.length === 0) {
           try {
             const thumbBlob = await generateVideoThumbnail(file);
-            const thumbName = `thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
-            const { error: thumbErr } = await supabase.storage
-              .from('gado_gaucho_media')
-              .upload(`images/${thumbName}`, thumbBlob);
+            const thumbName = `images/thumb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
 
-            if (!thumbErr) {
-              const { data: thumbData } = supabase.storage
-                .from('gado_gaucho_media')
-                .getPublicUrl(`images/${thumbName}`);
-              newImages.push(thumbData.publicUrl);
+            const thumbPresign = await fetch('/api/storage/presign', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: thumbName, contentType: 'image/jpeg' })
+            });
+
+            if (thumbPresign.ok) {
+              const { uploadUrl: thumbUploadUrl, publicUrl: thumbPublicUrl } = await thumbPresign.json();
+              
+              const thumbUploadRes = await fetch(thumbUploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'image/jpeg' },
+                body: thumbBlob
+              });
+
+              if (thumbUploadRes.ok) {
+                newImages.push(thumbPublicUrl);
+              }
             }
           } catch (err) {
             console.error('Failed to generate video thumbnail:', err);
@@ -171,7 +199,7 @@ export const AdModal = () => {
 
       } catch (err) {
         console.error('Upload Error:', err);
-        dispatchToast(`Erro ao enviar ${file.name}.`);
+        dispatchToast(`Erro ao enviar ${file.name}.`, 'error');
       }
     }
 
@@ -193,7 +221,7 @@ export const AdModal = () => {
     e.target.value = '';
 
     if (newFiles.length > 0) {
-      dispatchToast('Mídia adicionada com sucesso!');
+      dispatchToast('Mídia adicionada com sucesso!', 'success');
     }
     setIsUploadingMedia(false);
   };
@@ -232,7 +260,7 @@ export const AdModal = () => {
   const handleSubmitAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      dispatchToast('Você precisa estar logado.');
+      dispatchToast('Você precisa estar logado.', 'error');
       return;
     }
 
@@ -277,23 +305,23 @@ export const AdModal = () => {
             setMediaToDelete([]);
           }
           window.dispatchEvent(new CustomEvent('ad_updated', { detail: savedAd }));
-          dispatchToast('Anúncio atualizado com sucesso!');
+          dispatchToast('Anúncio atualizado com sucesso!', 'success');
           setShowAdModal(false);
           setEditingListing(null);
         } else {
           window.dispatchEvent(new CustomEvent('ad_created', { detail: savedAd }));
-          dispatchToast('Anúncio criado com sucesso!');
+          dispatchToast('Anúncio criado com sucesso!', 'success');
           setShowAdModal(false);
           setEditingListing(null);
           router.push(getListingUrl(savedAd));
         }
       } else {
         const errorData = await res.json().catch(() => ({}));
-        dispatchToast(`Erro ao ${editingListing ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`);
+        dispatchToast(`Erro ao ${editingListing ? 'atualizar' : 'criar'} anúncio: ${errorData.error || 'Erro desconhecido'}`, 'error');
       }
     } catch (error: any) {
       console.error(`Error ${editingListing ? 'updating' : 'creating'} ad:`, error);
-      dispatchToast(`Erro: ${error.message || 'Tente novamente.'}`);
+      dispatchToast(`Erro: ${error.message || 'Tente novamente.'}`, 'error');
     } finally {
       setIsSubmittingAd(false);
     }

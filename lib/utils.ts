@@ -84,10 +84,22 @@ export function getListingUrl(listing: any) {
 
 export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> => {
   return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Thumbnail generation timed out after 4 seconds'));
+    }, 4000);
+
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      try {
+        URL.revokeObjectURL(video.src);
+      } catch (e) {}
+    };
 
     // Load video from file
     video.src = URL.createObjectURL(file);
@@ -114,14 +126,14 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        URL.revokeObjectURL(video.src);
+        cleanup();
         return reject(new Error('Canvas context not available'));
       }
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       canvas.toBlob((blob) => {
-        URL.revokeObjectURL(video.src);
+        cleanup();
         if (blob) {
           resolve(blob);
         } else {
@@ -131,7 +143,7 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
     };
 
     video.onerror = (e) => {
-      URL.revokeObjectURL(video.src);
+      cleanup();
       reject(new Error('Failed to load video file: ' + String(e)));
     };
   });
@@ -140,7 +152,7 @@ export const generateVideoThumbnail = (file: File, seekTo = 1.0): Promise<Blob> 
 export const deleteMediaFromStorage = async (urls: string[]) => {
   if (!urls || urls.length === 0) return;
   
-  const validUrls = urls.filter(url => url && url.includes('supabase.co') && url.includes('gado_gaucho_media/'));
+  const validUrls = urls.filter(url => url && url.includes('media.gadogaucho.com'));
   if (validUrls.length === 0) return;
 
   try {
@@ -158,3 +170,33 @@ export const deleteMediaFromStorage = async (urls: string[]) => {
     console.error('Failed to delete media from storage:', err);
   }
 };
+
+/**
+ * Formats a city name to capitalize each word except prepositions (de, do, da, dos, das).
+ * Handles hyphens as in "Não-Me-Toque".
+ */
+export function formatCityName(city: string): string {
+  if (!city) return '';
+  const exceptions = ['de', 'do', 'da', 'dos', 'das'];
+  
+  const formatWord = (word: string, index: number) => {
+    if (exceptions.includes(word) && index !== 0) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  };
+
+  return city
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, index) => {
+      if (word.includes('-')) {
+        return word
+          .split('-')
+          .map((subword, subIdx) => formatWord(subword, index + subIdx))
+          .join('-');
+      }
+      return formatWord(word, index);
+    })
+    .join(' ');
+}

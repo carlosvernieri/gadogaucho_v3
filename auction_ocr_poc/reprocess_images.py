@@ -3,6 +3,7 @@ import glob
 import easyocr
 import json
 import re
+import cv2
 
 def extract_weight_from_text(text):
     if not text:
@@ -160,7 +161,16 @@ def main():
         for i, img_path in enumerate(images):
             img_name = os.path.basename(img_path)
             print(f"  [{i+1}/{len(images)}] Processando {img_name}...")
-            raw_text = reader.readtext(img_path, detail=0)
+            
+            # Load and crop to bottom 25% to avoid background billboard text/fences
+            img = cv2.imread(img_path)
+            if img is not None:
+                h, w, _ = img.shape
+                roi = img[int(h*0.75):h, 0:w]
+                raw_text = reader.readtext(roi, detail=0)
+            else:
+                raw_text = reader.readtext(img_path, detail=0)
+                
             parsed_data = parse_auction_data(raw_text)
             
             # Restaura o Timestamp_Video ou deixa vazio

@@ -10,8 +10,8 @@ interface UserContextType {
   isAuthReady: boolean;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
-  authMode: 'login' | 'register';
-  setAuthMode: (mode: 'login' | 'register') => void;
+  authMode: 'login' | 'register' | 'forgot';
+  setAuthMode: (mode: 'login' | 'register' | 'forgot') => void;
   favorites: number[];
   setFavorites: (favs: number[]) => void;
   showAdModal: boolean;
@@ -29,7 +29,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUserState] = useState<any>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showAdModal, setShowAdModal] = useState(false);
   const [editingListing, setEditingListing] = useState<any | null>(null);

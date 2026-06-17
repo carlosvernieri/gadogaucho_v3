@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { parseJsonField } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -88,9 +89,10 @@ export async function DELETE(
     if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
+    const supabase = await createClientServer();
     
-    let query = (supabaseAdmin
-      .from('listings') as any)
+    let query = supabase
+      .from('listings')
       .delete()
       .eq('id', id);
 
@@ -150,8 +152,9 @@ export async function PUT(
     if (data.verification_requested !== undefined) updateData.verification_requested = data.verification_requested;
     if (data.sold !== undefined) updateData.sold = data.sold;
 
-    let query = (supabaseAdmin
-      .from('listings') as any)
+    const supabase = await createClientServer();
+    let query = supabase
+      .from('listings')
       .update(updateData)
       .eq('id', id);
 

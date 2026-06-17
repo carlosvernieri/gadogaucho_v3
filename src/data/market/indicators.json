@@ -1,8 +1,8 @@
 {
   "cepea": {
-    "price": 349.25,
-    "priceKg": "11.64",
-    "delta": 0.27,
+    "price": 353.55,
+    "priceKg": "11.79",
+    "delta": 0.11,
     "trend": "up",
     "unit": "R$/@"
   },
@@ -10,7 +10,7 @@
     "pelotas": [
       {
         "category": "Boi Gordo",
-        "price": 12.4
+        "price": 12.35
       },
       {
         "category": "Vaca Gorda",
@@ -24,7 +24,7 @@
     "oeste": [
       {
         "category": "Boi Gordo",
-        "price": 12.45
+        "price": 12.3
       },
       {
         "category": "Vaca Gorda",
@@ -38,32 +38,32 @@
   },
   "b3": [
     {
-      "month": "Maio/2026",
-      "price": 348.2,
-      "priceKg": "11.61"
-    },
-    {
       "month": "Junho/2026",
-      "price": 353.25,
-      "priceKg": "11.78"
+      "price": 348.5,
+      "priceKg": "11.62"
     },
     {
       "month": "Julho/2026",
-      "price": 345.7,
-      "priceKg": "11.52"
+      "price": 339.7,
+      "priceKg": "11.32"
     },
     {
       "month": "Agosto/2026",
-      "price": 343,
-      "priceKg": "11.43"
+      "price": 337.65,
+      "priceKg": "11.25"
     },
     {
       "month": "Setembro/2026",
-      "price": 344.3,
-      "priceKg": "11.48"
+      "price": 340.55,
+      "priceKg": "11.35"
+    },
+    {
+      "month": "Outubro/2026",
+      "price": 349.75,
+      "priceKg": "11.66"
     }
   ],
-  "timestamp": "2026-05-29T14:08:16.583Z",
-  "updatedAt": "2026-05-29T14:08:16.584Z",
-  "aiSummary": "O mercado de pecuária de corte no Rio Grande do Sul apresentou uma tendência geral de desvalorização nesta semana, registrando recuos pontuais em todas as categorias. Na comparação entre canais de comercialização, os leilões (atacado) garantiram melhores médias para os animais de reposição, como o terneiro (R$ 13,84/kg frente a R$ 11,36/kg na plataforma Gado Gaúcho). Em contrapartida, a venda direta na plataforma demonstrou maior firmeza para as fêmeas, com a vaca cotada a R$ 10,76/kg (ante R$ 9,11/kg nos leilões) e a novilha a R$ 11,79/kg. O boi gordo, por sua vez, registrou média superior nos leilões (R$ 11,54/kg) em relação à plataforma gaúcha (R$ 8,18/kg).\n\nEmbora as médias estaduais gerais reflitam essa pressão de baixa na semana (variando de -0,4% a -3,1%), praças físicas importantes do estado, como Pelotas e a região Oeste, demonstram maior resiliência, com o boi gordo cotado pela Scot Consultoria na casa dos R$ 12,40/kg a R$ 12,45/kg. Esse cenário regional de ajuste momentâneo destoa do comportamento do Indicador CEPEA (SP/B3), que mantém tendência de alta e fechou cotado a R$ 11,64/kg (R$ 349,25/@), evidenciando um descolamento pontual entre a praça gaúcha e a referência nacional paulista.\n\nPara o médio prazo, as projeções do mercado futuro na B3 trazem sustentabilidade para o setor. Os contratos de curto e médio prazo para 2026 operam em patamares elevados, com destaque para junho/2026 projetado a R$ 353,25/@ (R$ 11,78/kg) e manutenção da faixa de R$ 343,00/@ a R$ 348,00/@ nos meses adjacentes. Essa curva futura indica que, apesar da pressão baixista de curto prazo no Rio Grande do Sul, a perspectiva estrutural para o próximo ano permanece sólida, amparada pela expectativa de oferta ajustada e demanda firme."
+  "timestamp": "2026-06-10T15:35:29.657Z",
+  "updatedAt": "2026-06-10T15:35:29.658Z",
+  "aiSummary": null
 }

@@ -62,7 +62,7 @@ export const BottomNav = ({ user: defaultUser, onAdClick: defaultOnAdClick, onAu
             <div className="relative">
               <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'} />
               {item.label === 'Mensagens' && unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC3545] text-[9px] font-bold text-white animate-pulse">
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#DC3545] text-[9px] font-bold text-white">
                   {unreadCount}
                 </span>
               )}
