@@ -17,15 +17,20 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search');
+    const status = searchParams.get('status');
 
     const offset = (page - 1) * limit;
 
     let query = (supabaseAdmin
       .from('users') as any)
-      .select('id, name, email, phone, city, is_admin, verified');
+      .select('id, name, email, phone, city, is_admin, verified, verification_status, verification_document_url, verification_selfie_url, verification_rejected_reason');
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    if (status) {
+      query = query.eq('verification_status', status);
     }
 
     query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
