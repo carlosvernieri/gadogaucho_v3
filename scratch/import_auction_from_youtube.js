@@ -164,7 +164,7 @@ function parseAnimalText(animalText) {
     }
   }
 
-  return { batch_size, category, breed };
+  return { batch_size, category, breed, avg_weight };
 }
 
 async function run() {
