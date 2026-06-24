@@ -25,13 +25,20 @@ const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-async function main() {
-  const { data, error } = await supabase.from('users').select('*').eq('email', 'admin@admin.com');
-  if (error) {
-    console.error('Error querying users:', error);
+async function checkSchema() {
+  console.log('Querying schema for public.users...');
+  
+  // Since we don't have a direct raw SQL executor, we can select a dummy table if it exists. 
+  // Instead of database catalog, let's just query a record and print its type.
+  const { data, error } = await supabase.from('users').select('*').limit(1);
+  if (data && data[0]) {
+    console.log('Data types of columns:');
+    for (const [key, value] of Object.entries(data[0])) {
+      console.log(`- ${key}: value=${value}, type=${typeof value}`);
+    }
   } else {
-    console.log('User admin@admin.com data:', data);
+    console.log('No data found in public.users or error:', error);
   }
 }
 
-main().catch(console.error);
+checkSchema().catch(console.error);

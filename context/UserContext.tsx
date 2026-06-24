@@ -143,7 +143,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const setUser = (newUser: any) => {
-    setUserState(newUser);
+    if (newUser && newUser.id) {
+      setUserState((prevUser: any) => {
+        if (prevUser && prevUser.id === newUser.id) {
+          return { ...prevUser, ...newUser };
+        }
+        return newUser;
+      });
+      fetchUserProfile(newUser.id);
+    } else {
+      setUserState(newUser);
+    }
     if (!newUser) setFavorites([]);
   };
 
