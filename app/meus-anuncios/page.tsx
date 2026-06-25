@@ -9,7 +9,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
-import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2 } from 'lucide-react';
+import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2, Bell, Mail, MapPin, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify, deleteMediaFromStorage, getListingUrl, formatCityName } from '@/lib/utils';
@@ -30,7 +30,10 @@ export default function MeusAnunciosPage() {
   const [isVerifyingListing, setIsVerifyingListing] = useState(false);
 
   // Estados para aba e edição de perfil
-  const [activeTab, setActiveTab] = useState<'listings' | 'profile' | 'password' | 'verification'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'alerts' | 'profile' | 'password' | 'verification'>('listings');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
     name: '',
     phone: '',
@@ -331,7 +334,49 @@ export default function MeusAnunciosPage() {
     }
   }, [user, isAuthReady, router]);
 
+  const fetchAlerts = async () => {
+    if (!user) return;
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch('/api/opportunity-alerts');
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching alerts:', err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
 
+  useEffect(() => {
+    if (user && activeTab === 'alerts') {
+      fetchAlerts();
+    }
+  }, [user, activeTab]);
+
+  const handleDeleteAlert = async (id: string) => {
+    setDeletingAlertId(id);
+    try {
+      const res = await fetch(`/api/opportunity-alerts?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        showToast('Alerta removido com sucesso!', 'success');
+        setAlerts(prev => prev.filter(a => a.id !== id));
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao remover alerta', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting alert:', err);
+      showToast('Erro de rede ao remover alerta', 'error');
+    } finally {
+      setDeletingAlertId(null);
+    }
+  };
 
   const handleDeleteListing = async (id: number) => {
     setConfirmModal({
@@ -489,8 +534,8 @@ export default function MeusAnunciosPage() {
                 <Megaphone size={24} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meus Anúncios</h1>
-                <p className="text-sm text-[#999]">Gerencie suas ofertas no Gado Gaúcho</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meu Painel</h1>
+                <p className="text-sm text-[#999]">Gerencie suas ofertas e alertas no Gado Gaúcho</p>
               </div>
             </div>
             {activeTab === 'listings' && (
@@ -515,6 +560,20 @@ export default function MeusAnunciosPage() {
             >
               Meus Anúncios ({myAds.length})
               {activeTab === 'listings' && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('alerts')}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
+                activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+              }`}
+            >
+              Meus Alertas ({alerts.length})
+              {activeTab === 'alerts' && (
                 <motion.div
                   layoutId="activeTabUnderline"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
@@ -609,6 +668,110 @@ export default function MeusAnunciosPage() {
                 </AnimatePresence>
               </div>
             )
+          )}
+
+          {activeTab === 'alerts' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9ECEF] shadow-sm max-w-4xl mx-auto w-full"
+            >
+              <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-[#E9ECEF]">
+                <div>
+                  <h2 className="text-xl font-bold text-[#333] flex items-center gap-2">
+                    <span>Meus Alertas Ativos</span>
+                    <span className="bg-[#E9F0E8] text-[#2D5A27] text-xs font-bold px-2.5 py-0.5 rounded-full">
+                      {alerts.length}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-[#888] mt-1">Você será avisado por e-mail quando novos lotes de animais das categorias abaixo forem cadastrados.</p>
+                </div>
+                <button
+                  onClick={() => router.push('/alertas')}
+                  className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl font-bold text-xs hover:bg-[#1E3D1A] transition-all flex items-center gap-1.5"
+                >
+                  <Plus size={14} /> Novo Alerta
+                </button>
+              </div>
+
+              {loadingAlerts ? (
+                <div className="py-16 flex flex-col items-center justify-center text-[#999]">
+                  <Loader2 size={36} className="animate-spin text-[#2D5A27] mb-3" />
+                  <span className="text-sm font-medium">Carregando seus alertas...</span>
+                </div>
+              ) : alerts.length === 0 ? (
+                <div className="py-16 text-center border border-dashed border-[#E9ECEF] rounded-2xl p-8 bg-slate-50/50">
+                  <Bell size={40} className="mx-auto text-slate-300 mb-3" />
+                  <h3 className="font-bold text-base text-[#666] mb-1">Você não possui alertas</h3>
+                  <p className="text-xs text-[#999] leading-relaxed mb-6 max-w-sm mx-auto">Cadastre alertas de oportunidades para ser notificado assim que ofertas do seu interesse entrarem no portal.</p>
+                  <button
+                    onClick={() => router.push('/alertas')}
+                    className="px-6 py-2.5 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all"
+                  >
+                    Cadastrar Primeiro Alerta
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {alerts.map((alert) => (
+                    <div 
+                      key={alert.id}
+                      className="p-5 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start justify-between gap-4 transition-all hover:bg-white hover:shadow-md hover:border-[#2D5A27]/20"
+                    >
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <span className="inline-block bg-[#E9F0E8] text-[#2D5A27] text-xs font-extrabold px-3 py-1 rounded-lg">
+                          {alert.categoryName}
+                        </span>
+                        
+                        <div className="text-sm font-bold text-[#333] truncate">
+                          {alert.name}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="text-xs text-[#666] flex items-center gap-1.5">
+                            <Mail size={13} className="shrink-0 text-slate-400" />
+                            <span className="truncate">{alert.email}</span>
+                          </div>
+                          
+                          <div className="text-xs text-[#666] flex items-center gap-1.5">
+                            <MapPin size={13} className="shrink-0 text-slate-400" />
+                            <span className="truncate">{alert.location || 'Qualquer Município'}</span>
+                          </div>
+                        </div>
+
+                        {(alert.minPrice !== null || alert.maxPrice !== null || alert.minWeight !== null || alert.maxWeight !== null) && (
+                          <div className="text-[11px] text-[#555] bg-slate-100/80 p-3 rounded-xl mt-3 space-y-1">
+                            {(alert.minPrice !== null || alert.maxPrice !== null) && (
+                              <div>
+                                <strong>Preço:</strong> {alert.minPrice !== null ? `R$ ${alert.minPrice.toLocaleString('pt-BR')}/kg` : 'R$ 0/kg'} até {alert.maxPrice !== null ? `R$ ${alert.maxPrice.toLocaleString('pt-BR')}/kg` : 'Sem limite'}
+                              </div>
+                            )}
+                            {(alert.minWeight !== null || alert.maxWeight !== null) && (
+                              <div>
+                                <strong>Peso:</strong> {alert.minWeight !== null ? `${alert.minWeight} kg` : '0 kg'} até {alert.maxWeight !== null ? `${alert.maxWeight} kg` : 'Sem limite'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <button
+                        onClick={() => handleDeleteAlert(alert.id)}
+                        disabled={deletingAlertId === alert.id}
+                        className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-600 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                        title="Remover alerta"
+                      >
+                        {deletingAlertId === alert.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           )}
 
           {activeTab === 'profile' && (

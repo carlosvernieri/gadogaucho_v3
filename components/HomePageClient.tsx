@@ -175,6 +175,35 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
+  // Banner modal state
+  const [bannerSettings, setBannerSettings] = useState<{ enabled: boolean; title: string; description: string; buttonText: string } | null>(null);
+  const [showBannerModal, setShowBannerModal] = useState(false);
+
+  useEffect(() => {
+    const checkBanner = async () => {
+      try {
+        const res = await fetch('/api/admin/alert-banner');
+        if (res.ok) {
+          const data = await res.json();
+          setBannerSettings(data);
+          
+          const hasSeen = localStorage.getItem('gado_gaucho_alert_banner_seen');
+          if (data.enabled && !hasSeen) {
+            setShowBannerModal(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading banner settings:', error);
+      }
+    };
+    checkBanner();
+  }, []);
+
+  const handleCloseBanner = () => {
+    localStorage.setItem('gado_gaucho_alert_banner_seen', 'true');
+    setShowBannerModal(false);
+  };
+
   // Handle URL parameters for modals
   useEffect(() => {
     const authParam = searchParams.get('auth');
@@ -641,6 +670,63 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
           </div>
         </div>
       )}
+
+      {/* Banner Modal de Abertura */}
+      <AnimatePresence>
+        {showBannerModal && bannerSettings && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseBanner}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-white max-w-[500px] w-full rounded-3xl overflow-hidden shadow-2xl relative z-10 border border-[#E9ECEF]"
+            >
+              {/* Header decorativo premium */}
+              <div className="bg-[#2D5A27] p-8 text-white relative overflow-hidden flex flex-col items-center text-center">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-12 -translate-y-12" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -translate-x-6 translate-y-6" />
+                
+                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                  <Megaphone size={28} className="text-white animate-bounce" />
+                </div>
+                <h3 className="text-xl font-bold leading-tight">{bannerSettings.title}</h3>
+              </div>
+
+              {/* Corpo */}
+              <div className="p-8 text-center">
+                <p className="text-sm text-[#555] leading-relaxed mb-8">
+                  {bannerSettings.description}
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/alertas"
+                    onClick={handleCloseBanner}
+                    className="w-full py-3.5 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all hover:scale-[1.01] text-center text-sm"
+                  >
+                    {bannerSettings.buttonText}
+                  </Link>
+                  <button
+                    onClick={handleCloseBanner}
+                    className="w-full py-3 text-[#999] hover:text-[#666] font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Não tenho interesse agora
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {user && (
         <BottomNav

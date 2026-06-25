@@ -30,7 +30,9 @@ import {
   Camera,
   Video,
   HardDrive,
-  Calendar
+  Calendar,
+  Bell,
+  Settings
 } from 'lucide-react';
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
@@ -51,7 +53,18 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions' | 'ocr-audit'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions' | 'ocr-audit' | 'alerts'>('users');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<{ paused: boolean; maxDistance: number }>({ paused: false, maxDistance: 100 });
+  const [isUpdatingAlertSettings, setIsUpdatingAlertSettings] = useState(false);
+  const [bannerConfig, setBannerConfig] = useState({
+    enabled: true,
+    title: '',
+    description: '',
+    buttonText: ''
+  });
+  const [isSavingBannerConfig, setIsSavingBannerConfig] = useState(false);
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
   const [isSyncingMarket, setIsSyncingMarket] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
@@ -554,8 +567,153 @@ export default function AdminPage() {
     } else if (adminTab === 'verifications') {
       fetchPendingUsers();
       fetchListings(1, listingsSearch);
+    } else if (adminTab === 'alerts') {
+      fetchAdminAlerts();
+      fetchAlertSettings();
+      fetchBannerConfig();
     }
   }, [usersPage, listingsPage, adminTab]);
+
+  const fetchBannerConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/alert-banner');
+      if (res.ok) {
+        const data = await res.json();
+        setBannerConfig(data);
+      }
+    } catch (error) {
+      console.error('Error fetching banner config:', error);
+    }
+  };
+
+  const handleSaveBannerConfig = async () => {
+    setIsSavingBannerConfig(true);
+    try {
+      const res = await fetch('/api/admin/alert-banner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerConfig)
+      });
+      if (res.ok) {
+        showToast('Configurações do banner atualizadas com sucesso.', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao salvar configurações do banner.', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving banner config:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsSavingBannerConfig(false);
+    }
+  };
+
+  const fetchAlertSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/alert-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setAlertSettings(data);
+      }
+    } catch (error) {
+      console.error('Error fetching alert settings:', error);
+    }
+  };
+
+  const handleToggleAlertsPause = async () => {
+    setIsUpdatingAlertSettings(true);
+    const targetState = !alertSettings.paused;
+    try {
+      const res = await fetch('/api/admin/alert-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paused: targetState,
+          maxDistance: alertSettings.maxDistance
+        })
+      });
+      if (res.ok) {
+        setAlertSettings({ ...alertSettings, paused: targetState });
+        showToast(targetState ? 'Envio automático de alertas PAUSADO.' : 'Envio automático de alertas ATIVADO.', 'success');
+      } else {
+        showToast('Erro ao atualizar configurações.', 'error');
+      }
+    } catch (error) {
+      console.error('Error toggling alert settings:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsUpdatingAlertSettings(false);
+    }
+  };
+
+  const handleSaveMaxDistance = async (distance: number) => {
+    setIsUpdatingAlertSettings(true);
+    try {
+      const res = await fetch('/api/admin/alert-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paused: alertSettings.paused,
+          maxDistance: distance
+        })
+      });
+      if (res.ok) {
+        setAlertSettings({ ...alertSettings, maxDistance: distance });
+        showToast('Distância limite de entrega de alertas atualizada com sucesso.', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao atualizar distância limite.', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating distance limit:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsUpdatingAlertSettings(false);
+    }
+  };
+
+  const fetchAdminAlerts = async () => {
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch('/api/opportunity-alerts');
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data);
+      } else {
+        showToast('Erro ao carregar alertas.', 'error');
+      }
+    } catch (error) {
+      console.error('Error fetching admin alerts:', error);
+      showToast('Erro de conexão ao carregar alertas.', 'error');
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Alerta',
+      message: 'Tem certeza que deseja excluir este alerta? Esta ação não pode ser desfeita.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/opportunity-alerts?id=${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            setAlerts(prev => prev.filter(a => a.id !== id));
+            showToast('Alerta de oportunidade excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir alerta.', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting alert:', error);
+          showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
 
   const handleSearchUsers = (e: React.FormEvent) => {
     e.preventDefault();
@@ -872,6 +1030,12 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'ocr-audit' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Auditoria OCR
+                </button>
+                <button
+                  onClick={() => setAdminTab('alerts')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'alerts' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Alertas
                 </button>
               </div>
             </div>
@@ -1551,6 +1715,203 @@ export default function AdminPage() {
                     <p className="text-sm text-[#666]">Os logs de lotes rejeitados pelo processador OCR serão listados aqui.</p>
                   </div>
                 )}
+              </div>
+            ) : adminTab === 'alerts' ? (
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#E9ECEF] pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#333] flex items-center gap-2">
+                      <Bell size={20} className="text-[#2D5A27]" /> Demandas de Compradores (Alertas de Oportunidades)
+                    </h3>
+                    <p className="text-xs text-[#999] mt-0.5">Veja quem registrou interesse por categorias e modere as demandas cadastradas.</p>
+                  </div>
+                  <button
+                    onClick={handleToggleAlertsPause}
+                    disabled={isUpdatingAlertSettings}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+                      alertSettings.paused
+                        ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                        : 'bg-[#2D5A27] text-white hover:bg-[#1E3D1A] shadow-[#2D5A27]/10'
+                    }`}
+                  >
+                    <Bell size={14} className={alertSettings.paused ? '' : 'animate-pulse'} />
+                    {isUpdatingAlertSettings ? 'Processando...' : alertSettings.paused ? 'Alertas Pausados (Clique para Reativar)' : 'Alertas Ativos (Clique para Pausar)'}
+                  </button>
+                </div>
+
+                {/* Painel de Configurações Globais do Alerta */}
+                <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-6">
+                  <h4 className="text-xs font-bold text-[#333] mb-1 flex items-center gap-2">
+                    <Settings size={16} className="text-[#2D5A27]" /> Configurações de Distribuição de Alertas
+                  </h4>
+                  <p className="text-[11px] text-[#999] mb-4">
+                    Gerencie os parâmetros globais de validação geográfica para disparos de e-mail de alerta de oportunidades.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-end gap-4">
+                    <div className="flex-1 max-w-xs">
+                      <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Distância Limite para Envio (km)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={alertSettings.maxDistance}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, maxDistance: Number(e.target.value) })}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                        placeholder="Ex: 100"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleSaveMaxDistance(alertSettings.maxDistance)}
+                      disabled={isUpdatingAlertSettings}
+                      className="px-4 py-2.5 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdatingAlertSettings ? 'Salvando...' : 'Salvar Distância Limite'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Painel de Configuração do Banner de Abertura */}
+                <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-8">
+                  <h4 className="text-xs font-bold text-[#333] mb-1 flex items-center gap-2">
+                    <Megaphone size={16} className="text-[#2D5A27]" /> Banner de Abertura (Alerta de Oportunidades)
+                  </h4>
+                  <p className="text-[11px] text-[#999] mb-4">
+                    Configure o banner modal que aparece uma única vez para novos visitantes na página inicial explicando e convidando para a área de alertas.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Ativar/Desativar */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="bannerEnabled"
+                        checked={bannerConfig.enabled}
+                        onChange={(e) => setBannerConfig({ ...bannerConfig, enabled: e.target.checked })}
+                        className="w-4 h-4 text-[#2D5A27] focus:ring-[#2D5A27] border-gray-300 rounded cursor-pointer"
+                      />
+                      <label htmlFor="bannerEnabled" className="text-xs font-bold text-[#555] cursor-pointer">
+                        Ativar apresentação do banner "estilo modal"
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Título do Banner</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.title}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, title: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: Encontre o Lote Perfeito..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Texto do Botão (CTA)</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.buttonText}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, buttonText: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: Ativar Alerta de Oportunidade"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Descrição / Texto Explicativo</label>
+                      <textarea
+                        value={bannerConfig.description}
+                        onChange={(e) => setBannerConfig({ ...bannerConfig, description: e.target.value })}
+                        rows={2}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all resize-none"
+                        placeholder="Escreva uma breve explicação da funcionalidade de alertas..."
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSaveBannerConfig}
+                        disabled={isSavingBannerConfig}
+                        className="px-4 py-2 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isSavingBannerConfig ? 'Salvando...' : 'Salvar Configurações do Banner'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                        <th className="pb-4 px-4">Comprador</th>
+                        <th className="pb-4 px-4">Categoria Solicitada</th>
+                        <th className="pb-4 px-4">Limites (Preço/Peso)</th>
+                        <th className="pb-4 px-4">E-mail</th>
+                        <th className="pb-4 px-4">WhatsApp / Telefone</th>
+                        <th className="pb-4 px-4">Data Cadastro</th>
+                        <th className="pb-4 px-4">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F8F9FA]">
+                      {loadingAlerts ? (
+                        <tr>
+                          <td colSpan={7} className="py-10 text-center text-slate-400">
+                            <Loader2 className="animate-spin text-[#2D5A27] mx-auto mb-2" size={24} />
+                            Carregando demandas...
+                          </td>
+                        </tr>
+                      ) : alerts.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-10 text-center text-slate-400">
+                            Nenhum alerta de oportunidade cadastrado no sistema.
+                          </td>
+                        </tr>
+                      ) : (
+                        alerts.map(alert => (
+                          <tr key={alert.id} className="hover:bg-[#F8F9FA] transition-colors">
+                            <td className="py-4 px-4 font-bold text-[#333]">
+                              {alert.name}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="bg-[#E9F0E8] text-[#2D5A27] text-xs font-bold px-2.5 py-1 rounded-lg">
+                                {alert.categoryName}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-xs space-y-0.5">
+                              <div>
+                                <span className="text-[#999] font-semibold">Preço/Kg: </span>
+                                <span className="text-[#555] font-medium">
+                                  {alert.minPrice !== null && alert.minPrice !== undefined ? `R$ ${alert.minPrice.toLocaleString('pt-BR')}/kg` : 'R$ 0/kg'} - {alert.maxPrice !== null && alert.maxPrice !== undefined ? `R$ ${alert.maxPrice.toLocaleString('pt-BR')}/kg` : 'Sem limite'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[#999] font-semibold">Peso: </span>
+                                <span className="text-[#555] font-medium">
+                                  {alert.minWeight !== null && alert.minWeight !== undefined ? `${alert.minWeight} kg` : '0 kg'} - {alert.maxWeight !== null && alert.maxWeight !== undefined ? `${alert.maxWeight} kg` : 'Sem limite'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-[#666]">{alert.email}</td>
+                            <td className="py-4 px-4 text-[#666]">{alert.phone}</td>
+                            <td className="py-4 px-4 text-[#666] text-xs">
+                              {alert.createdAt ? new Date(alert.createdAt).toLocaleString('pt-BR') : '---'}
+                            </td>
+                            <td className="py-4 px-4">
+                              <button
+                                onClick={() => handleDeleteAlert(alert.id)}
+                                className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                title="Excluir Alerta"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : null}
           </div>
