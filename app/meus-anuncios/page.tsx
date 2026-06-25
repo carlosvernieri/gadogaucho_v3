@@ -351,10 +351,10 @@ export default function MeusAnunciosPage() {
   };
 
   useEffect(() => {
-    if (user && activeTab === 'alerts') {
+    if (user) {
       fetchAlerts();
     }
-  }, [user, activeTab]);
+  }, [user]);
 
   const handleDeleteAlert = async (id: string) => {
     setDeletingAlertId(id);

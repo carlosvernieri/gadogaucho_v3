@@ -73,10 +73,19 @@ export default function AlertasPage() {
       setName(user.name || '');
       setEmail(user.email || '');
       setPhone(user.phone || '');
+      if (user.city) {
+        const foundCity = RS_CITIES.find(c => c.name.toLowerCase() === user.city.toLowerCase());
+        if (foundCity) {
+          setCity(foundCity.name);
+          setCitySearch(foundCity.name);
+        }
+      }
     } else {
       setName('');
       setEmail('');
       setPhone('');
+      setCity('');
+      setCitySearch('');
     }
   }, [user]);
 
