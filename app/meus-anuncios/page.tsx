@@ -76,7 +76,7 @@ export default function MeusAnunciosPage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     setSavingProfile(true);
     setProfileError(null);
 
@@ -322,7 +322,7 @@ export default function MeusAnunciosPage() {
         router.push('/');
       } else {
         fetchData(user.id);
-        
+
         const handleAdEvent = () => fetchData(user.id);
         window.addEventListener('ad_created', handleAdEvent);
         window.addEventListener('ad_updated', handleAdEvent);
@@ -551,12 +551,11 @@ export default function MeusAnunciosPage() {
           </div>
 
           {/* Alternância de Abas */}
-          <div className="flex border-b border-[#E9ECEF] mb-8 gap-6">
+          <div className="flex border-b border-[#E9ECEF] mb-8 gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
             <button
               onClick={() => setActiveTab('listings')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                }`}
             >
               Meus Anúncios ({myAds.length})
               {activeTab === 'listings' && (
@@ -568,9 +567,8 @@ export default function MeusAnunciosPage() {
             </button>
             <button
               onClick={() => setActiveTab('alerts')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                }`}
             >
               Meus Alertas ({alerts.length})
               {activeTab === 'alerts' && (
@@ -582,9 +580,8 @@ export default function MeusAnunciosPage() {
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                }`}
             >
               Meus Dados / Perfil
               {activeTab === 'profile' && (
@@ -596,9 +593,8 @@ export default function MeusAnunciosPage() {
             </button>
             <button
               onClick={() => setActiveTab('password')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                }`}
             >
               Alterar Senha
               {activeTab === 'password' && (
@@ -610,9 +606,8 @@ export default function MeusAnunciosPage() {
             </button>
             <button
               onClick={() => setActiveTab('verification')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                }`}
             >
               Verificação
               {activeTab === 'verification' && (
@@ -714,7 +709,7 @@ export default function MeusAnunciosPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {alerts.map((alert) => (
-                    <div 
+                    <div
                       key={alert.id}
                       className="p-5 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start justify-between gap-4 transition-all hover:bg-white hover:shadow-md hover:border-[#2D5A27]/20"
                     >
@@ -722,7 +717,7 @@ export default function MeusAnunciosPage() {
                         <span className="inline-block bg-[#E9F0E8] text-[#2D5A27] text-xs font-extrabold px-3 py-1 rounded-lg">
                           {alert.categoryName}
                         </span>
-                        
+
                         <div className="text-sm font-bold text-[#333] truncate">
                           {alert.name}
                         </div>
@@ -732,7 +727,7 @@ export default function MeusAnunciosPage() {
                             <Mail size={13} className="shrink-0 text-slate-400" />
                             <span className="truncate">{alert.email}</span>
                           </div>
-                          
+
                           <div className="text-xs text-[#666] flex items-center gap-1.5">
                             <MapPin size={13} className="shrink-0 text-slate-400" />
                             <span className="truncate">{alert.location || 'Qualquer Município'}</span>
@@ -754,7 +749,7 @@ export default function MeusAnunciosPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <button
                         onClick={() => handleDeleteAlert(alert.id)}
                         disabled={deletingAlertId === alert.id}

@@ -35,7 +35,7 @@ export const BottomNav = ({ user: defaultUser, onAdClick: defaultOnAdClick, onAu
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-[#E9ECEF] pt-2 pb-5 z-[100] flex items-center transform-gpu shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-[calc(env(safe-area-inset-bottom)+12px)] print:hidden">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 mx-auto max-w-md w-full bg-white border-t border-[#E9ECEF] pt-2 pb-5 px-6 z-[100] flex items-center transform-gpu shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-[calc(env(safe-area-inset-bottom)+12px)] print:hidden">
       {navItems.map((item, index) => {
         const Icon = item.icon;
         const isActive = item.path === pathname;
