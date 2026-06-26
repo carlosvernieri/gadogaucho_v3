@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart } from 'lucide-react';
+import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart, Star } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const ListingListItem = ({ 
@@ -130,10 +130,14 @@ export const ListingListItem = ({
                 <button 
                   onClick={() => onVerify?.(listing.id)}
                   disabled={!!listing.verification_requested}
-                  className={`flex-1 md:w-32 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${listing.verification_requested ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 cursor-pointer'}`}
+                  className={`flex-1 md:w-32 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    listing.verification_requested 
+                      ? 'bg-amber-50 text-amber-600 border border-amber-100 opacity-60 cursor-not-allowed' 
+                      : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm cursor-pointer'
+                  }`}
                 >
-                  {listing.verification_requested ? <Clock size={14} /> : <ShieldCheck size={14} />} 
-                  {listing.verification_requested ? 'Pendente' : 'Verificar'}
+                  {listing.verification_requested ? <Clock size={14} /> : <Star size={14} fill="currentColor" />} 
+                  {listing.verification_requested ? 'Pendente' : 'Destacar'}
                 </button>
               )}
             </div>

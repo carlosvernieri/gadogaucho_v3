@@ -527,7 +527,7 @@ export default function MeusAnunciosPage() {
           setShowSuggestions={() => { }}
         />
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-[#E9F0E8] flex items-center justify-center text-[#2D5A27]">
@@ -551,72 +551,92 @@ export default function MeusAnunciosPage() {
           </div>
 
           {/* Alternância de Abas */}
-          <div className="flex border-b border-[#E9ECEF] mb-8 gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
-            <button
-              onClick={() => setActiveTab('listings')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-                }`}
-            >
-              Meus Anúncios ({myAds.length})
-              {activeTab === 'listings' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('alerts')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-                }`}
-            >
-              Meus Alertas ({alerts.length})
-              {activeTab === 'alerts' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-                }`}
-            >
-              Meus Dados / Perfil
-              {activeTab === 'profile' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('password')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-                }`}
-            >
-              Alterar Senha
-              {activeTab === 'password' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('verification')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-                }`}
-            >
-              Verificação
-              {activeTab === 'verification' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
+          <div className="relative mb-8">
+            {/* Gradiente de Desfoque no Lado Direito */}
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#F8F9FA] to-transparent pointer-events-none z-10 lg:hidden" />
+            
+            <div className="flex border-b border-[#E9ECEF] gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none] pr-12 lg:pr-0">
+              <button
+                onClick={(e) => {
+                  setActiveTab('listings');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Anúncios ({myAds.length})
+                {activeTab === 'listings' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('alerts');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Alertas ({alerts.length})
+                {activeTab === 'alerts' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('profile');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Dados / Perfil
+                {activeTab === 'profile' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('password');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Alterar Senha
+                {activeTab === 'password' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('verification');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Verificação
+                {activeTab === 'verification' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+            </div>
           </div>
 
           {activeTab === 'listings' && (
@@ -674,7 +694,7 @@ export default function MeusAnunciosPage() {
               <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-[#E9ECEF]">
                 <div>
                   <h2 className="text-xl font-bold text-[#333] flex items-center gap-2">
-                    <span>Meus Alertas Ativos</span>
+                    <span>Alertas Ativos</span>
                     <span className="bg-[#E9F0E8] text-[#2D5A27] text-xs font-bold px-2.5 py-0.5 rounded-full">
                       {alerts.length}
                     </span>
