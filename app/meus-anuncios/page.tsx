@@ -986,7 +986,7 @@ export default function MeusAnunciosPage() {
                       <div className="bg-[#F8F9FA] rounded-2xl p-5 border border-[#E9ECEF] max-w-md mx-auto text-left space-y-3">
                         <h3 className="font-bold text-xs text-[#999] uppercase">Benefícios Ativos:</h3>
                         <ul className="text-xs text-[#666] space-y-2 list-disc pl-4">
-                          <li>Exibição do selo azul <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold">VERIFICADO</span> em seu perfil de vendedor.</li>
+                          <li>Exibição do selo verde <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500 text-white rounded text-[9px] font-bold shadow-sm"><ShieldCheck size={10} />VERIFICADO</span> em seu perfil de vendedor.</li>
                           <li>Selo de verificação visível em todas as fotos de seus anúncios.</li>
                           <li>Prioridade na ordenação dos resultados de busca de animais.</li>
                           <li>Filtro exclusivo para compradores interessados apenas em anúncios verificados.</li>

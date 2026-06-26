@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
-import { getSession } from '@/lib/auth';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { logToDatabase } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -12,16 +12,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await getSession();
-    if (!session || !session.id) {
+    const supabase = await createClientServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     // Verificar se o usuário é administrador
-    const { data: userProfile, error: profileError } = await supabaseAdmin
+    const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', session.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (profileError) {
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
 
     const isAdmin = userProfile?.is_admin || false;
 
-    let query = supabaseAdmin
+    let query = supabase
       .from('opportunity_alerts')
       .select(`
         *,
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
 
     // Se não for admin, filtra apenas pelos alertas criados por este usuário
     if (!isAdmin) {
-      query = query.eq('user_id', session.id);
+      query = query.eq('user_id', user.id);
     }
 
     const { data: alerts, error: fetchError } = await query.order('created_at', { ascending: false });
@@ -101,8 +102,9 @@ export async function POST(request: Request) {
     }
 
     // Tentar obter a sessão atual para associar o user_id, se disponível
-    const session = await getSession();
-    const userId = session?.id || null;
+    const supabase = await createClientServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
 
     const insertPayload: any = {
       user_id: userId,
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
     if (lat !== undefined && lat !== null && lat !== '') insertPayload.lat = Number(lat);
     if (lng !== undefined && lng !== null && lng !== '') insertPayload.lng = Number(lng);
 
-    const { data: newAlert, error: insertError } = await supabaseAdmin
+    const { data: newAlert, error: insertError } = await supabase
       .from('opportunity_alerts')
       .insert([insertPayload])
       .select(`
@@ -132,8 +134,7 @@ export async function POST(request: Request) {
     if (insertError) {
       await logToDatabase('error', 'POST /api/opportunity-alerts', 'Error inserting opportunity alert', {
         insertError,
-        payload: insertPayload,
-        isServiceRoleAvailable: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+        payload: insertPayload
       });
       return NextResponse.json({ error: 'Erro ao cadastrar o alerta' }, { status: 500 });
     }
@@ -170,8 +171,9 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const session = await getSession();
-    if (!session || !session.id) {
+    const supabase = await createClientServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -183,7 +185,7 @@ export async function DELETE(request: Request) {
     }
 
     // Buscar o alerta para verificar se pertence ao usuário logado ou se é admin
-    const { data: alert, error: findError } = await supabaseAdmin
+    const { data: alert, error: findError } = await supabase
       .from('opportunity_alerts')
       .select('user_id')
       .eq('id', id)
@@ -199,14 +201,14 @@ export async function DELETE(request: Request) {
     }
 
     // Verificar se o usuário logado é o criador do alerta ou se é admin
-    const isOwner = alert.user_id === session.id;
+    const isOwner = alert.user_id === user.id;
     let isAdmin = false;
 
     if (!isOwner) {
-      const { data: userProfile } = await supabaseAdmin
+      const { data: userProfile } = await supabase
         .from('users')
         .select('is_admin')
-        .eq('id', session.id)
+        .eq('id', user.id)
         .maybeSingle();
       
       isAdmin = userProfile?.is_admin || false;
@@ -216,7 +218,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('opportunity_alerts')
       .delete()
       .eq('id', id);
