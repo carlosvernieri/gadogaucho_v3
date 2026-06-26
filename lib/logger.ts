@@ -22,12 +22,17 @@ export async function logToDatabase(
     if (details) {
       try {
         if (details instanceof Error) {
-          sanitizedDetails = {
+          const errorDetails: any = {
             message: details.message,
             stack: details.stack,
-            name: details.name,
-            ...details
+            name: details.name
           };
+          for (const key of Object.getOwnPropertyNames(details)) {
+            if (key !== 'message' && key !== 'stack' && key !== 'name') {
+              errorDetails[key] = (details as any)[key];
+            }
+          }
+          sanitizedDetails = errorDetails;
         } else {
           sanitizedDetails = JSON.parse(JSON.stringify(details));
         }

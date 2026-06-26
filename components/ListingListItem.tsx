@@ -48,7 +48,7 @@ export const ListingListItem = ({
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {listing.verified && (
             <Badge variant="verified">
-              VERIFICADO
+              DESTAQUE
             </Badge>
           )}
           {listing.verification_requested && !listing.verified && (
@@ -75,7 +75,7 @@ export const ListingListItem = ({
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-bold text-[#666] uppercase tracking-wider">{listing.seller}</span>
                 {listing.sellerVerified && (
-                  <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
+                  <Badge variant="seller-verified">
                     VERIFICADO
                   </Badge>
                 )}
