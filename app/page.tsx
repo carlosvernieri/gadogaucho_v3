@@ -18,6 +18,7 @@ async function fetchListings() {
       .from('listings') as any)
       .select('*, users(name, verified)')
       .or('sold.eq.false,sold.is.null')
+      .order('verified', { ascending: false })
       .order('id', { ascending: false })
       .range(0, 19);
 
@@ -27,6 +28,7 @@ async function fetchListings() {
         .from('listings') as any)
         .select('*')
         .or('sold.eq.false,sold.is.null')
+        .order('verified', { ascending: false })
         .order('id', { ascending: false })
         .range(0, 19);
         

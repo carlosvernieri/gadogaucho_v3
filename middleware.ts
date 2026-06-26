@@ -32,17 +32,33 @@ export async function updateSession(request: NextRequest) {
   try {
     const { error } = await supabase.auth.getUser()
     if (error) {
-      // Não spamma o terminal com aviso para requisições de usuários não autenticados normais
-      if (error.message !== 'Auth session missing!') {
+      // Não spamma o terminal com aviso para requisições de usuários não autenticados normais ou erros de refresh token
+      const isNormalOrTokenError = 
+        error.message === 'Auth session missing!' || 
+        error.message?.toLowerCase().includes('refresh token') || 
+        error.message?.toLowerCase().includes('refresh_token') ||
+        error.status === 400;
+
+      if (!isNormalOrTokenError) {
         console.warn('Middleware session update warning:', error.message);
       }
       // Se for um erro de token expirado ou inválido, limpamos os cookies para evitar loops de erro.
-      if (error.message?.toLowerCase().includes('refresh token') || error.status === 400) {
+      if (
+        error.message?.toLowerCase().includes('refresh token') || 
+        error.message?.toLowerCase().includes('refresh_token') || 
+        error.status === 400
+      ) {
         clearAuthCookies(request, supabaseResponse)
       }
     }
   } catch (error: any) {
-    console.error('Error refreshing session in middleware:', error)
+    const isTokenError = 
+      error.message?.toLowerCase().includes('refresh token') || 
+      error.message?.toLowerCase().includes('refresh_token');
+      
+    if (!isTokenError) {
+      console.error('Error refreshing session in middleware:', error)
+    }
     clearAuthCookies(request, supabaseResponse)
   }
 
