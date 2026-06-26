@@ -69,7 +69,7 @@ export async function triggerOpportunityAlerts(listing: NewListingData) {
     }
 
     // Filtrar os alertas com base nos limites de preço, peso e distância
-    const matchedAlerts = alerts.filter((alert) => {
+    const matchedAlerts = alerts.filter((alert: any) => {
       // 1. Proximidade de Localização
       if (
         alert.lat !== null && alert.lat !== undefined &&
@@ -141,7 +141,7 @@ export async function triggerOpportunityAlerts(listing: NewListingData) {
     const formattedLocation = formatCityName(listing.location);
 
     // Enviar e-mails em paralelo (sem travar a resposta principal do servidor)
-    const emailPromises = matchedAlerts.map(async (alert) => {
+    const emailPromises = matchedAlerts.map(async (alert: any) => {
       const emailHtml = `
         <!DOCTYPE html>
         <html lang="pt-BR">
