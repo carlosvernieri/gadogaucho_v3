@@ -122,14 +122,9 @@ export async function POST(request: Request) {
     if (lat !== undefined && lat !== null && lat !== '') insertPayload.lat = Number(lat);
     if (lng !== undefined && lng !== null && lng !== '') insertPayload.lng = Number(lng);
 
-    const { data: newAlert, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('opportunity_alerts')
-      .insert([insertPayload])
-      .select(`
-        *,
-        animal_categories(name)
-      `)
-      .single();
+      .insert([insertPayload]);
 
     if (insertError) {
       await logToDatabase('error', 'POST /api/opportunity-alerts', 'Error inserting opportunity alert', {
@@ -140,23 +135,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      alert: {
-        id: newAlert.id,
-        name: newAlert.name,
-        email: newAlert.email,
-        phone: newAlert.phone,
-        categoryId: newAlert.category_id,
-        categoryName: newAlert.animal_categories?.name || 'Qualquer Categoria',
-        minPrice: newAlert.min_price,
-        maxPrice: newAlert.max_price,
-        minWeight: newAlert.min_weight,
-        maxWeight: newAlert.max_weight,
-        location: newAlert.location,
-        lat: newAlert.lat,
-        lng: newAlert.lng,
-        createdAt: newAlert.created_at
-      }
+      success: true
     });
   } catch (error: any) {
     await logToDatabase('error', 'POST /api/opportunity-alerts', 'Uncaught exception in POST', error);
