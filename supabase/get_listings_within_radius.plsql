@@ -85,7 +85,7 @@ BEGIN
         -1))
       ) <= max_distance_km
     )
-  ORDER BY l.id DESC
+  ORDER BY l.verified DESC, l.id DESC
   OFFSET offset_val
   LIMIT limit_val;
 END;

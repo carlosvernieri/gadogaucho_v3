@@ -80,7 +80,7 @@ export async function GET(request: Request) {
           query = query.or(orConditions.join(','));
         }
         if (verified) query = query.eq('verified', true);
-        query = query.order('id', { ascending: false });
+        query = query.order('verified', { ascending: false }).order('id', { ascending: false });
 
         const { data: allData, error: qError } = await query;
         if (qError) {
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
         query = query.eq('verified', true);
       }
 
-      query = query.order('id', { ascending: false }).range(offset, offset + limit - 1);
+      query = query.order('verified', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
 
       const { data, error: qError } = await query;
       listings = data || [];
