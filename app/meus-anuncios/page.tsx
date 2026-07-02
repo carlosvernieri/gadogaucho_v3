@@ -438,16 +438,16 @@ export default function MeusAnunciosPage() {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verification_requested: true })
+        body: safeJsonStringify({ feature_requested: true })
       });
       if (res.ok) {
         await fetchData(user.id);
-        showToast('Solicitação de verificação enviada!', 'success');
+        showToast('Solicitação de destaque enviada!', 'success');
       } else {
-        showToast('Erro ao solicitar verificação.', 'error');
+        showToast('Erro ao solicitar destaque.', 'error');
       }
     } catch (error) {
-      console.error('Error requesting verification:', error);
+      console.error('Error requesting highlight:', error);
       showToast('Erro de conexão.', 'error');
     } finally {
       setIsVerifyingListing(false);
@@ -486,7 +486,7 @@ export default function MeusAnunciosPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}

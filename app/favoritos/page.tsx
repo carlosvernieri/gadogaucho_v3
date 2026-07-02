@@ -98,7 +98,7 @@ export default function FavoritosPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-10 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}

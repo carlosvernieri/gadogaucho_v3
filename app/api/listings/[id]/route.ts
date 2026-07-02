@@ -41,8 +41,8 @@ export async function GET(
       return NextResponse.json({
         ...l,
         sold: !!l.sold,
-        verified: !!l.verified,
-        verification_requested: !!l.verification_requested,
+        featured: !!l.featured,
+        feature_requested: !!l.feature_requested,
         priceKg: l.price_kg || l.priceKg,
         avgWeight: l.avg_weight || l.avgWeight,
         images: parseJsonField(l.images),
@@ -61,8 +61,8 @@ export async function GET(
     return NextResponse.json({
       ...l,
       sold: !!l.sold,
-      verified: !!l.verified,
-      verification_requested: !!l.verification_requested,
+      featured: !!l.featured,
+      feature_requested: !!l.feature_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
       images: parseJsonField(l.images),
@@ -128,7 +128,7 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
 
-    if (data.verified !== undefined && !session.is_admin) delete data.verified;
+    if (data.featured !== undefined && !session.is_admin) delete data.featured;
     if (data.userId !== undefined) delete data.userId;
     if (data.user_id !== undefined) delete data.user_id;
     
@@ -148,8 +148,8 @@ export async function PUT(
     if (data.description !== undefined) updateData.description = data.description;
     if (data.images !== undefined) updateData.images = data.images;
     if (data.videos !== undefined) updateData.videos = data.videos;
-    if (data.verified !== undefined) updateData.verified = data.verified;
-    if (data.verification_requested !== undefined) updateData.verification_requested = data.verification_requested;
+    if (data.featured !== undefined) updateData.featured = data.featured;
+    if (data.feature_requested !== undefined) updateData.feature_requested = data.feature_requested;
     if (data.sold !== undefined) updateData.sold = data.sold;
 
     const supabase = await createClientServer();
@@ -175,7 +175,7 @@ export async function PUT(
       ...updatedListing,
       priceKg: updatedListing.price_kg,
       avgWeight: updatedListing.avg_weight,
-      verification_requested: updatedListing.verification_requested,
+      feature_requested: updatedListing.feature_requested,
       images: parseJsonField(updatedListing.images),
       videos: parseJsonField(updatedListing.videos),
     });

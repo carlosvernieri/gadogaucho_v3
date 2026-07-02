@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const category = searchParams.get('category');
     const search = searchParams.get('search');
-    const verified = searchParams.get('verified') === 'true';
+    const featured = searchParams.get('featured') === 'true';
     const showAll = searchParams.get('showAll') === 'true';
     const latStr = searchParams.get('lat');
     const lngStr = searchParams.get('lng');
@@ -79,8 +79,8 @@ export async function GET(request: Request) {
           }
           query = query.or(orConditions.join(','));
         }
-        if (verified) query = query.eq('verified', true);
-        query = query.order('verified', { ascending: false }).order('id', { ascending: false });
+        if (featured) query = query.eq('featured', true);
+        query = query.order('featured', { ascending: false }).order('id', { ascending: false });
 
         const { data: allData, error: qError } = await query;
         if (qError) {
@@ -136,11 +136,11 @@ export async function GET(request: Request) {
         query = query.or(orConditions.join(','));
       }
       
-      if (verified) {
-        query = query.eq('verified', true);
+      if (featured) {
+        query = query.eq('featured', true);
       }
 
-      query = query.order('verified', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
+      query = query.order('featured', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
 
       const { data, error: qError } = await query;
       listings = data || [];
@@ -156,8 +156,8 @@ export async function GET(request: Request) {
     const mappedListings = listings.map((l: any) => ({
       ...l,
       sold: !!l.sold,
-      verified: !!l.verified,
-      verification_requested: !!l.verification_requested,
+      featured: !!l.featured,
+      feature_requested: !!l.feature_requested,
       priceKg: l.price_kg || l.priceKg, // fallback to camelCase if coming from RPC
       avgWeight: l.avg_weight || l.avgWeight,
       images: parseJsonField(l.images),
@@ -206,8 +206,8 @@ export async function POST(request: Request) {
           description, 
           images: images || [], 
           videos: videos || [],
-          verified: false,
-          verification_requested: false
+          featured: false,
+          feature_requested: false
         }
       ])
       .select('*')
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
       ...newListing,
       priceKg: newListing.price_kg,
       avgWeight: newListing.avg_weight,
-      verification_requested: newListing.verification_requested,
+      feature_requested: newListing.feature_requested,
       images: parseJsonField(newListing.images),
       videos: parseJsonField(newListing.videos),
       userId: newListing.user_id

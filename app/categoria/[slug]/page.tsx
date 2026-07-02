@@ -118,7 +118,7 @@ export default function CategoriaPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col pb-10 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}

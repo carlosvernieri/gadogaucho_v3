@@ -97,7 +97,7 @@ export const ListingCard = ({
         )}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           <Badge>{listing.category} <span className="font-normal opacity-60">cod: {listing.id}</span></Badge>
-          {listing.verified && <Badge variant="verified">DESTAQUE</Badge>}
+          {listing.featured && <Badge variant="verified">DESTAQUE</Badge>}
           {listing.sold && (
             <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none flex items-center gap-1">
               <CheckCircle size={12} /> VENDIDO

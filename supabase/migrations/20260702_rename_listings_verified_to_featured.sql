@@ -1,3 +1,11 @@
+-- Migration to rename listings verified status to featured (destaque)
+-- Date: 2026-07-02
+
+-- 1. Rename columns in listings table
+ALTER TABLE public.listings RENAME COLUMN verified TO featured;
+ALTER TABLE public.listings RENAME COLUMN verification_requested TO feature_requested;
+
+-- 2. Drop and recreate get_listings_within_radius function to use the new column names
 DROP FUNCTION IF EXISTS get_listings_within_radius(FLOAT, FLOAT, FLOAT, TEXT, TEXT, INT, INT);
 
 CREATE OR REPLACE FUNCTION get_listings_within_radius(

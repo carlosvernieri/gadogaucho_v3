@@ -49,7 +49,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   const isInitialFilterState = useRef(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Proximity Search State
@@ -281,7 +281,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         const error = await res.json();
         let message = `Erro ao atualizar anúncio: ${error.error || 'Erro desconhecido'}`;
         if (error.code === 'PGRST204') {
-          message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS verification_requested BOOLEAN DEFAULT FALSE;`;
+          message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS feature_requested BOOLEAN DEFAULT FALSE;`;
         } else {
           message += `\n\nDetalhes: ${error.details || (error.message ? error.message : String(error))}`;
         }
@@ -304,9 +304,9 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   };
 
   const handleRequestVerification = async (id: number) => {
-    const updated = await handleUpdateListing(id, { verification_requested: true });
+    const updated = await handleUpdateListing(id, { feature_requested: true });
     if (updated) {
-      showToast('Solicitação de verificação enviada com sucesso!');
+      showToast('Solicitação de destaque enviada com sucesso!');
     }
   };
 
@@ -383,7 +383,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         let url = `/api/listings?page=1&limit=20`;
         if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
         if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-        if (showVerifiedOnly) url += `&verified=true`;
+        if (showFeaturedOnly) url += `&featured=true`;
         if (selectedCityCoords && maxDistance) {
           url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
         }
@@ -408,7 +408,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     }
     
     fetchFiltered();
-  }, [selectedCategory, searchQuery, showVerifiedOnly, selectedCityCoords, maxDistance]);
+  }, [selectedCategory, searchQuery, showFeaturedOnly, selectedCityCoords, maxDistance]);
 
   useEffect(() => {
     if (inView && hasMore && !loading) {
@@ -417,7 +417,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
          let url = `/api/listings?page=${nextPage}&limit=20`;
          if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
          if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-         if (showVerifiedOnly) url += `&verified=true`;
+         if (showFeaturedOnly) url += `&featured=true`;
          if (selectedCityCoords && maxDistance) {
             url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
          }
@@ -437,7 +437,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   }, [inView, hasMore, loading, page, selectedCategory, searchQuery, selectedCityCoords, maxDistance]);
 
   return (
-    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -473,8 +473,8 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
               }
             }
           }}
-          showVerifiedOnly={showVerifiedOnly}
-          onShowVerifiedOnlyChange={setShowVerifiedOnly}
+          showFeaturedOnly={showFeaturedOnly}
+          onShowFeaturedOnlyChange={setShowFeaturedOnly}
           listingsCount={listings.filter(l => !l.sold).length}
           getCategoryCount={(catName) => listings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch={citySearch}

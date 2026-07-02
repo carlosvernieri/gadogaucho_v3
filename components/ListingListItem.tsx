@@ -46,12 +46,12 @@ export const ListingListItem = ({
           <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none" />
         )}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {listing.verified && (
+          {listing.featured && (
             <Badge variant="verified">
               DESTAQUE
             </Badge>
           )}
-          {listing.verification_requested && !listing.verified && (
+          {listing.feature_requested && !listing.featured && (
             <Badge variant="default" className="bg-blue-50 text-[#333] border border-blue-100 shadow-none flex items-center gap-1">
               <Clock size={12} /> SOLICITADO
             </Badge>
@@ -126,18 +126,18 @@ export const ListingListItem = ({
               >
                 <CheckCircle size={14} /> {listing.sold ? 'Disponível' : 'Vendido'}
               </button>
-              {!listing.verified && (
+              {!listing.featured && (
                 <button 
                   onClick={() => onVerify?.(listing.id)}
-                  disabled={!!listing.verification_requested}
+                  disabled={!!listing.feature_requested}
                   className={`flex-1 md:w-32 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                    listing.verification_requested 
+                    listing.feature_requested 
                       ? 'bg-amber-50 text-amber-600 border border-amber-100 opacity-60 cursor-not-allowed' 
                       : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm cursor-pointer'
                   }`}
                 >
-                  {listing.verification_requested ? <Clock size={14} /> : <Star size={14} fill="currentColor" />} 
-                  {listing.verification_requested ? 'Pendente' : 'Destacar'}
+                  {listing.feature_requested ? <Clock size={14} /> : <Star size={14} fill="currentColor" />} 
+                  {listing.feature_requested ? 'Pendente' : 'Destacar'}
                 </button>
               )}
             </div>

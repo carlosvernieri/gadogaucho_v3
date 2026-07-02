@@ -32,7 +32,8 @@ import {
   HardDrive,
   Calendar,
   Bell,
-  Settings
+  Settings,
+  Star
 } from 'lucide-react';
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
@@ -77,7 +78,7 @@ export default function AdminPage() {
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
-  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [highlightRequests, setHighlightRequests] = useState<any[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [submittingUserVerify, setSubmittingUserVerify] = useState<string | null>(null);
   const [showRejectUserModal, setShowRejectUserModal] = useState(false);
@@ -550,7 +551,7 @@ export default function AdminPage() {
         const allListings = await res.json();
         setListings(allListings);
         setHasMoreListings(allListings.length === ITEMS_PER_PAGE);
-        setVerificationRequests(allListings.filter((l: any) => l.verification_requested && !l.verified));
+        setHighlightRequests(allListings.filter((l: any) => l.feature_requested && !l.featured));
       }
     } catch (error) {
       console.error('Error fetching listings:', error);
@@ -835,33 +836,33 @@ export default function AdminPage() {
     }
   };
 
-  const handleApproveVerification = async (id: number) => {
+  const handleApproveHighlight = async (id: number) => {
     try {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verified: true, verification_requested: false })
+        body: safeJsonStringify({ featured: true, feature_requested: false })
       });
       if (res.ok) {
         fetchData();
       }
     } catch (error) {
-      console.error('Error approving verification:', error);
+      console.error('Error approving highlight:', error);
     }
   };
 
-  const handleRejectVerification = async (id: number) => {
+  const handleRejectHighlight = async (id: number) => {
     try {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verification_requested: false })
+        body: safeJsonStringify({ feature_requested: false })
       });
       if (res.ok) {
         fetchData();
       }
     } catch (error) {
-      console.error('Error rejecting verification:', error);
+      console.error('Error rejecting highlight:', error);
     }
   };
 
@@ -897,18 +898,18 @@ export default function AdminPage() {
     });
   };
 
-  const handleToggleListingVerified = async (l: any) => {
+  const handleToggleListingFeatured = async (l: any) => {
     try {
       const res = await fetch(`/api/listings/${l.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verified: !l.verified })
+        body: safeJsonStringify({ featured: !l.featured })
       });
       if (res.ok) {
-        setListings(listings.map(listing => listing.id === l.id ? { ...listing, verified: !l.verified } : listing));
+        setListings(listings.map(listing => listing.id === l.id ? { ...listing, featured: !l.featured } : listing));
       }
     } catch (error) {
-      console.error('Error toggling listing verification:', error);
+      console.error('Error toggling listing featured:', error);
     }
   };
 
@@ -958,7 +959,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => { }}
@@ -1001,9 +1002,9 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Verificações
-                  {(verificationRequests.length + pendingUsers.length) > 0 && (
+                  {(highlightRequests.length + pendingUsers.length) > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                      {verificationRequests.length + pendingUsers.length}
+                      {highlightRequests.length + pendingUsers.length}
                     </span>
                   )}
                 </button>
@@ -1197,7 +1198,7 @@ export default function AdminPage() {
                       activeVerifSubTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
                     }`}
                   >
-                    Verificação de Anúncios ({verificationRequests.length})
+                    Destaques de Anúncios ({highlightRequests.length})
                     {activeVerifSubTab === 'listings' && (
                       <motion.div
                         layoutId="activeVerifSubTabUnderline"
@@ -1284,11 +1285,11 @@ export default function AdminPage() {
                 ) : (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheck className="text-[#2D5A27]" size={20} />
-                      <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação de Anúncios</h3>
+                      <Star className="text-[#2D5A27]" size={20} fill="currentColor" />
+                      <h3 className="text-lg font-bold text-[#333]">Solicitações de Destaque de Anúncios</h3>
                     </div>
 
-                    {verificationRequests.length > 0 ? (
+                    {highlightRequests.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm border-collapse">
                           <thead>
@@ -1300,7 +1301,7 @@ export default function AdminPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {verificationRequests.map(req => (
+                            {highlightRequests.map(req => (
                               <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
                                 <td className="py-4 px-4">
                                   <div className="flex items-center gap-3">
@@ -1320,14 +1321,14 @@ export default function AdminPage() {
                                 <td className="py-4 px-4 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
-                                      onClick={() => handleApproveVerification(req.id)}
+                                      onClick={() => handleApproveHighlight(req.id)}
                                       className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
                                       title="Aprovar"
                                     >
                                       <Check size={14} />
                                     </button>
                                     <button
-                                      onClick={() => handleRejectVerification(req.id)}
+                                      onClick={() => handleRejectHighlight(req.id)}
                                       className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
                                       title="Rejeitar"
                                     >
@@ -1342,9 +1343,9 @@ export default function AdminPage() {
                       </div>
                     ) : (
                       <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
-                        <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
-                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de anúncio pendente</p>
-                        <p className="text-sm text-[#666]">Novas solicitações de verificação de anúncios aparecerão aqui.</p>
+                        <Star size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de destaque pendente</p>
+                        <p className="text-sm text-[#666]">Novas solicitações de destaque de anúncios aparecerão aqui.</p>
                       </div>
                     )}
                   </div>
@@ -1396,10 +1397,10 @@ export default function AdminPage() {
                           <td className="py-4 px-4 font-bold text-[#333]">{l.title}</td>
                           <td className="py-4 px-4 text-[#666]">{l.seller}</td>
                           <td className="py-4 px-4">
-                            {l.verified ? (
-                              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">VERIFICADO</span>
-                            ) : l.verification_requested ? (
-                              <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
+                            {l.featured ? (
+                              <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">DESTAQUE</span>
+                            ) : l.feature_requested ? (
+                              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
                             ) : (
                               <span className="text-[10px] bg-gray-50 text-gray-400 px-2 py-1 rounded-full font-bold">PENDENTE</span>
                             )}
@@ -1411,11 +1412,11 @@ export default function AdminPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => handleToggleListingVerified(l)}
-                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
-                                title={l.verified ? "Remover Verificação" : "Marcar como Verificado"}
+                                onClick={() => handleToggleListingFeatured(l)}
+                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.featured ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                                title={l.featured ? "Remover Destaque" : "Marcar como Destaque"}
                               >
-                                <ShieldCheck size={16} />
+                                <Star size={16} fill={l.featured ? "currentColor" : "none"} />
                               </button>
                               <button
                                 onClick={() => {

@@ -35,8 +35,8 @@ async function fetchListingData(id: string) {
       listing = {
         ...listing,
         sold: !!listing.sold,
-        verified: !!listing.verified,
-        verification_requested: !!listing.verification_requested,
+        featured: !!listing.featured,
+        feature_requested: !!listing.feature_requested,
         priceKg: listing.price_kg || listing.priceKg,
         avgWeight: listing.avg_weight || listing.avgWeight,
         images: parseJsonField(listing.images),
@@ -65,7 +65,7 @@ async function fetchListingData(id: string) {
     const mappedListings = listings.map((l: any) => ({
       ...l,
       sold: !!l.sold,
-      verified: !!l.verified,
+      featured: !!l.featured,
       priceKg: l.price_kg || l.priceKg,
       avgWeight: l.avg_weight || l.avgWeight,
       images: parseJsonField(l.images),
