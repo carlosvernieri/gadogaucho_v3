@@ -97,7 +97,7 @@ export const ListingCard = ({
         )}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           <Badge>{listing.category} <span className="font-normal opacity-60">cod: {listing.id}</span></Badge>
-          {listing.verified && <Badge variant="verified">VERIFICADO</Badge>}
+          {listing.featured && <Badge variant="verified">DESTAQUE</Badge>}
           {listing.sold && (
             <Badge variant="default" className="bg-red-50 text-red-600 border border-red-100 shadow-none flex items-center gap-1">
               <CheckCircle size={12} /> VENDIDO
@@ -133,7 +133,7 @@ export const ListingCard = ({
           >
             {listing.seller}
             {listing.sellerVerified && (
-              <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
+              <Badge variant="seller-verified">
                 VERIFICADO
               </Badge>
             )}
@@ -144,6 +144,6 @@ export const ListingCard = ({
           Ver Detalhes
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 };

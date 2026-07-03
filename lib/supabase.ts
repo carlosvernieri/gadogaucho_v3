@@ -28,6 +28,25 @@ export const getSupabaseAdmin = () => {
   });
 };
 
-export const supabaseAdmin = getSupabaseAdmin();
+let cachedAdminClient: any = null;
+let isAnonCached = true;
+
+export const supabaseAdmin = new Proxy({} as any, {
+  get(target, prop, receiver) {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!cachedAdminClient || (isAnonCached && serviceRoleKey)) {
+      cachedAdminClient = getSupabaseAdmin();
+      isAnonCached = !serviceRoleKey;
+    }
+    
+    const value = Reflect.get(cachedAdminClient, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(cachedAdminClient);
+    }
+    return value;
+  }
+});
+
 export const isSupabaseConfigured = () => !!supabaseUrl && !!supabaseAnonKey;
 

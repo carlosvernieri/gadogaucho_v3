@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3, Calculator } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3, Calculator, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -105,6 +105,15 @@ export const Header = ({
             <span className="hidden sm:inline">Calculadoras</span>
           </button>
 
+          <button
+            onClick={() => router.push('/alertas')}
+            className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+            title="Alertas de Oportunidades"
+          >
+            <Bell size={20} />
+            <span className="hidden sm:inline">Alertas</span>
+          </button>
+
           {user ? (
             <div className="flex items-center gap-4">
               <button
@@ -130,10 +139,10 @@ export const Header = ({
                 <button
                   onClick={onMyAdsClick || (() => router.push('/meus-anuncios'))}
                   className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
-                  title="Meus Anúncios"
+                  title="Meu Painel"
                 >
-                  <Megaphone size={20} />
-                  <span className="hidden xl:inline">Meus Anúncios</span>
+                  <User size={20} />
+                  <span className="hidden xl:inline">Meu Painel</span>
                 </button>
                 <button
                   onClick={onMessagesClick || (() => router.push('/mensagens'))}

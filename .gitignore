@@ -14,4 +14,5 @@ process_result.json
 
 # TypeScript compile cache
 tsconfig.tsbuildinfo
-
+app/debug-db/page.tsx
+app/api/debug-db/route.ts

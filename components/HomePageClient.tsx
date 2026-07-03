@@ -40,22 +40,38 @@ const formatPhone = (val: string) => {
 export function HomePageClient({ initialListings }: { initialListings: any[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, setUser, logout, showAuthModal, setShowAuthModal, authMode, setAuthMode, favorites, setShowAdModal, setEditingListing } = useUser();
+  const { user, setUser, logout, showAuthModal, setShowAuthModal, authMode, setAuthMode, favorites, toggleFavorite, setShowAdModal, setEditingListing } = useUser();
   const [listings, setListings] = useState<any[]>(initialListings);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialListings.length === 20);
   const { ref: observerRef, inView } = useInView();
   const isInitialFilterState = useRef(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    return searchParams ? searchParams.get('category') || null : null;
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return searchParams ? searchParams.get('search') || '' : '';
+  });
+  const [showFeaturedOnly, setShowFeaturedOnly] = useState(() => {
+    return searchParams ? searchParams.get('featured') === 'true' : false;
+  });
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(() => {
+    return searchParams ? searchParams.get('verified') === 'true' : false;
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Proximity Search State
-  const [citySearch, setCitySearch] = useState('');
+  const [citySearch, setCitySearch] = useState(() => {
+    return searchParams ? searchParams.get('citySearch') || '' : '';
+  });
   const [maxDistance, setMaxDistance] = useState(100);
-  const [selectedCityCoords, setSelectedCityCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [selectedCityCoords, setSelectedCityCoords] = useState<{ lat: number, lng: number } | null>(() => {
+    if (!searchParams) return null;
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    return lat && lng ? { lat: Number(lat), lng: Number(lng) } : null;
+  });
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
   // Haversine formula to calculate distance between two points in km
@@ -175,6 +191,34 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
+  const [bannerSettings, setBannerSettings] = useState<{ enabled: boolean; title: string; description: string; buttonText: string; buttonLink?: string } | null>(null);
+  const [showBannerModal, setShowBannerModal] = useState(false);
+
+  useEffect(() => {
+    const checkBanner = async () => {
+      try {
+        const res = await fetch('/api/admin/alert-banner');
+        if (res.ok) {
+          const data = await res.json();
+          setBannerSettings(data);
+          
+          const hasSeen = localStorage.getItem('gado_gaucho_alert_banner_seen');
+          if (data.enabled && !hasSeen) {
+            setShowBannerModal(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading banner settings:', error);
+      }
+    };
+    checkBanner();
+  }, []);
+
+  const handleCloseBanner = () => {
+    localStorage.setItem('gado_gaucho_alert_banner_seen', 'true');
+    setShowBannerModal(false);
+  };
+
   // Handle URL parameters for modals
   useEffect(() => {
     const authParam = searchParams.get('auth');
@@ -252,7 +296,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         const error = await res.json();
         let message = `Erro ao atualizar anúncio: ${error.error || 'Erro desconhecido'}`;
         if (error.code === 'PGRST204') {
-          message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS verification_requested BOOLEAN DEFAULT FALSE;`;
+          message += `\n\nErro de Banco de Dados: Coluna ausente no Supabase. Por favor, execute o seguinte SQL no seu Editor SQL do Supabase:\n\nALTER TABLE listings ADD COLUMN IF NOT EXISTS feature_requested BOOLEAN DEFAULT FALSE;`;
         } else {
           message += `\n\nDetalhes: ${error.details || (error.message ? error.message : String(error))}`;
         }
@@ -275,9 +319,9 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   };
 
   const handleRequestVerification = async (id: number) => {
-    const updated = await handleUpdateListing(id, { verification_requested: true });
+    const updated = await handleUpdateListing(id, { feature_requested: true });
     if (updated) {
-      showToast('Solicitação de verificação enviada com sucesso!');
+      showToast('Solicitação de destaque enviada com sucesso!');
     }
   };
 
@@ -298,41 +342,18 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
     const listingIdNum = Number(listingId);
     const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
 
     setIsTogglingFavorite(true);
 
     try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
-        // We do not manage local setFavorites array anymore as it's handled in Context
-        // Actually, since we need immediate UI updates, let's update it here or dispatch a request
-        // The most direct way is to read the current context state and update it.
-        // Wait, context exports setFavorites, we should use it.
-        // I will do it outside of this chunk correctly. But wait, I'll update it right now.
-        // To be safe I'll just reload the favorite using the updated context setFavorites
-        // The existing code manually updated local state `setFavorites`.
-        let updatedFavs = [];
+      const success = await toggleFavorite(listingIdNum);
+      if (success) {
         if (isFavorite) {
-          updatedFavs = favorites.filter(id => Number(id) !== listingIdNum);
           setFavoriteToastMessage('Removido dos favoritos');
         } else {
-          updatedFavs = [...favorites, listingIdNum];
           setFavoriteToastMessage('Adicionado aos favoritos!');
         }
-
-        // Wait, where is setFavorites? I need to get it from useUser().
-        // Actually, it's missing from my destructured `useUser()` call in the first chunk, let me check. No, I exported it. I must grab it.
-        // Let's assume I grabbed it in the first chunk wait: `const { ..., favorites, setFavorites } = useUser()`. Yes, I'll update the first chunk to include `setFavorites`.
-        // I can just replace the logic here with a local setFavorites call.
-
-        // Let's just fix the function with setFavorites
-        // However, I made a mistake in the first chunk? Let me write this raw and clean it in next step if necessary. Let me just put the same logic.
+        setShowShareToast(true);
         setTimeout(() => setShowShareToast(false), 3000);
       }
     } catch (error) {
@@ -354,6 +375,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         let url = `/api/listings?page=1&limit=20`;
         if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
         if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (showFeaturedOnly) url += `&featured=true`;
         if (showVerifiedOnly) url += `&verified=true`;
         if (selectedCityCoords && maxDistance) {
           url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
@@ -375,11 +397,11 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     
     if (isInitialFilterState.current) {
       isInitialFilterState.current = false;
-      if (!selectedCategory && !searchQuery && !selectedCityCoords) return;
+      if (!selectedCategory && !searchQuery && !showFeaturedOnly && !showVerifiedOnly && !selectedCityCoords) return;
     }
     
     fetchFiltered();
-  }, [selectedCategory, searchQuery, showVerifiedOnly, selectedCityCoords, maxDistance]);
+  }, [selectedCategory, searchQuery, showFeaturedOnly, showVerifiedOnly, selectedCityCoords, maxDistance]);
 
   useEffect(() => {
     if (inView && hasMore && !loading) {
@@ -388,6 +410,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
          let url = `/api/listings?page=${nextPage}&limit=20`;
          if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
          if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+         if (showFeaturedOnly) url += `&featured=true`;
          if (showVerifiedOnly) url += `&verified=true`;
          if (selectedCityCoords && maxDistance) {
             url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
@@ -405,10 +428,10 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
       };
       fetchNextPage();
     }
-  }, [inView, hasMore, loading, page, selectedCategory, searchQuery, selectedCityCoords, maxDistance]);
+  }, [inView, hasMore, loading, page, selectedCategory, searchQuery, showFeaturedOnly, showVerifiedOnly, selectedCityCoords, maxDistance]);
 
   return (
-    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -444,6 +467,8 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
               }
             }
           }}
+          showFeaturedOnly={showFeaturedOnly}
+          onShowFeaturedOnlyChange={setShowFeaturedOnly}
           showVerifiedOnly={showVerifiedOnly}
           onShowVerifiedOnlyChange={setShowVerifiedOnly}
           listingsCount={listings.filter(l => !l.sold).length}
@@ -641,6 +666,63 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
           </div>
         </div>
       )}
+
+      {/* Banner Modal de Abertura */}
+      <AnimatePresence>
+        {showBannerModal && bannerSettings && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseBanner}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-white max-w-[500px] w-full rounded-3xl overflow-hidden shadow-2xl relative z-10 border border-[#E9ECEF]"
+            >
+              {/* Header decorativo premium */}
+              <div className="bg-[#2D5A27] p-8 text-white relative overflow-hidden flex flex-col items-center text-center">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-12 -translate-y-12" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -translate-x-6 translate-y-6" />
+                
+                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                  <Megaphone size={28} className="text-white animate-bounce" />
+                </div>
+                <h3 className="text-xl font-bold leading-tight">{bannerSettings.title}</h3>
+              </div>
+
+              {/* Corpo */}
+              <div className="p-8 text-center">
+                <p className="text-sm text-[#555] leading-relaxed mb-8">
+                  {bannerSettings.description}
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href={bannerSettings.buttonLink || "/alertas"}
+                    onClick={handleCloseBanner}
+                    className="w-full py-3.5 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all hover:scale-[1.01] text-center text-sm"
+                  >
+                    {bannerSettings.buttonText}
+                  </Link>
+                  <button
+                    onClick={handleCloseBanner}
+                    className="w-full py-3 text-[#999] hover:text-[#666] font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Não tenho interesse agora
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {user && (
         <BottomNav

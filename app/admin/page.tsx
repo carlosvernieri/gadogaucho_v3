@@ -30,7 +30,10 @@ import {
   Camera,
   Video,
   HardDrive,
-  Calendar
+  Calendar,
+  Bell,
+  Settings,
+  Star
 } from 'lucide-react';
 import { AdminAuctionManager } from '@/components/AdminAuctionManager';
 import { AdminCalculatorSuggestions } from '@/components/AdminCalculatorSuggestions';
@@ -51,7 +54,19 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthReady, logout } = useUser();
   const [loading, setLoading] = useState(true);
-  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions' | 'ocr-audit'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'listings' | 'verifications' | 'system' | 'auctions' | 'suggestions' | 'ocr-audit' | 'alerts'>('users');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<{ paused: boolean; maxDistance: number }>({ paused: false, maxDistance: 100 });
+  const [isUpdatingAlertSettings, setIsUpdatingAlertSettings] = useState(false);
+  const [bannerConfig, setBannerConfig] = useState({
+    enabled: true,
+    title: '',
+    description: '',
+    buttonText: '',
+    buttonLink: '/alertas'
+  });
+  const [isSavingBannerConfig, setIsSavingBannerConfig] = useState(false);
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
   const [isSyncingMarket, setIsSyncingMarket] = useState(false);
   const [marketData, setMarketData] = useState<any>(null);
@@ -64,7 +79,7 @@ export default function AdminPage() {
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
-  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [highlightRequests, setHighlightRequests] = useState<any[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [submittingUserVerify, setSubmittingUserVerify] = useState<string | null>(null);
   const [showRejectUserModal, setShowRejectUserModal] = useState(false);
@@ -537,7 +552,7 @@ export default function AdminPage() {
         const allListings = await res.json();
         setListings(allListings);
         setHasMoreListings(allListings.length === ITEMS_PER_PAGE);
-        setVerificationRequests(allListings.filter((l: any) => l.verification_requested && !l.verified));
+        setHighlightRequests(allListings.filter((l: any) => l.feature_requested && !l.featured));
       }
     } catch (error) {
       console.error('Error fetching listings:', error);
@@ -554,8 +569,153 @@ export default function AdminPage() {
     } else if (adminTab === 'verifications') {
       fetchPendingUsers();
       fetchListings(1, listingsSearch);
+    } else if (adminTab === 'alerts') {
+      fetchAdminAlerts();
+      fetchAlertSettings();
+      fetchBannerConfig();
     }
   }, [usersPage, listingsPage, adminTab]);
+
+  const fetchBannerConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/alert-banner');
+      if (res.ok) {
+        const data = await res.json();
+        setBannerConfig(data);
+      }
+    } catch (error) {
+      console.error('Error fetching banner config:', error);
+    }
+  };
+
+  const handleSaveBannerConfig = async () => {
+    setIsSavingBannerConfig(true);
+    try {
+      const res = await fetch('/api/admin/alert-banner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerConfig)
+      });
+      if (res.ok) {
+        showToast('Configurações do banner atualizadas com sucesso.', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao salvar configurações do banner.', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving banner config:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsSavingBannerConfig(false);
+    }
+  };
+
+  const fetchAlertSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/alert-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setAlertSettings(data);
+      }
+    } catch (error) {
+      console.error('Error fetching alert settings:', error);
+    }
+  };
+
+  const handleToggleAlertsPause = async () => {
+    setIsUpdatingAlertSettings(true);
+    const targetState = !alertSettings.paused;
+    try {
+      const res = await fetch('/api/admin/alert-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paused: targetState,
+          maxDistance: alertSettings.maxDistance
+        })
+      });
+      if (res.ok) {
+        setAlertSettings({ ...alertSettings, paused: targetState });
+        showToast(targetState ? 'Envio automático de alertas PAUSADO.' : 'Envio automático de alertas ATIVADO.', 'success');
+      } else {
+        showToast('Erro ao atualizar configurações.', 'error');
+      }
+    } catch (error) {
+      console.error('Error toggling alert settings:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsUpdatingAlertSettings(false);
+    }
+  };
+
+  const handleSaveMaxDistance = async (distance: number) => {
+    setIsUpdatingAlertSettings(true);
+    try {
+      const res = await fetch('/api/admin/alert-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paused: alertSettings.paused,
+          maxDistance: distance
+        })
+      });
+      if (res.ok) {
+        setAlertSettings({ ...alertSettings, maxDistance: distance });
+        showToast('Distância limite de entrega de alertas atualizada com sucesso.', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao atualizar distância limite.', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating distance limit:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsUpdatingAlertSettings(false);
+    }
+  };
+
+  const fetchAdminAlerts = async () => {
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch('/api/opportunity-alerts');
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data);
+      } else {
+        showToast('Erro ao carregar alertas.', 'error');
+      }
+    } catch (error) {
+      console.error('Error fetching admin alerts:', error);
+      showToast('Erro de conexão ao carregar alertas.', 'error');
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Excluir Alerta',
+      message: 'Tem certeza que deseja excluir este alerta? Esta ação não pode ser desfeita.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/opportunity-alerts?id=${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            setAlerts(prev => prev.filter(a => a.id !== id));
+            showToast('Alerta de oportunidade excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir alerta.', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting alert:', error);
+          showToast('Erro de conexão.', 'error');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
 
   const handleSearchUsers = (e: React.FormEvent) => {
     e.preventDefault();
@@ -583,7 +743,7 @@ export default function AdminPage() {
     setShowUserModal(true);
   };
 
-  const handleDeleteUser = async (id: number) => {
+  const handleDeleteUser = async (id: string | number) => {
     setConfirmModal({
       isOpen: true,
       title: 'Excluir Usuário',
@@ -677,33 +837,33 @@ export default function AdminPage() {
     }
   };
 
-  const handleApproveVerification = async (id: number) => {
+  const handleApproveHighlight = async (id: number) => {
     try {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verified: true, verification_requested: false })
+        body: safeJsonStringify({ featured: true, feature_requested: false })
       });
       if (res.ok) {
         fetchData();
       }
     } catch (error) {
-      console.error('Error approving verification:', error);
+      console.error('Error approving highlight:', error);
     }
   };
 
-  const handleRejectVerification = async (id: number) => {
+  const handleRejectHighlight = async (id: number) => {
     try {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verification_requested: false })
+        body: safeJsonStringify({ feature_requested: false })
       });
       if (res.ok) {
         fetchData();
       }
     } catch (error) {
-      console.error('Error rejecting verification:', error);
+      console.error('Error rejecting highlight:', error);
     }
   };
 
@@ -739,18 +899,18 @@ export default function AdminPage() {
     });
   };
 
-  const handleToggleListingVerified = async (l: any) => {
+  const handleToggleListingFeatured = async (l: any) => {
     try {
       const res = await fetch(`/api/listings/${l.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verified: !l.verified })
+        body: safeJsonStringify({ featured: !l.featured })
       });
       if (res.ok) {
-        setListings(listings.map(listing => listing.id === l.id ? { ...listing, verified: !l.verified } : listing));
+        setListings(listings.map(listing => listing.id === l.id ? { ...listing, featured: !l.featured } : listing));
       }
     } catch (error) {
-      console.error('Error toggling listing verification:', error);
+      console.error('Error toggling listing featured:', error);
     }
   };
 
@@ -800,7 +960,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => { }}
@@ -843,9 +1003,9 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'verifications' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Verificações
-                  {(verificationRequests.length + pendingUsers.length) > 0 && (
+                  {(highlightRequests.length + pendingUsers.length) > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                      {verificationRequests.length + pendingUsers.length}
+                      {highlightRequests.length + pendingUsers.length}
                     </span>
                   )}
                 </button>
@@ -872,6 +1032,12 @@ export default function AdminPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'ocr-audit' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
                 >
                   Auditoria OCR
+                </button>
+                <button
+                  onClick={() => setAdminTab('alerts')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${adminTab === 'alerts' ? 'bg-[#2D5A27] text-white' : 'bg-[#F8F9FA] text-[#666] hover:bg-[#E9ECEF]'}`}
+                >
+                  Alertas
                 </button>
               </div>
             </div>
@@ -1033,7 +1199,7 @@ export default function AdminPage() {
                       activeVerifSubTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
                     }`}
                   >
-                    Verificação de Anúncios ({verificationRequests.length})
+                    Destaques de Anúncios ({highlightRequests.length})
                     {activeVerifSubTab === 'listings' && (
                       <motion.div
                         layoutId="activeVerifSubTabUnderline"
@@ -1120,11 +1286,11 @@ export default function AdminPage() {
                 ) : (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheck className="text-[#2D5A27]" size={20} />
-                      <h3 className="text-lg font-bold text-[#333]">Solicitações de Verificação de Anúncios</h3>
+                      <Star className="text-[#2D5A27]" size={20} fill="currentColor" />
+                      <h3 className="text-lg font-bold text-[#333]">Solicitações de Destaque de Anúncios</h3>
                     </div>
 
-                    {verificationRequests.length > 0 ? (
+                    {highlightRequests.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm border-collapse">
                           <thead>
@@ -1136,7 +1302,7 @@ export default function AdminPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {verificationRequests.map(req => (
+                            {highlightRequests.map(req => (
                               <tr key={req.id} className="border-b border-[#F8F9FA] hover:bg-[#F8F9FA]/50 transition-colors group">
                                 <td className="py-4 px-4">
                                   <div className="flex items-center gap-3">
@@ -1156,14 +1322,14 @@ export default function AdminPage() {
                                 <td className="py-4 px-4 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
-                                      onClick={() => handleApproveVerification(req.id)}
+                                      onClick={() => handleApproveHighlight(req.id)}
                                       className="p-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#1E3D1A] transition-all cursor-pointer shadow-sm"
                                       title="Aprovar"
                                     >
                                       <Check size={14} />
                                     </button>
                                     <button
-                                      onClick={() => handleRejectVerification(req.id)}
+                                      onClick={() => handleRejectHighlight(req.id)}
                                       className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all cursor-pointer"
                                       title="Rejeitar"
                                     >
@@ -1178,9 +1344,9 @@ export default function AdminPage() {
                       </div>
                     ) : (
                       <div className="col-span-full py-20 text-center bg-[#F8F9FA] rounded-3xl border border-dashed border-[#E9ECEF]">
-                        <ShieldCheck size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
-                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de anúncio pendente</p>
-                        <p className="text-sm text-[#666]">Novas solicitações de verificação de anúncios aparecerão aqui.</p>
+                        <Star size={48} className="text-[#999] mx-auto mb-4 opacity-20" />
+                        <p className="text-lg font-bold text-[#333]">Nenhuma solicitação de destaque pendente</p>
+                        <p className="text-sm text-[#666]">Novas solicitações de destaque de anúncios aparecerão aqui.</p>
                       </div>
                     )}
                   </div>
@@ -1232,10 +1398,10 @@ export default function AdminPage() {
                           <td className="py-4 px-4 font-bold text-[#333]">{l.title}</td>
                           <td className="py-4 px-4 text-[#666]">{l.seller}</td>
                           <td className="py-4 px-4">
-                            {l.verified ? (
-                              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">VERIFICADO</span>
-                            ) : l.verification_requested ? (
-                              <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
+                            {l.featured ? (
+                              <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-1 rounded-full font-bold">DESTAQUE</span>
+                            ) : l.feature_requested ? (
+                              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">SOLICITADO</span>
                             ) : (
                               <span className="text-[10px] bg-gray-50 text-gray-400 px-2 py-1 rounded-full font-bold">PENDENTE</span>
                             )}
@@ -1247,11 +1413,11 @@ export default function AdminPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => handleToggleListingVerified(l)}
-                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.verified ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 hover:bg-gray-100'}`}
-                                title={l.verified ? "Remover Verificação" : "Marcar como Verificado"}
+                                onClick={() => handleToggleListingFeatured(l)}
+                                className={`p-2 rounded-lg transition-all cursor-pointer ${l.featured ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                                title={l.featured ? "Remover Destaque" : "Marcar como Destaque"}
                               >
-                                <ShieldCheck size={16} />
+                                <Star size={16} fill={l.featured ? "currentColor" : "none"} />
                               </button>
                               <button
                                 onClick={() => {
@@ -1551,6 +1717,213 @@ export default function AdminPage() {
                     <p className="text-sm text-[#666]">Os logs de lotes rejeitados pelo processador OCR serão listados aqui.</p>
                   </div>
                 )}
+              </div>
+            ) : adminTab === 'alerts' ? (
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-[#E9ECEF] pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#333] flex items-center gap-2">
+                      <Bell size={20} className="text-[#2D5A27]" /> Demandas de Compradores (Alertas de Oportunidades)
+                    </h3>
+                    <p className="text-xs text-[#999] mt-0.5">Veja quem registrou interesse por categorias e modere as demandas cadastradas.</p>
+                  </div>
+                  <button
+                    onClick={handleToggleAlertsPause}
+                    disabled={isUpdatingAlertSettings}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+                      alertSettings.paused
+                        ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                        : 'bg-[#2D5A27] text-white hover:bg-[#1E3D1A] shadow-[#2D5A27]/10'
+                    }`}
+                  >
+                    <Bell size={14} className={alertSettings.paused ? '' : 'animate-pulse'} />
+                    {isUpdatingAlertSettings ? 'Processando...' : alertSettings.paused ? 'Alertas Pausados (Clique para Reativar)' : 'Alertas Ativos (Clique para Pausar)'}
+                  </button>
+                </div>
+
+                {/* Painel de Configurações Globais do Alerta */}
+                <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-6">
+                  <h4 className="text-xs font-bold text-[#333] mb-1 flex items-center gap-2">
+                    <Settings size={16} className="text-[#2D5A27]" /> Configurações de Distribuição de Alertas
+                  </h4>
+                  <p className="text-[11px] text-[#999] mb-4">
+                    Gerencie os parâmetros globais de validação geográfica para disparos de e-mail de alerta de oportunidades.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-end gap-4">
+                    <div className="flex-1 max-w-xs">
+                      <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Distância Limite para Envio (km)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={alertSettings.maxDistance}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, maxDistance: Number(e.target.value) })}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                        placeholder="Ex: 100"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleSaveMaxDistance(alertSettings.maxDistance)}
+                      disabled={isUpdatingAlertSettings}
+                      className="px-4 py-2.5 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdatingAlertSettings ? 'Salvando...' : 'Salvar Distância Limite'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Painel de Configuração do Banner de Abertura */}
+                <div className="bg-white rounded-3xl p-6 border border-[#E9ECEF] shadow-sm mb-8">
+                  <h4 className="text-xs font-bold text-[#333] mb-1 flex items-center gap-2">
+                    <Megaphone size={16} className="text-[#2D5A27]" /> Banner de Abertura (Alerta de Oportunidades)
+                  </h4>
+                  <p className="text-[11px] text-[#999] mb-4">
+                    Configure o banner modal que aparece uma única vez para novos visitantes na página inicial (ex: alertas de oportunidades ou novidades de lançamento).
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Ativar/Desativar */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="bannerEnabled"
+                        checked={bannerConfig.enabled}
+                        onChange={(e) => setBannerConfig({ ...bannerConfig, enabled: e.target.checked })}
+                        className="w-4 h-4 text-[#2D5A27] focus:ring-[#2D5A27] border-gray-300 rounded cursor-pointer"
+                      />
+                      <label htmlFor="bannerEnabled" className="text-xs font-bold text-[#555] cursor-pointer">
+                        Ativar apresentação do banner "estilo modal"
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Título do Banner</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.title}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, title: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: Encontre o Lote Perfeito..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Texto do Botão (CTA)</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.buttonText}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, buttonText: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: Ativar Alerta de Oportunidade"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Link/Destino do Botão</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.buttonLink || ''}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, buttonLink: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: /alertas ou /?ad=new"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Descrição / Texto Explicativo</label>
+                      <textarea
+                        value={bannerConfig.description}
+                        onChange={(e) => setBannerConfig({ ...bannerConfig, description: e.target.value })}
+                        rows={2}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all resize-none"
+                        placeholder="Escreva uma breve explicação da funcionalidade de alertas..."
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSaveBannerConfig}
+                        disabled={isSavingBannerConfig}
+                        className="px-4 py-2 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isSavingBannerConfig ? 'Salvando...' : 'Salvar Configurações do Banner'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#E9ECEF] text-[#999] font-bold text-[10px] uppercase tracking-wider">
+                        <th className="pb-4 px-4">Comprador</th>
+                        <th className="pb-4 px-4">Categoria Solicitada</th>
+                        <th className="pb-4 px-4">Limites (Preço/Peso)</th>
+                        <th className="pb-4 px-4">E-mail</th>
+                        <th className="pb-4 px-4">WhatsApp / Telefone</th>
+                        <th className="pb-4 px-4">Data Cadastro</th>
+                        <th className="pb-4 px-4">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F8F9FA]">
+                      {loadingAlerts ? (
+                        <tr>
+                          <td colSpan={7} className="py-10 text-center text-slate-400">
+                            <Loader2 className="animate-spin text-[#2D5A27] mx-auto mb-2" size={24} />
+                            Carregando demandas...
+                          </td>
+                        </tr>
+                      ) : alerts.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-10 text-center text-slate-400">
+                            Nenhum alerta de oportunidade cadastrado no sistema.
+                          </td>
+                        </tr>
+                      ) : (
+                        alerts.map(alert => (
+                          <tr key={alert.id} className="hover:bg-[#F8F9FA] transition-colors">
+                            <td className="py-4 px-4 font-bold text-[#333]">
+                              {alert.name}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="bg-[#E9F0E8] text-[#2D5A27] text-xs font-bold px-2.5 py-1 rounded-lg">
+                                {alert.categoryName}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-xs space-y-0.5">
+                              <div>
+                                <span className="text-[#999] font-semibold">Preço/Kg: </span>
+                                <span className="text-[#555] font-medium">
+                                  {alert.minPrice !== null && alert.minPrice !== undefined ? `R$ ${alert.minPrice.toLocaleString('pt-BR')}/kg` : 'R$ 0/kg'} - {alert.maxPrice !== null && alert.maxPrice !== undefined ? `R$ ${alert.maxPrice.toLocaleString('pt-BR')}/kg` : 'Sem limite'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[#999] font-semibold">Peso: </span>
+                                <span className="text-[#555] font-medium">
+                                  {alert.minWeight !== null && alert.minWeight !== undefined ? `${alert.minWeight} kg` : '0 kg'} - {alert.maxWeight !== null && alert.maxWeight !== undefined ? `${alert.maxWeight} kg` : 'Sem limite'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-[#666]">{alert.email}</td>
+                            <td className="py-4 px-4 text-[#666]">{alert.phone}</td>
+                            <td className="py-4 px-4 text-[#666] text-xs">
+                              {alert.createdAt ? new Date(alert.createdAt).toLocaleString('pt-BR') : '---'}
+                            </td>
+                            <td className="py-4 px-4">
+                              <button
+                                onClick={() => handleDeleteAlert(alert.id)}
+                                className="p-2 text-[#DC3545] hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                title="Excluir Alerta"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : null}
           </div>

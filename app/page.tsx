@@ -18,6 +18,7 @@ async function fetchListings() {
       .from('listings') as any)
       .select('*, users(name, verified)')
       .or('sold.eq.false,sold.is.null')
+      .order('featured', { ascending: false })
       .order('id', { ascending: false })
       .range(0, 19);
 
@@ -27,6 +28,7 @@ async function fetchListings() {
         .from('listings') as any)
         .select('*')
         .or('sold.eq.false,sold.is.null')
+        .order('featured', { ascending: false })
         .order('id', { ascending: false })
         .range(0, 19);
         
@@ -35,8 +37,8 @@ async function fetchListings() {
       return (fallbackListings || []).map((l: any) => ({
         ...l,
         sold: !!l.sold,
-        verified: !!l.verified,
-        verification_requested: !!l.verification_requested,
+        featured: !!l.featured,
+        feature_requested: !!l.feature_requested,
         priceKg: l.price_kg || l.priceKg,
         avgWeight: l.avg_weight || l.avgWeight,
         images: parseJsonField(l.images),
@@ -50,8 +52,8 @@ async function fetchListings() {
     return listings.map((l: any) => ({
       ...l,
       sold: !!l.sold,
-      verified: !!l.verified,
-      verification_requested: !!l.verification_requested,
+      featured: !!l.featured,
+      feature_requested: !!l.feature_requested,
       priceKg: l.price_kg,
       avgWeight: l.avg_weight,
       images: parseJsonField(l.images),

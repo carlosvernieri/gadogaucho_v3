@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Search, X, LayoutGrid, ShieldCheck, Plus } from 'lucide-react';
+import { MapPin, Search, X, LayoutGrid, ShieldCheck, Plus, Star } from 'lucide-react';
 import { CATEGORIES_LIST, RS_CITIES } from '@/lib/data';
 import { useRouter, usePathname } from 'next/navigation';
 import { slugify } from '@/lib/utils';
@@ -14,6 +14,8 @@ interface SidebarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearchSubmit?: () => void;
+  showFeaturedOnly?: boolean;
+  onShowFeaturedOnlyChange?: (show: boolean) => void;
   showVerifiedOnly?: boolean;
   onShowVerifiedOnlyChange?: (show: boolean) => void;
   listingsCount: number;
@@ -38,6 +40,8 @@ export const Sidebar = ({
   searchQuery,
   onSearchChange,
   onSearchSubmit,
+  showFeaturedOnly = false,
+  onShowFeaturedOnlyChange,
   showVerifiedOnly = false,
   onShowVerifiedOnlyChange,
   listingsCount,
@@ -235,19 +239,57 @@ export const Sidebar = ({
           </div>
 
           {/* Filtros Adicionais */}
-          <div className="mb-7">
+          <div className="mb-7 space-y-4">
             <div
-              onClick={() => onShowVerifiedOnlyChange?.(!showVerifiedOnly)}
+              onClick={() => {
+                if (pathname !== '/') {
+                  router.push(`/?featured=${!showFeaturedOnly}`);
+                } else {
+                  onShowFeaturedOnlyChange?.(!showFeaturedOnly);
+                }
+              }}
               className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
             >
               <div className="flex items-start justify-between gap-2 mb-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-1 text-[#2D5A27]">
-                    <ShieldCheck size={22} className="stroke-[2px]" />
+                    <Star size={22} className="stroke-[2px]" fill={showFeaturedOnly ? "currentColor" : "none"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Anúncios</span>
-                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Verificados</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Anúncios em</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Destaque</span>
+                  </div>
+                </div>
+
+                {/* Toggle Switch */}
+                <div className={`min-w-[44px] h-6 rounded-full relative transition-all duration-300 mt-2 ${showFeaturedOnly ? 'bg-[#2D5A27]' : 'bg-[#D1D1D1]'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${showFeaturedOnly ? 'left-6' : 'left-1'}`} />
+                </div>
+              </div>
+
+              <p className="text-[12px] text-[#888] leading-tight font-normal">
+                Exibir apenas ofertas em destaque na plataforma.
+              </p>
+            </div>
+
+            <div
+              onClick={() => {
+                if (pathname !== '/') {
+                  router.push(`/?verified=${!showVerifiedOnly}`);
+                } else {
+                  onShowVerifiedOnlyChange?.(!showVerifiedOnly);
+                }
+              }}
+              className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
+            >
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 text-[#2D5A27]">
+                    <ShieldCheck size={22} className="stroke-[2px]" fill={showVerifiedOnly ? "currentColor" : "none"} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Vendedores</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Verificados</span>
                   </div>
                 </div>
 
@@ -257,8 +299,8 @@ export const Sidebar = ({
                 </div>
               </div>
 
-              <p className="text-[12px] text-[#888] leading-tight font-medium">
-                Exibir apenas vendedores com identidade confirmada.
+              <p className="text-[12px] text-[#888] leading-tight font-normal">
+                Exibir apenas ofertas de vendedores com identidade verificada.
               </p>
             </div>
           </div>

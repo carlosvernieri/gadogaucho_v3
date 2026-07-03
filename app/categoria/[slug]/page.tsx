@@ -17,14 +17,19 @@ export default function CategoriaPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal, favorites, toggleFavorite } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>([]);
 
   const categoryName = unslugify(slug, CATEGORIES_LIST);
+
+  useEffect(() => {
+    if (categoryName) {
+      document.title = `${categoryName} | Gado Gaúcho`;
+    }
+  }, [categoryName]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,14 +50,6 @@ export default function CategoriaPage() {
     fetchData();
   }, []);
 
-  // Sincronizar favoritos do contexto
-  const { favorites: userFavorites } = useUser();
-  useEffect(() => {
-    if (userFavorites) {
-      setFavorites(userFavorites);
-    }
-  }, [userFavorites]);
-
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
       setAuthMode('login');
@@ -61,23 +58,9 @@ export default function CategoriaPage() {
     }
 
     const listingIdNum = Number(listingId);
-    const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
-        if (isFavorite) {
-          setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
-        } else {
-          setFavorites([...favorites, listingIdNum]);
-        }
-      }
+      await toggleFavorite(listingIdNum);
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -118,7 +101,7 @@ export default function CategoriaPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col pb-10 lg:pb-0">
       <Header 
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}

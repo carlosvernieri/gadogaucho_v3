@@ -121,9 +121,9 @@ export async function GET() {
         const currentOffers = offers.filter((o: any) => currentAuctionIds.includes(o.auction_id));
         categories.forEach(cat => {
           const catOffers = currentOffers.filter((o: any) => categoryMap[o.category?.toLowerCase()?.trim() || ''] === cat);
-          const validPrices = catOffers.map((o: any) => Number(o.price_kg) || 0).filter(p => p > 0);
+          const validPrices: number[] = catOffers.map((o: any) => Number(o.price_kg) || 0).filter((p: number) => p > 0);
           if (validPrices.length > 0) {
-            stats[cat].auctionAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+            stats[cat].auctionAvg = validPrices.reduce((sum: number, p: number) => sum + p, 0) / validPrices.length;
           }
         });
 
@@ -131,9 +131,9 @@ export async function GET() {
         const prevOffers = offers.filter((o: any) => prevAuctionIds.includes(o.auction_id));
         categories.forEach(cat => {
           const catOffers = prevOffers.filter((o: any) => categoryMap[o.category?.toLowerCase()?.trim() || ''] === cat);
-          const validPrices = catOffers.map((o: any) => Number(o.price_kg) || 0).filter(p => p > 0);
+          const validPrices: number[] = catOffers.map((o: any) => Number(o.price_kg) || 0).filter((p: number) => p > 0);
           if (validPrices.length > 0) {
-            stats[cat].prevAuctionAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+            stats[cat].prevAuctionAvg = validPrices.reduce((sum: number, p: number) => sum + p, 0) / validPrices.length;
           }
         });
       }
@@ -142,9 +142,9 @@ export async function GET() {
         const recentListings = listings.filter((l: any) => new Date(l.created_at) >= thirtyDaysAgo);
         categories.forEach(cat => {
           const catListings = recentListings.filter((l: any) => categoryMap[l.category?.toLowerCase()?.trim() || ''] === cat);
-          const validPrices = catListings.map((l: any) => Number(l.price_kg) || 0).filter(p => p > 0);
+          const validPrices: number[] = catListings.map((l: any) => Number(l.price_kg) || 0).filter((p: number) => p > 0);
           if (validPrices.length > 0) {
-            stats[cat].platformAvg = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+            stats[cat].platformAvg = validPrices.reduce((sum: number, p: number) => sum + p, 0) / validPrices.length;
           }
         });
       }

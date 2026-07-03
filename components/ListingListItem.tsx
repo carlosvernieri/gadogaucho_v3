@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart } from 'lucide-react';
+import { MapPin, Pencil, Trash2, CheckCircle, AlertCircle, Clock, ShieldCheck, Heart, Star } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const ListingListItem = ({ 
@@ -46,12 +46,12 @@ export const ListingListItem = ({
           <div className="absolute inset-0 bg-red-500/70 mix-blend-overlay pointer-events-none" />
         )}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {listing.verified && (
+          {listing.featured && (
             <Badge variant="verified">
-              VERIFICADO
+              DESTAQUE
             </Badge>
           )}
-          {listing.verification_requested && !listing.verified && (
+          {listing.feature_requested && !listing.featured && (
             <Badge variant="default" className="bg-blue-50 text-[#333] border border-blue-100 shadow-none flex items-center gap-1">
               <Clock size={12} /> SOLICITADO
             </Badge>
@@ -75,7 +75,7 @@ export const ListingListItem = ({
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-bold text-[#666] uppercase tracking-wider">{listing.seller}</span>
                 {listing.sellerVerified && (
-                  <Badge variant="seller-verified" className="text-[8px] px-1.5 py-0">
+                  <Badge variant="seller-verified">
                     VERIFICADO
                   </Badge>
                 )}
@@ -126,14 +126,18 @@ export const ListingListItem = ({
               >
                 <CheckCircle size={14} /> {listing.sold ? 'Disponível' : 'Vendido'}
               </button>
-              {!listing.verified && (
+              {!listing.featured && (
                 <button 
                   onClick={() => onVerify?.(listing.id)}
-                  disabled={!!listing.verification_requested}
-                  className={`flex-1 md:w-32 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${listing.verification_requested ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 cursor-pointer'}`}
+                  disabled={!!listing.feature_requested}
+                  className={`flex-1 md:w-32 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    listing.feature_requested 
+                      ? 'bg-amber-50 text-amber-600 border border-amber-100 opacity-60 cursor-not-allowed' 
+                      : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm cursor-pointer'
+                  }`}
                 >
-                  {listing.verification_requested ? <Clock size={14} /> : <ShieldCheck size={14} />} 
-                  {listing.verification_requested ? 'Pendente' : 'Verificar'}
+                  {listing.feature_requested ? <Clock size={14} /> : <Star size={14} fill="currentColor" />} 
+                  {listing.feature_requested ? 'Pendente' : 'Destacar'}
                 </button>
               )}
             </div>

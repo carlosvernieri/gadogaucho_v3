@@ -381,10 +381,26 @@ export const ListingDetail = ({
           <div className="space-y-4">
             <button
               onClick={() => setShowInterestForm(true)}
-              className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98]"
+              className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all active:scale-[0.98] cursor-pointer"
             >
               Tenho Interesse
             </button>
+
+            <div className="bg-[#F8F9FA] border border-[#E9ECEF] rounded-2xl p-4.5 text-xs text-[#555] space-y-3 mt-4">
+              <div className="flex items-start gap-2.5">
+                <Info size={16} className="text-[#2D5A27] shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-[#333] block mb-0.5">Preço ou peso fora do esperado?</span>
+                  Não perca tempo! Crie um alerta e nós te avisamos assim que surgir um lote exatamente do seu jeito.
+                </div>
+              </div>
+              <Link
+                href={`/alertas?categoryId=${listing.category_id || ''}&minPrice=${listing.priceKg ? Math.max(0, Number((listing.priceKg * 0.85).toFixed(2))) : ''}&maxPrice=${listing.priceKg ? Number((listing.priceKg * 1.15).toFixed(2)) : ''}&minWeight=${listing.avgWeight ? Math.max(0, Math.round(listing.avgWeight * 0.85)) : ''}&maxWeight=${listing.avgWeight ? Math.round(listing.avgWeight * 1.15) : ''}&location=${encodeURIComponent(listing.location)}`}
+                className="w-full py-2.5 bg-white border border-[#2D5A27]/20 hover:border-[#2D5A27] text-[#2D5A27] font-bold rounded-xl text-center block transition-all hover:bg-[#E9F0E8]/20 cursor-pointer"
+              >
+                Cadastrar Alerta de Oportunidade
+              </Link>
+            </div>
           </div>
         </div>
       </div>

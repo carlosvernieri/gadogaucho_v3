@@ -9,7 +9,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
-import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2 } from 'lucide-react';
+import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2, Bell, Mail, MapPin, Loader2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify, deleteMediaFromStorage, getListingUrl, formatCityName } from '@/lib/utils';
@@ -20,17 +20,24 @@ import imageCompression from 'browser-image-compression';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
-  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, setShowAdModal, setEditingListing } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, setShowAdModal, setEditingListing, favorites, toggleFavorite } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
+  useEffect(() => {
+    document.title = 'Meu Painel | Gado Gaúcho';
+  }, []);
+
   const [isProcessingSold, setIsProcessingSold] = useState(false);
   const [isVerifyingListing, setIsVerifyingListing] = useState(false);
 
   // Estados para aba e edição de perfil
-  const [activeTab, setActiveTab] = useState<'listings' | 'profile' | 'password' | 'verification'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'alerts' | 'profile' | 'password' | 'verification'>('listings');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
     name: '',
     phone: '',
@@ -73,7 +80,7 @@ export default function MeusAnunciosPage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     setSavingProfile(true);
     setProfileError(null);
 
@@ -298,7 +305,7 @@ export default function MeusAnunciosPage() {
 
   const fetchData = async (userId: string) => {
     try {
-      const listingsRes = await fetch(`/api/listings?userId=${userId}&limit=1000`);
+      const listingsRes = await fetch('/api/listings?showAll=true&limit=1000');
       if (listingsRes.ok) {
         const data = await listingsRes.json();
         setListings(data);
@@ -319,7 +326,7 @@ export default function MeusAnunciosPage() {
         router.push('/');
       } else {
         fetchData(user.id);
-        
+
         const handleAdEvent = () => fetchData(user.id);
         window.addEventListener('ad_created', handleAdEvent);
         window.addEventListener('ad_updated', handleAdEvent);
@@ -331,7 +338,49 @@ export default function MeusAnunciosPage() {
     }
   }, [user, isAuthReady, router]);
 
+  const fetchAlerts = async () => {
+    if (!user) return;
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch('/api/opportunity-alerts');
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching alerts:', err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
 
+  useEffect(() => {
+    if (user) {
+      fetchAlerts();
+    }
+  }, [user]);
+
+  const handleDeleteAlert = async (id: string) => {
+    setDeletingAlertId(id);
+    try {
+      const res = await fetch(`/api/opportunity-alerts?id=${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        showToast('Alerta removido com sucesso!', 'success');
+        setAlerts(prev => prev.filter(a => a.id !== id));
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao remover alerta', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting alert:', err);
+      showToast('Erro de rede ao remover alerta', 'error');
+    } finally {
+      setDeletingAlertId(null);
+    }
+  };
 
   const handleDeleteListing = async (id: number) => {
     setConfirmModal({
@@ -393,16 +442,16 @@ export default function MeusAnunciosPage() {
       const res = await fetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ verification_requested: true })
+        body: safeJsonStringify({ feature_requested: true })
       });
       if (res.ok) {
         await fetchData(user.id);
-        showToast('Solicitação de verificação enviada!', 'success');
+        showToast('Solicitação de destaque enviada!', 'success');
       } else {
-        showToast('Erro ao solicitar verificação.', 'error');
+        showToast('Erro ao solicitar destaque.', 'error');
       }
     } catch (error) {
-      console.error('Error requesting verification:', error);
+      console.error('Error requesting highlight:', error);
       showToast('Erro de conexão.', 'error');
     } finally {
       setIsVerifyingListing(false);
@@ -410,6 +459,7 @@ export default function MeusAnunciosPage() {
   };
 
   const myAds = listings.filter(l => String(l.user_id) === String(user?.id));
+  const favoriteListings = listings.filter(l => favorites.map(Number).includes(Number(l.id)));
 
   const openNewAdModal = () => {
     setShowAdModal(true);
@@ -441,7 +491,7 @@ export default function MeusAnunciosPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FA] pb-10 lg:pb-0">
       <Header
         user={user}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -482,15 +532,15 @@ export default function MeusAnunciosPage() {
           setShowSuggestions={() => { }}
         />
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-[#E9F0E8] flex items-center justify-center text-[#2D5A27]">
                 <Megaphone size={24} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meus Anúncios</h1>
-                <p className="text-sm text-[#999]">Gerencie suas ofertas no Gado Gaúcho</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#333]">Meu Painel</h1>
+                <p className="text-sm text-[#999]">Gerencie suas ofertas e alertas no Gado Gaúcho</p>
               </div>
             </div>
             {activeTab === 'listings' && (
@@ -506,63 +556,108 @@ export default function MeusAnunciosPage() {
           </div>
 
           {/* Alternância de Abas */}
-          <div className="flex border-b border-[#E9ECEF] mb-8 gap-6">
-            <button
-              onClick={() => setActiveTab('listings')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
-            >
-              Meus Anúncios ({myAds.length})
-              {activeTab === 'listings' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
-            >
-              Meus Dados / Perfil
-              {activeTab === 'profile' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('password')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
-            >
-              Alterar Senha
-              {activeTab === 'password' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('verification')}
-              className={`pb-4 text-sm font-bold transition-all relative cursor-pointer ${
-                activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
-              }`}
-            >
-              Verificação
-              {activeTab === 'verification' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
-                />
-              )}
-            </button>
+          <div className="relative mb-8">
+            {/* Gradiente de Desfoque no Lado Direito */}
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#F8F9FA] to-transparent pointer-events-none z-10 lg:hidden" />
+            
+            <div className="flex border-b border-[#E9ECEF] gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none] pr-12 lg:pr-0">
+              <button
+                onClick={(e) => {
+                  setActiveTab('listings');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'listings' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Anúncios ({myAds.length})
+                {activeTab === 'listings' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('favorites');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'favorites' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Favoritos ({favoriteListings.length})
+                {activeTab === 'favorites' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('alerts');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'alerts' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Alertas ({alerts.length})
+                {activeTab === 'alerts' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('profile');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'profile' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Dados / Perfil
+                {activeTab === 'profile' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('password');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'password' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Alterar Senha
+                {activeTab === 'password' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  setActiveTab('verification');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'verification' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Verificação
+                {activeTab === 'verification' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+            </div>
           </div>
 
           {activeTab === 'listings' && (
@@ -609,6 +704,150 @@ export default function MeusAnunciosPage() {
                 </AnimatePresence>
               </div>
             )
+          )}
+
+          {activeTab === 'favorites' && (
+            favoriteListings.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#E9ECEF] shadow-sm">
+                <div className="w-20 h-20 bg-[#F8F9FA] rounded-full flex items-center justify-center mx-auto mb-6 text-[#999]">
+                  <Heart size={40} />
+                </div>
+                <h2 className="text-xl font-bold text-[#333] mb-2">Nenhum favorito ainda</h2>
+                <p className="text-[#666] mb-8">Explore os anúncios e salve os que mais lhe interessam!</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-8 py-3 bg-[#2D5A27] text-white font-bold rounded-xl hover:bg-[#1E3D1A] transition-all"
+                >
+                  Explorar Anúncios
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <AnimatePresence mode="popLayout">
+                  {favoriteListings.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ListingListItem
+                        listing={item}
+                        isOwner={false}
+                        onRemoveFavorite={() => toggleFavorite(item.id)}
+                        onView={() => router.push(getListingUrl(item))}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )
+          )}
+
+          {activeTab === 'alerts' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E9ECEF] shadow-sm max-w-4xl mx-auto w-full"
+            >
+              <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-[#E9ECEF]">
+                <div>
+                  <h2 className="text-xl font-bold text-[#333] flex items-center gap-2">
+                    <span>Alertas Ativos</span>
+                    <span className="bg-[#E9F0E8] text-[#2D5A27] text-xs font-bold px-2.5 py-0.5 rounded-full">
+                      {alerts.length}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-[#888] mt-1">Você será avisado por e-mail quando novos lotes de animais das categorias abaixo forem cadastrados.</p>
+                </div>
+                <button
+                  onClick={() => router.push('/alertas')}
+                  className="px-4 py-2 bg-[#2D5A27] text-white rounded-xl font-bold text-xs hover:bg-[#1E3D1A] transition-all flex items-center gap-1.5"
+                >
+                  <Plus size={14} /> Novo Alerta
+                </button>
+              </div>
+
+              {loadingAlerts ? (
+                <div className="py-16 flex flex-col items-center justify-center text-[#999]">
+                  <Loader2 size={36} className="animate-spin text-[#2D5A27] mb-3" />
+                  <span className="text-sm font-medium">Carregando seus alertas...</span>
+                </div>
+              ) : alerts.length === 0 ? (
+                <div className="py-16 text-center border border-dashed border-[#E9ECEF] rounded-2xl p-8 bg-slate-50/50">
+                  <Bell size={40} className="mx-auto text-slate-300 mb-3" />
+                  <h3 className="font-bold text-base text-[#666] mb-1">Você não possui alertas</h3>
+                  <p className="text-xs text-[#999] leading-relaxed mb-6 max-w-sm mx-auto">Cadastre alertas de oportunidades para ser notificado assim que ofertas do seu interesse entrarem no portal.</p>
+                  <button
+                    onClick={() => router.push('/alertas')}
+                    className="px-6 py-2.5 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all"
+                  >
+                    Cadastrar Primeiro Alerta
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {alerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="p-5 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] flex items-start justify-between gap-4 transition-all hover:bg-white hover:shadow-md hover:border-[#2D5A27]/20"
+                    >
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <span className="inline-block bg-[#E9F0E8] text-[#2D5A27] text-xs font-extrabold px-3 py-1 rounded-lg">
+                          {alert.categoryName}
+                        </span>
+
+                        <div className="text-sm font-bold text-[#333] truncate">
+                          {alert.name}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="text-xs text-[#666] flex items-center gap-1.5">
+                            <Mail size={13} className="shrink-0 text-slate-400" />
+                            <span className="truncate">{alert.email}</span>
+                          </div>
+
+                          <div className="text-xs text-[#666] flex items-center gap-1.5">
+                            <MapPin size={13} className="shrink-0 text-slate-400" />
+                            <span className="truncate">{alert.location || 'Qualquer Município'}</span>
+                          </div>
+                        </div>
+
+                        {(alert.minPrice !== null || alert.maxPrice !== null || alert.minWeight !== null || alert.maxWeight !== null) && (
+                          <div className="text-[11px] text-[#555] bg-slate-100/80 p-3 rounded-xl mt-3 space-y-1">
+                            {(alert.minPrice !== null || alert.maxPrice !== null) && (
+                              <div>
+                                <strong>Preço:</strong> {alert.minPrice !== null ? `R$ ${alert.minPrice.toLocaleString('pt-BR')}/kg` : 'R$ 0/kg'} até {alert.maxPrice !== null ? `R$ ${alert.maxPrice.toLocaleString('pt-BR')}/kg` : 'Sem limite'}
+                              </div>
+                            )}
+                            {(alert.minWeight !== null || alert.maxWeight !== null) && (
+                              <div>
+                                <strong>Peso:</strong> {alert.minWeight !== null ? `${alert.minWeight} kg` : '0 kg'} até {alert.maxWeight !== null ? `${alert.maxWeight} kg` : 'Sem limite'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteAlert(alert.id)}
+                        disabled={deletingAlertId === alert.id}
+                        className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-600 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                        title="Remover alerta"
+                      >
+                        {deletingAlertId === alert.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           )}
 
           {activeTab === 'profile' && (
@@ -823,7 +1062,7 @@ export default function MeusAnunciosPage() {
                       <div className="bg-[#F8F9FA] rounded-2xl p-5 border border-[#E9ECEF] max-w-md mx-auto text-left space-y-3">
                         <h3 className="font-bold text-xs text-[#999] uppercase">Benefícios Ativos:</h3>
                         <ul className="text-xs text-[#666] space-y-2 list-disc pl-4">
-                          <li>Exibição do selo azul <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold">VERIFICADO</span> em seu perfil de vendedor.</li>
+                          <li>Exibição do selo verde <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500 text-white rounded text-[9px] font-bold shadow-sm"><ShieldCheck size={10} />VERIFICADO</span> em seu perfil de vendedor.</li>
                           <li>Selo de verificação visível em todas as fotos de seus anúncios.</li>
                           <li>Prioridade na ordenação dos resultados de busca de animais.</li>
                           <li>Filtro exclusivo para compradores interessados apenas em anúncios verificados.</li>
