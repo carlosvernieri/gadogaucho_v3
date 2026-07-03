@@ -18,14 +18,13 @@ export default function VendedorPage() {
   const params = useParams();
   const router = useRouter();
   const sellerId = params.id as string;
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal, favorites, toggleFavorite } = useUser();
 
   const [sellerName, setSellerName] = useState('Carregando...');
   const [sellerVerified, setSellerVerified] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
   const [allListings, setAllListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<number[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
@@ -70,14 +69,6 @@ export default function VendedorPage() {
     fetchData();
   }, [sellerId]);
 
-  // Sincronizar favoritos do contexto se o usuário estiver logado
-  const { favorites: userFavorites } = useUser();
-  useEffect(() => {
-    if (userFavorites) {
-      setFavorites(userFavorites);
-    }
-  }, [userFavorites]);
-
   const handleToggleFavorite = async (listingId: number) => {
     if (!user) {
       setAuthMode('login');
@@ -86,23 +77,9 @@ export default function VendedorPage() {
     }
 
     const listingIdNum = Number(listingId);
-    const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
-        if (isFavorite) {
-          setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
-        } else {
-          setFavorites([...favorites, listingIdNum]);
-        }
-      }
+      await toggleFavorite(listingIdNum);
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }

@@ -14,6 +14,7 @@ interface UserContextType {
   setAuthMode: (mode: 'login' | 'register' | 'forgot') => void;
   favorites: number[];
   setFavorites: (favs: number[]) => void;
+  toggleFavorite: (listingId: number) => Promise<boolean>;
   showAdModal: boolean;
   setShowAdModal: (show: boolean) => void;
   editingListing: any | null;
@@ -82,6 +83,39 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err) {
       console.error('UserContext: Erro ao buscar favoritos:', err);
+    }
+  };
+
+  const toggleFavorite = async (listingId: number): Promise<boolean> => {
+    if (!user) {
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return false;
+    }
+
+    const listingIdNum = Number(listingId);
+    const isFavorite = favorites.map(Number).includes(listingIdNum);
+    const method = isFavorite ? 'DELETE' : 'POST';
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
+      });
+
+      if (res.ok) {
+        if (isFavorite) {
+          setFavorites(prev => prev.filter(id => Number(id) !== listingIdNum));
+        } else {
+          setFavorites(prev => [...prev, listingIdNum]);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error toggling favorite in context:', error);
+      return false;
     }
   };
 
@@ -169,7 +203,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       user, setUser, logout, isAuthReady, 
       showAuthModal, setShowAuthModal, 
       authMode, setAuthMode,
-      favorites, setFavorites,
+      favorites, setFavorites, toggleFavorite,
       showAdModal, setShowAdModal,
       editingListing, setEditingListing,
       unreadCount, setUnreadCount, fetchUnreadCount

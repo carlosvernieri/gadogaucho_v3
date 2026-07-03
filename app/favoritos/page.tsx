@@ -14,31 +14,21 @@ import { safeJsonStringify, getListingUrl } from '@/lib/utils';
 
 export default function FavoritosPage() {
   const router = useRouter();
-  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, favorites, toggleFavorite } = useUser();
   const [listings, setListings] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 
-  const fetchData = async (userId: string) => {
+  const fetchData = async () => {
     try {
-      const [listingsRes, favRes] = await Promise.all([
-        fetch('/api/listings?limit=1000').catch(err => {
-          console.error('Listings fetch failed:', err);
-          return { ok: false, json: async () => [] } as Response;
-        }),
-        fetch(`/api/favorites?userId=${userId}`).catch(err => {
-          console.error('Favorites fetch failed:', err);
-          return { ok: false, json: async () => [] } as Response;
-        })
-      ]);
+      const listingsRes = await fetch('/api/listings?limit=1000').catch(err => {
+        console.error('Listings fetch failed:', err);
+        return { ok: false, json: async () => [] } as Response;
+      });
 
       const listingsData = listingsRes.ok ? await listingsRes.json() : [];
       setListings(Array.isArray(listingsData) ? listingsData : []);
-
-      const favData = favRes.ok ? await favRes.json() : [];
-      setFavorites(Array.isArray(favData) ? favData : []);
     } catch (error) {
       console.error('Error in fetchData:', error);
     } finally {
@@ -52,7 +42,7 @@ export default function FavoritosPage() {
         console.log('FavoritosPage: Usuário não autenticado. Redirecionando...');
         router.push('/?auth=login');
       } else {
-        fetchData(user.id);
+        fetchData();
       }
     }
   }, [user, isAuthReady, router]);
@@ -63,12 +53,7 @@ export default function FavoritosPage() {
     if (!user) return;
     const listingIdNum = Number(listingId);
     try {
-      await fetch('/api/favorites', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-      setFavorites(favorites.filter(id => Number(id) !== listingIdNum));
+      await toggleFavorite(listingIdNum);
     } catch (error) {
       console.error('Error removing favorite:', error);
     }

@@ -40,7 +40,7 @@ const formatPhone = (val: string) => {
 export function HomePageClient({ initialListings }: { initialListings: any[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, setUser, logout, showAuthModal, setShowAuthModal, authMode, setAuthMode, favorites, setShowAdModal, setEditingListing } = useUser();
+  const { user, setUser, logout, showAuthModal, setShowAuthModal, authMode, setAuthMode, favorites, toggleFavorite, setShowAdModal, setEditingListing } = useUser();
   const [listings, setListings] = useState<any[]>(initialListings);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -327,41 +327,18 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
     const listingIdNum = Number(listingId);
     const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
 
     setIsTogglingFavorite(true);
 
     try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
-        // We do not manage local setFavorites array anymore as it's handled in Context
-        // Actually, since we need immediate UI updates, let's update it here or dispatch a request
-        // The most direct way is to read the current context state and update it.
-        // Wait, context exports setFavorites, we should use it.
-        // I will do it outside of this chunk correctly. But wait, I'll update it right now.
-        // To be safe I'll just reload the favorite using the updated context setFavorites
-        // The existing code manually updated local state `setFavorites`.
-        let updatedFavs = [];
+      const success = await toggleFavorite(listingIdNum);
+      if (success) {
         if (isFavorite) {
-          updatedFavs = favorites.filter(id => Number(id) !== listingIdNum);
           setFavoriteToastMessage('Removido dos favoritos');
         } else {
-          updatedFavs = [...favorites, listingIdNum];
           setFavoriteToastMessage('Adicionado aos favoritos!');
         }
-
-        // Wait, where is setFavorites? I need to get it from useUser().
-        // Actually, it's missing from my destructured `useUser()` call in the first chunk, let me check. No, I exported it. I must grab it.
-        // Let's assume I grabbed it in the first chunk wait: `const { ..., favorites, setFavorites } = useUser()`. Yes, I'll update the first chunk to include `setFavorites`.
-        // I can just replace the logic here with a local setFavorites call.
-
-        // Let's just fix the function with setFavorites
-        // However, I made a mistake in the first chunk? Let me write this raw and clean it in next step if necessary. Let me just put the same logic.
+        setShowShareToast(true);
         setTimeout(() => setShowShareToast(false), 3000);
       }
     } catch (error) {

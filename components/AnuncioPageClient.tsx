@@ -17,34 +17,13 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
   const params = useParams();
   const router = useRouter();
   const id = params.id;
-  const { user, setUser, logout, setAuthMode, setShowAuthModal } = useUser();
+  const { user, setUser, logout, setAuthMode, setShowAuthModal, favorites, toggleFavorite } = useUser();
   const [listing, setListing] = useState<any>(initialListing);
   const [listings, setListings] = useState<any[]>(initialListings);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>([]);
   const [toastMessage, setToastMessage] = useState('');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Os favoritos agora são gerenciados centralmente pelo UserContext
-        // Não precisamos mais carregar eles manualmente aqui via localStorage
-      } catch (error: any) {
-        console.error('Error fetching favorites:', error.message || error);
-      }
-    };
-    fetchData();
-  }, []);
-
-  // Sincronizar favoritos do contexto
-  const { favorites: userFavorites } = useUser();
-  useEffect(() => {
-    if (userFavorites) {
-      setFavorites(userFavorites);
-    }
-  }, [userFavorites]);
 
   const handleShare = (id: number) => {
     setShowShareModal(true);
@@ -59,21 +38,13 @@ export function AnuncioPageClient({ initialListing, initialListings }: { initial
 
     const listingIdNum = Number(listingId);
     const isFavorite = favorites.map(Number).includes(listingIdNum);
-    const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
-      const res = await fetch('/api/favorites', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ userId: user.id, listingId: listingIdNum })
-      });
-
-      if (res.ok) {
+      const success = await toggleFavorite(listingIdNum);
+      if (success) {
         if (isFavorite) {
-          setFavorites(favorites.filter(id => id !== listingId));
           setToastMessage('Removido dos favoritos');
         } else {
-          setFavorites([...favorites, listingId]);
           setToastMessage('Adicionado aos favoritos!');
         }
         setShowShareToast(true);
