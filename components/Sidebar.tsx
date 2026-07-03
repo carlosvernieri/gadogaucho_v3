@@ -241,7 +241,13 @@ export const Sidebar = ({
           {/* Filtros Adicionais */}
           <div className="mb-7 space-y-4">
             <div
-              onClick={() => onShowFeaturedOnlyChange?.(!showFeaturedOnly)}
+              onClick={() => {
+                if (pathname !== '/') {
+                  router.push(`/?featured=${!showFeaturedOnly}`);
+                } else {
+                  onShowFeaturedOnlyChange?.(!showFeaturedOnly);
+                }
+              }}
               className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
             >
               <div className="flex items-start justify-between gap-2 mb-4">
@@ -267,7 +273,13 @@ export const Sidebar = ({
             </div>
 
             <div
-              onClick={() => onShowVerifiedOnlyChange?.(!showVerifiedOnly)}
+              onClick={() => {
+                if (pathname !== '/') {
+                  router.push(`/?verified=${!showVerifiedOnly}`);
+                } else {
+                  onShowVerifiedOnlyChange?.(!showVerifiedOnly);
+                }
+              }}
               className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
             >
               <div className="flex items-start justify-between gap-2 mb-4">

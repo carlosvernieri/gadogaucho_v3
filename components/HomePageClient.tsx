@@ -47,16 +47,31 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   const [hasMore, setHasMore] = useState(initialListings.length === 20);
   const { ref: observerRef, inView } = useInView();
   const isInitialFilterState = useRef(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
-  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    return searchParams ? searchParams.get('category') || null : null;
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return searchParams ? searchParams.get('search') || '' : '';
+  });
+  const [showFeaturedOnly, setShowFeaturedOnly] = useState(() => {
+    return searchParams ? searchParams.get('featured') === 'true' : false;
+  });
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(() => {
+    return searchParams ? searchParams.get('verified') === 'true' : false;
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Proximity Search State
-  const [citySearch, setCitySearch] = useState('');
+  const [citySearch, setCitySearch] = useState(() => {
+    return searchParams ? searchParams.get('citySearch') || '' : '';
+  });
   const [maxDistance, setMaxDistance] = useState(100);
-  const [selectedCityCoords, setSelectedCityCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [selectedCityCoords, setSelectedCityCoords] = useState<{ lat: number, lng: number } | null>(() => {
+    if (!searchParams) return null;
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    return lat && lng ? { lat: Number(lat), lng: Number(lng) } : null;
+  });
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
   // Haversine formula to calculate distance between two points in km
@@ -383,7 +398,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     
     if (isInitialFilterState.current) {
       isInitialFilterState.current = false;
-      if (!selectedCategory && !searchQuery && !selectedCityCoords) return;
+      if (!selectedCategory && !searchQuery && !showFeaturedOnly && !showVerifiedOnly && !selectedCityCoords) return;
     }
     
     fetchFiltered();

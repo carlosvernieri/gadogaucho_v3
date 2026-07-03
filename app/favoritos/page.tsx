@@ -19,6 +19,9 @@ export default function FavoritosPage() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    document.title = 'Meus Favoritos | Gado Gaúcho';
+  }, []);
 
   const fetchData = async () => {
     try {

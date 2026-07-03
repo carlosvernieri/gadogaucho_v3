@@ -26,6 +26,10 @@ export default function MeusAnunciosPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
+  useEffect(() => {
+    document.title = 'Meu Painel | Gado Gaúcho';
+  }, []);
+
   const [isProcessingSold, setIsProcessingSold] = useState(false);
   const [isVerifyingListing, setIsVerifyingListing] = useState(false);
 

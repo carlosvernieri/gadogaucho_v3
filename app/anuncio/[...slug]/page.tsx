@@ -1,11 +1,63 @@
 import React, { Suspense } from 'react';
+import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
-import { parseJsonField, getListingUrl } from '@/lib/utils';
+import { parseJsonField, getListingUrl, formatCityName } from '@/lib/utils';
 import { AnuncioPageClient } from '@/components/AnuncioPageClient';
 import { Spinner } from '@/components/Spinner';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }): Promise<Metadata> {
+  const params = await props.params;
+  const slug = params.slug;
+  if (!slug || slug.length !== 4) return {};
+
+  const id = slug[3];
+  if (!isSupabaseConfigured()) return {};
+
+  try {
+    const { data: listing } = await (supabaseAdmin
+      .from('listings') as any)
+      .select('title, description, category, breed, location, images')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!listing) return {};
+
+    const categoryText = listing.category ? listing.category.charAt(0).toUpperCase() + listing.category.slice(1).toLowerCase() : '';
+    const breedText = listing.breed ? listing.breed.charAt(0).toUpperCase() + listing.breed.slice(1).toLowerCase() : '';
+    const locationText = listing.location ? formatCityName(listing.location.split('-')[0].trim()) : 'RS';
+
+    const title = `${categoryText} ${breedText} em ${locationText} | Gado Gaúcho`;
+    const description = listing.description
+      ? listing.description.substring(0, 160)
+      : `Confira este lote de ${listing.category} em ${locationText} no Gado Gaúcho.`;
+
+    const images = parseJsonField(listing.images);
+    const imageUrl = images && images.length > 0 ? images[0] : '/og-image.jpg';
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: [{ url: imageUrl }],
+        type: 'article',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [imageUrl],
+      }
+    };
+  } catch (e) {
+    console.error('Error generating metadata:', e);
+    return {};
+  }
+}
 
 async function fetchListingData(id: string) {
   if (!isSupabaseConfigured()) {

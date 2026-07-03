@@ -29,6 +29,12 @@ export default function VendedorPage() {
   const [showShareToast, setShowShareToast] = useState(false);
 
   useEffect(() => {
+    if (sellerName && sellerName !== 'Carregando...') {
+      document.title = `${sellerName} - Perfil do Vendedor | Gado Gaúcho`;
+    }
+  }, [sellerName]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [sellerUser, sellerRes, allRes] = await Promise.all([

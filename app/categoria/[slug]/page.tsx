@@ -26,6 +26,12 @@ export default function CategoriaPage() {
   const categoryName = unslugify(slug, CATEGORIES_LIST);
 
   useEffect(() => {
+    if (categoryName) {
+      document.title = `${categoryName} | Gado Gaúcho`;
+    }
+  }, [categoryName]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await fetch('/api/listings').catch(err => {
