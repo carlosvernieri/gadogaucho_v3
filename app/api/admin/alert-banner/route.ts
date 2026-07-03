@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { enabled, title, description, buttonText } = body;
+    const { enabled, title, description, buttonText, buttonLink } = body;
 
     if (typeof enabled !== 'boolean' || !title || !description || !buttonText) {
       return NextResponse.json({ error: 'Parâmetros inválidos' }, { status: 400 });
@@ -46,14 +46,15 @@ export async function POST(request: Request) {
       enabled,
       title: title.trim(),
       description: description.trim(),
-      buttonText: buttonText.trim()
+      buttonText: buttonText.trim(),
+      buttonLink: (buttonLink || '/alertas').trim()
     });
 
     if (!success) {
       return NextResponse.json({ error: 'Falha ao salvar configurações do banner' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, enabled, title, description, buttonText });
+    return NextResponse.json({ success: true, enabled, title, description, buttonText, buttonLink });
   } catch (error: any) {
     console.error('Error in POST /api/admin/alert-banner:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });

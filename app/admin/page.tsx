@@ -63,7 +63,8 @@ export default function AdminPage() {
     enabled: true,
     title: '',
     description: '',
-    buttonText: ''
+    buttonText: '',
+    buttonLink: '/alertas'
   });
   const [isSavingBannerConfig, setIsSavingBannerConfig] = useState(false);
   const [isCleaningStorage, setIsCleaningStorage] = useState(false);
@@ -1777,7 +1778,7 @@ export default function AdminPage() {
                     <Megaphone size={16} className="text-[#2D5A27]" /> Banner de Abertura (Alerta de Oportunidades)
                   </h4>
                   <p className="text-[11px] text-[#999] mb-4">
-                    Configure o banner modal que aparece uma única vez para novos visitantes na página inicial explicando e convidando para a área de alertas.
+                    Configure o banner modal que aparece uma única vez para novos visitantes na página inicial (ex: alertas de oportunidades ou novidades de lançamento).
                   </p>
 
                   <div className="space-y-4">
@@ -1795,7 +1796,7 @@ export default function AdminPage() {
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Título do Banner</label>
                         <input
@@ -1814,6 +1815,16 @@ export default function AdminPage() {
                           onChange={(e) => setBannerConfig({ ...bannerConfig, buttonText: e.target.value })}
                           className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
                           placeholder="Ex: Ativar Alerta de Oportunidade"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-[#999] uppercase mb-1.5 ml-2">Link/Destino do Botão</label>
+                        <input
+                          type="text"
+                          value={bannerConfig.buttonLink || ''}
+                          onChange={(e) => setBannerConfig({ ...bannerConfig, buttonLink: e.target.value })}
+                          className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                          placeholder="Ex: /alertas ou /?ad=new"
                         />
                       </div>
                     </div>

@@ -62,6 +62,7 @@ export interface AlertBannerSettings {
   title: string;
   description: string;
   buttonText: string;
+  buttonLink?: string;
 }
 
 export async function getAlertBannerSettings(): Promise<AlertBannerSettings> {
@@ -76,7 +77,8 @@ export async function getAlertBannerSettings(): Promise<AlertBannerSettings> {
       enabled: true,
       title: 'Encontre o Lote Perfeito com Alertas de Oportunidades!',
       description: 'Não perca tempo procurando! Cadastre a categoria, peso e preço desejados. Avisamos você por e-mail assim que um lote correspondente for anunciado.',
-      buttonText: 'Ativar Alerta de Oportunidade'
+      buttonText: 'Ativar Alerta de Oportunidade',
+      buttonLink: '/alertas'
     };
 
     if (error || !data) {
@@ -90,7 +92,8 @@ export async function getAlertBannerSettings(): Promise<AlertBannerSettings> {
       enabled: true,
       title: 'Encontre o Lote Perfeito com Alertas de Oportunidades!',
       description: 'Não perca tempo procurando! Cadastre a categoria, peso e preço desejados. Avisamos você por e-mail assim que um lote correspondente for anunciado.',
-      buttonText: 'Ativar Alerta de Oportunidade'
+      buttonText: 'Ativar Alerta de Oportunidade',
+      buttonLink: '/alertas'
     };
   }
 }

@@ -191,8 +191,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
-  // Banner modal state
-  const [bannerSettings, setBannerSettings] = useState<{ enabled: boolean; title: string; description: string; buttonText: string } | null>(null);
+  const [bannerSettings, setBannerSettings] = useState<{ enabled: boolean; title: string; description: string; buttonText: string; buttonLink?: string } | null>(null);
   const [showBannerModal, setShowBannerModal] = useState(false);
 
   useEffect(() => {
@@ -706,7 +705,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
 
                 <div className="flex flex-col gap-3">
                   <Link
-                    href="/alertas"
+                    href={bannerSettings.buttonLink || "/alertas"}
                     onClick={handleCloseBanner}
                     className="w-full py-3.5 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all hover:scale-[1.01] text-center text-sm"
                   >
