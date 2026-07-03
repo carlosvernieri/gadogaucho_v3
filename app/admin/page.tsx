@@ -742,7 +742,7 @@ export default function AdminPage() {
     setShowUserModal(true);
   };
 
-  const handleDeleteUser = async (id: number) => {
+  const handleDeleteUser = async (id: string | number) => {
     setConfirmModal({
       isOpen: true,
       title: 'Excluir Usuário',

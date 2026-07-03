@@ -9,7 +9,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ConfirmModal, showToast } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
-import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2, Bell, Mail, MapPin, Loader2 } from 'lucide-react';
+import { Megaphone, Plus, ShieldCheck, Camera, FileText, Clock, AlertCircle, Upload, Trash2, Bell, Mail, MapPin, Loader2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify, deleteMediaFromStorage, getListingUrl, formatCityName } from '@/lib/utils';
@@ -20,7 +20,7 @@ import imageCompression from 'browser-image-compression';
 
 export default function MeusAnunciosPage() {
   const router = useRouter();
-  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, setShowAdModal, setEditingListing } = useUser();
+  const { user, isAuthReady, logout, setAuthMode, setShowAuthModal, setShowAdModal, setEditingListing, favorites, toggleFavorite } = useUser();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function MeusAnunciosPage() {
   const [isVerifyingListing, setIsVerifyingListing] = useState(false);
 
   // Estados para aba e edição de perfil
-  const [activeTab, setActiveTab] = useState<'listings' | 'alerts' | 'profile' | 'password' | 'verification'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'alerts' | 'profile' | 'password' | 'verification'>('listings');
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
@@ -301,7 +301,7 @@ export default function MeusAnunciosPage() {
 
   const fetchData = async (userId: string) => {
     try {
-      const listingsRes = await fetch(`/api/listings?userId=${userId}&limit=1000`);
+      const listingsRes = await fetch('/api/listings?showAll=true&limit=1000');
       if (listingsRes.ok) {
         const data = await listingsRes.json();
         setListings(data);
@@ -455,6 +455,7 @@ export default function MeusAnunciosPage() {
   };
 
   const myAds = listings.filter(l => String(l.user_id) === String(user?.id));
+  const favoriteListings = listings.filter(l => favorites.map(Number).includes(Number(l.id)));
 
   const openNewAdModal = () => {
     setShowAdModal(true);
@@ -574,6 +575,22 @@ export default function MeusAnunciosPage() {
               </button>
               <button
                 onClick={(e) => {
+                  setActiveTab('favorites');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`pb-4 text-sm font-bold transition-all relative cursor-pointer shrink-0 ${activeTab === 'favorites' ? 'text-[#2D5A27]' : 'text-[#999] hover:text-[#666]'
+                  }`}
+              >
+                Meus Favoritos ({favoriteListings.length})
+                {activeTab === 'favorites' && (
+                  <motion.div
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2D5A27]"
+                  />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
                   setActiveTab('alerts');
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }}
@@ -677,6 +694,46 @@ export default function MeusAnunciosPage() {
                         onDelete={(id) => handleDeleteListing(id)}
                         onToggleSold={(id, status) => handleToggleSold(id, status)}
                         onVerify={(id) => handleVerifyListing(id)}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )
+          )}
+
+          {activeTab === 'favorites' && (
+            favoriteListings.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-[#E9ECEF] shadow-sm">
+                <div className="w-20 h-20 bg-[#F8F9FA] rounded-full flex items-center justify-center mx-auto mb-6 text-[#999]">
+                  <Heart size={40} />
+                </div>
+                <h2 className="text-xl font-bold text-[#333] mb-2">Nenhum favorito ainda</h2>
+                <p className="text-[#666] mb-8">Explore os anúncios e salve os que mais lhe interessam!</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-8 py-3 bg-[#2D5A27] text-white font-bold rounded-xl hover:bg-[#1E3D1A] transition-all"
+                >
+                  Explorar Anúncios
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <AnimatePresence mode="popLayout">
+                  {favoriteListings.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ListingListItem
+                        listing={item}
+                        isOwner={false}
+                        onRemoveFavorite={() => toggleFavorite(item.id)}
+                        onView={() => router.push(getListingUrl(item))}
                       />
                     </motion.div>
                   ))}

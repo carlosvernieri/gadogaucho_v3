@@ -16,6 +16,8 @@ interface SidebarProps {
   onSearchSubmit?: () => void;
   showFeaturedOnly?: boolean;
   onShowFeaturedOnlyChange?: (show: boolean) => void;
+  showVerifiedOnly?: boolean;
+  onShowVerifiedOnlyChange?: (show: boolean) => void;
   listingsCount: number;
   getCategoryCount: (category: string) => number;
   citySearch: string;
@@ -40,6 +42,8 @@ export const Sidebar = ({
   onSearchSubmit,
   showFeaturedOnly = false,
   onShowFeaturedOnlyChange,
+  showVerifiedOnly = false,
+  onShowVerifiedOnlyChange,
   listingsCount,
   getCategoryCount,
   citySearch,
@@ -235,7 +239,7 @@ export const Sidebar = ({
           </div>
 
           {/* Filtros Adicionais */}
-          <div className="mb-7">
+          <div className="mb-7 space-y-4">
             <div
               onClick={() => onShowFeaturedOnlyChange?.(!showFeaturedOnly)}
               className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
@@ -246,8 +250,8 @@ export const Sidebar = ({
                     <Star size={22} className="stroke-[2px]" fill={showFeaturedOnly ? "currentColor" : "none"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Anúncios em</span>
-                    <span className="text-lg font-bold text-[#1A1A1A] leading-tight">Destaque</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Anúncios em</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Destaque</span>
                   </div>
                 </div>
 
@@ -257,8 +261,34 @@ export const Sidebar = ({
                 </div>
               </div>
 
-              <p className="text-[12px] text-[#888] leading-tight font-medium">
+              <p className="text-[12px] text-[#888] leading-tight font-normal">
                 Exibir apenas ofertas em destaque na plataforma.
+              </p>
+            </div>
+
+            <div
+              onClick={() => onShowVerifiedOnlyChange?.(!showVerifiedOnly)}
+              className="p-6 rounded-[2.5rem] border border-[#2D5A27]/20 bg-[#E9F0E8]/50 cursor-pointer transition-all hover:bg-[#E9F0E8] group"
+            >
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 text-[#2D5A27]">
+                    <ShieldCheck size={22} className="stroke-[2px]" fill={showVerifiedOnly ? "currentColor" : "none"} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Vendedores</span>
+                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Verificados</span>
+                  </div>
+                </div>
+
+                {/* Toggle Switch */}
+                <div className={`min-w-[44px] h-6 rounded-full relative transition-all duration-300 mt-2 ${showVerifiedOnly ? 'bg-[#2D5A27]' : 'bg-[#D1D1D1]'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${showVerifiedOnly ? 'left-6' : 'left-1'}`} />
+                </div>
+              </div>
+
+              <p className="text-[12px] text-[#888] leading-tight font-normal">
+                Exibir apenas ofertas de vendedores com identidade verificada.
               </p>
             </div>
           </div>

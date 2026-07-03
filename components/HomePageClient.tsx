@@ -50,6 +50,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Proximity Search State
@@ -361,6 +362,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
         if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
         if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
         if (showFeaturedOnly) url += `&featured=true`;
+        if (showVerifiedOnly) url += `&verified=true`;
         if (selectedCityCoords && maxDistance) {
           url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
         }
@@ -385,7 +387,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
     }
     
     fetchFiltered();
-  }, [selectedCategory, searchQuery, showFeaturedOnly, selectedCityCoords, maxDistance]);
+  }, [selectedCategory, searchQuery, showFeaturedOnly, showVerifiedOnly, selectedCityCoords, maxDistance]);
 
   useEffect(() => {
     if (inView && hasMore && !loading) {
@@ -395,6 +397,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
          if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`;
          if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
          if (showFeaturedOnly) url += `&featured=true`;
+         if (showVerifiedOnly) url += `&verified=true`;
          if (selectedCityCoords && maxDistance) {
             url += `&lat=${selectedCityCoords.lat}&lng=${selectedCityCoords.lng}&radius=${maxDistance}`;
          }
@@ -411,7 +414,7 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
       };
       fetchNextPage();
     }
-  }, [inView, hasMore, loading, page, selectedCategory, searchQuery, selectedCityCoords, maxDistance]);
+  }, [inView, hasMore, loading, page, selectedCategory, searchQuery, showFeaturedOnly, showVerifiedOnly, selectedCityCoords, maxDistance]);
 
   return (
     <div className="min-h-screen flex flex-col pb-10 lg:pb-0">
@@ -452,6 +455,8 @@ export function HomePageClient({ initialListings }: { initialListings: any[] }) 
           }}
           showFeaturedOnly={showFeaturedOnly}
           onShowFeaturedOnlyChange={setShowFeaturedOnly}
+          showVerifiedOnly={showVerifiedOnly}
+          onShowVerifiedOnlyChange={setShowVerifiedOnly}
           listingsCount={listings.filter(l => !l.sold).length}
           getCategoryCount={(catName) => listings.filter(l => !l.sold && l.category.toLowerCase() === catName.toLowerCase()).length}
           citySearch={citySearch}

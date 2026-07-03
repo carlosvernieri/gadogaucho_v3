@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const featured = searchParams.get('featured') === 'true';
+    const verified = searchParams.get('verified') === 'true';
     const showAll = searchParams.get('showAll') === 'true';
     const latStr = searchParams.get('lat');
     const lngStr = searchParams.get('lng');
@@ -64,9 +65,13 @@ export async function GET(request: Request) {
         console.error('RPC fallback required: ', rpcError);
         // Fallback to JS filtering if RPC fails or doesn't exist
         error = null;
-        let query = (supabaseAdmin.from('listings') as any).select('*, users(name, verified)');
+        const selectStr = verified ? '*, users!inner(name, verified)' : '*, users(name, verified)';
+        let query = (supabaseAdmin.from('listings') as any).select(selectStr);
         if (!showAll) {
           query = query.or('sold.eq.false,sold.is.null'); // only active ads
+        }
+        if (verified) {
+          query = query.eq('users.verified', true);
         }
         if (category) query = query.ilike('category', category);
         if (search) {
@@ -108,9 +113,14 @@ export async function GET(request: Request) {
       }
     } else {
       // Standard query
+      const selectStr = verified ? '*, users!inner(name, verified)' : '*, users(name, verified)';
       let query = (supabaseAdmin
         .from('listings') as any)
-        .select('*, users(name, verified)');
+        .select(selectStr);
+
+      if (verified) {
+        query = query.eq('users.verified', true);
+      }
 
       if (seller) {
         query = query.eq('users.name', seller);
