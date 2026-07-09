@@ -31,23 +31,14 @@ import {
 
 // --- Catálogo de Ingredientes com valores nutricionais fixos ---
 const INGREDIENT_CATALOG = [
-  { id: 'farelo_trigo', name: 'Farelo de trigo', defaultBagKg: 25, defaultPrice: 35, proteina: 13, ndt: 75 },
+  { id: 'farelo_trigo', name: 'Farelo de trigo', defaultBagKg: 25, defaultPrice: 33, proteina: 13, ndt: 75 },
   { id: 'farelo_arroz', name: 'Farelo de arroz', defaultBagKg: 30, defaultPrice: 40, proteina: 13, ndt: 69 },
-  { id: 'farelo_milho', name: 'Farelo de milho', defaultBagKg: 25, defaultPrice: 44, proteina: 9, ndt: 85 },
-  { id: 'farelo_soja', name: 'Farelo de soja', defaultBagKg: 40, defaultPrice: 128, proteina: 44, ndt: 82 },
-  { id: 'milho_grao', name: 'Milho grão moído', defaultBagKg: 60, defaultPrice: 66, proteina: 9, ndt: 88 },
+  { id: 'farelo_milho', name: 'Farelo de milho', defaultBagKg: 25, defaultPrice: 41, proteina: 9, ndt: 85 },
+  { id: 'farelo_soja', name: 'Farelo de soja', defaultBagKg: 20, defaultPrice: 55, proteina: 44, ndt: 82 },
   { id: 'casca_soja', name: 'Casca de soja', defaultBagKg: 25, defaultPrice: 30, proteina: 12, ndt: 77 },
-  { id: 'polpa_citrica', name: 'Polpa cítrica', defaultBagKg: 25, defaultPrice: 32, proteina: 7, ndt: 82 },
-  { id: 'algodao_farelo', name: 'Farelo de algodão', defaultBagKg: 40, defaultPrice: 95, proteina: 38, ndt: 70 },
-  { id: 'ureia', name: 'Ureia', defaultBagKg: 50, defaultPrice: 160, proteina: 281, ndt: 0 },
-  { id: 'ureia_protegida', name: 'Ureia protegida', defaultBagKg: 25, defaultPrice: 120, proteina: 256, ndt: 0 },
-  { id: 'sal_branco', name: 'Sal branco', defaultBagKg: 25, defaultPrice: 25.5, proteina: 0, ndt: 0 },
-  { id: 'sal_mineral', name: 'Sal mineral', defaultBagKg: 25, defaultPrice: 65, proteina: 0, ndt: 0 },
-  { id: 'nucleo', name: 'Núcleo mineral Supra 40/30% sal', defaultBagKg: 25, defaultPrice: 82, proteina: 0, ndt: 0 },
-  { id: 'fosfato_bicalcico', name: 'Fosfato bicálcico', defaultBagKg: 25, defaultPrice: 95, proteina: 0, ndt: 0 },
-  { id: 'calcario', name: 'Calcário calcítico', defaultBagKg: 25, defaultPrice: 12, proteina: 0, ndt: 0 },
-  { id: 'enxofre', name: 'Enxofre ventilado', defaultBagKg: 25, defaultPrice: 45, proteina: 0, ndt: 0 },
-  { id: 'melaço', name: 'Melaço em pó', defaultBagKg: 25, defaultPrice: 55, proteina: 4, ndt: 75 },
+  { id: 'ureia', name: 'Ureia', defaultBagKg: 50, defaultPrice: 150, proteina: 281, ndt: 0 },
+  { id: 'sal_branco', name: 'Sal branco', defaultBagKg: 25, defaultPrice: 26.5, proteina: 0, ndt: 0 },
+  { id: 'nucleo', name: 'Núcleo mineral Supra 40/30% sal', defaultBagKg: 25, defaultPrice: 106, proteina: 0, ndt: 0 },
 ];
 
 interface FormulationIngredient {
@@ -89,20 +80,20 @@ function ProteinadoCalculatorContent() {
 
   // Default formulation (matching user's spreadsheet)
   const [ingredients, setIngredients] = useState<FormulationIngredient[]>([
-    { catalogId: 'farelo_milho', bagKg: 25, price: 44, qtyIn100kg: 48 },
-    { catalogId: 'farelo_soja', bagKg: 40, price: 128, qtyIn100kg: 10 },
-    { catalogId: 'nucleo', bagKg: 25, price: 82, qtyIn100kg: 25 },
-    { catalogId: 'ureia', bagKg: 50, price: 160, qtyIn100kg: 10 },
-    { catalogId: 'sal_branco', bagKg: 25, price: 25.5, qtyIn100kg: 7 },
+    { catalogId: 'farelo_milho', bagKg: 25, price: 41, qtyIn100kg: 48 },
+    { catalogId: 'farelo_soja', bagKg: 20, price: 55, qtyIn100kg: 10 },
+    { catalogId: 'nucleo', bagKg: 25, price: 106, qtyIn100kg: 25 },
+    { catalogId: 'ureia', bagKg: 50, price: 150, qtyIn100kg: 10 },
+    { catalogId: 'sal_branco', bagKg: 25, price: 26.5, qtyIn100kg: 7 },
   ]);
 
   // Lot data
   const [lotData, setLotData] = useState({
-    animals: '40',
-    startWeight: '180',
+    animals: '50',
+    startWeight: '200',
     consumptionRate: '0.2',
     sellPrice: '13.00',
-    periodo: '180',
+    periodo: '150',
   });
 
   // Load initial state from URL parameters
@@ -163,7 +154,7 @@ function ProteinadoCalculatorContent() {
     const rows = ingredients.map(i => {
       const catalog = getCatalog(i.catalogId);
       const pricePerKg = i.bagKg > 0 ? i.price / i.bagKg : 0;
-      
+
       // Normalizamos a quantidade de cada ingrediente para a base de 100kg 
       // para que a contribuição nutricional e de custos seja calculada corretamente,
       // independente do tamanho total da fórmula inserida (ex: 150kg).
@@ -238,8 +229,8 @@ function ProteinadoCalculatorContent() {
       const daysInMonth = (i === totalMeses && periodoDias % 30 !== 0) ? periodoDias % 30 : 30;
 
       const pastureGMD = winter ? 0.0 : 0.45;
-      const suppGainExtra = consumptionRate <= 0 
-        ? 0 
+      const suppGainExtra = consumptionRate <= 0
+        ? 0
         : (winter
           ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
           : (bestMatch.veraoMin + bestMatch.veraoMax) / 2);
@@ -360,40 +351,40 @@ function ProteinadoCalculatorContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col pb-24 lg:pb-0">
-        <Header
-          user={user}
-          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
-          onAdClick={() => router.push('/?ad=new')}
-          onAdminClick={() => router.push('/admin')}
-          onLogout={() => { logout(); router.push('/'); }}
-          onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/favoritos')}
-        />
+      <Header
+        user={user}
+        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
+        onAdClick={() => router.push('/?ad=new')}
+        onAdminClick={() => router.push('/admin')}
+        onLogout={() => { logout(); router.push('/'); }}
+        onHomeClick={() => router.push('/')}
+        onFavoritesClick={() => router.push('/favoritos')}
+      />
 
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          selectedCategory={null}
-          onSelectCategory={(cat) => {
-            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
-            else router.push('/');
-          }}
-          searchQuery=""
-          onSearchChange={() => { }}
-          listingsCount={0}
-          getCategoryCount={() => 0}
-          citySearch=""
-          onCitySearchChange={() => { }}
-          maxDistance={100}
-          onMaxDistanceChange={() => { }}
-          onUseMyLocation={() => { }}
-          citySuggestions={[]}
-          onSelectCity={() => { }}
-          showSuggestions={false}
-          setShowSuggestions={() => { }}
-          isDesktopHidden={true}
-        />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        selectedCategory={null}
+        onSelectCategory={(cat) => {
+          if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+          else router.push('/');
+        }}
+        searchQuery=""
+        onSearchChange={() => { }}
+        listingsCount={0}
+        getCategoryCount={() => 0}
+        citySearch=""
+        onCitySearchChange={() => { }}
+        maxDistance={100}
+        onMaxDistanceChange={() => { }}
+        onUseMyLocation={() => { }}
+        citySuggestions={[]}
+        onSelectCity={() => { }}
+        showSuggestions={false}
+        setShowSuggestions={() => { }}
+        isDesktopHidden={true}
+      />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 lg:px-8 py-8">
 
@@ -1171,13 +1162,13 @@ function ProteinadoCalculatorContent() {
 
       </main>
 
-        {user && (
-          <BottomNav
-            user={user}
-            onAdClick={() => router.push('/?ad=new')}
-            onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-          />
-        )}
+      {user && (
+        <BottomNav
+          user={user}
+          onAdClick={() => router.push('/?ad=new')}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+        />
+      )}
 
       <ShareModal
         isOpen={showShareModal}

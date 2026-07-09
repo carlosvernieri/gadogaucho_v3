@@ -51,12 +51,12 @@ function GMDCalculatorContent() {
   // Form State - Using strings to allow empty inputs in UI
   const [inputs, setInputs] = useState<Record<string, string>>({
     animalCount: '50',
-    initialWeight: '320',
-    finalWeight: '440',
-    days: '120',
-    purchasePriceKg: '10.50',
-    dailyCostHead: '3.50',
-    expectedSalePriceKg: '11.80'
+    initialWeight: '200',
+    finalWeight: '300',
+    days: '150',
+    purchasePriceKg: '15.00',
+    dailyCostHead: '2.00',
+    expectedSalePriceKg: '13.00'
   });
 
   // Load initial state from URL parameters

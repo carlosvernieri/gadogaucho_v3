@@ -256,8 +256,8 @@ export const Sidebar = ({
                     <Star size={22} className="stroke-[2px]" fill={showFeaturedOnly ? "currentColor" : "none"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Anúncios em</span>
-                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Destaque</span>
+                    <span className="text-sm lg:text-base font-bold text-[#1A1A1A] leading-tight">Anúncios em</span>
+                    <span className="text-sm lg:text-base font-bold text-[#1A1A1A] leading-tight">Destaque</span>
                   </div>
                 </div>
 
@@ -288,8 +288,8 @@ export const Sidebar = ({
                     <ShieldCheck size={22} className="stroke-[2px]" fill={showVerifiedOnly ? "currentColor" : "none"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Vendedores</span>
-                    <span className="text-base font-bold text-[#1A1A1A] leading-tight">Verificados</span>
+                    <span className="text-sm lg:text-base font-bold text-[#1A1A1A] leading-tight">Vendedores</span>
+                    <span className="text-sm lg:text-base font-bold text-[#1A1A1A] leading-tight">Verificados</span>
                   </div>
                 </div>
 
