@@ -163,9 +163,15 @@ function ProteinadoCalculatorContent() {
     const rows = ingredients.map(i => {
       const catalog = getCatalog(i.catalogId);
       const pricePerKg = i.bagKg > 0 ? i.price / i.bagKg : 0;
-      const costIn100kg = pricePerKg * i.qtyIn100kg;
-      const proteinaContrib = (catalog.proteina * i.qtyIn100kg) / 100;
-      const ndtContrib = (catalog.ndt * i.qtyIn100kg) / 100;
+      
+      // Normalizamos a quantidade de cada ingrediente para a base de 100kg 
+      // para que a contribuição nutricional e de custos seja calculada corretamente,
+      // independente do tamanho total da fórmula inserida (ex: 150kg).
+      const qtyNormalized = totalQty > 0 ? (i.qtyIn100kg / totalQty) * 100 : 0;
+
+      const costIn100kg = pricePerKg * qtyNormalized;
+      const proteinaContrib = (catalog.proteina * qtyNormalized) / 100;
+      const ndtContrib = (catalog.ndt * qtyNormalized) / 100;
       return {
         ...i,
         catalog,
@@ -429,11 +435,14 @@ function ProteinadoCalculatorContent() {
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-amber-50 text-amber-700 border border-amber-200'
                 }`}>
-                <span>Total: {calculations.totalQty.toFixed(1)} kg / 100 kg</span>
-                {calculations.isFormulationValid
-                  ? <ShieldCheck size={16} />
-                  : <span>{(100 - calculations.totalQty).toFixed(1)} kg restantes</span>
-                }
+                <span>Total: {calculations.totalQty.toFixed(1)} kg</span>
+                {calculations.isFormulationValid ? (
+                  <ShieldCheck size={16} />
+                ) : calculations.totalQty < 100 ? (
+                  <span>{(100 - calculations.totalQty).toFixed(1)} kg restantes</span>
+                ) : (
+                  <span>Excesso: {(calculations.totalQty - 100).toFixed(1)} kg</span>
+                )}
               </div>
 
               {/* Ingredient rows */}
@@ -1127,10 +1136,16 @@ function ProteinadoCalculatorContent() {
                 <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
                   <Info className="text-amber-500 shrink-0 mt-0.5" size={20} />
                   <div>
-                    <h4 className="font-bold text-amber-600 text-sm mb-0.5">Formulação Incompleta</h4>
+                    <h4 className="font-bold text-amber-600 text-sm mb-0.5">
+                      {calculations.totalQty < 100 ? "Formulação Incompleta" : "Formulação fora do padrão de 100kg"}
+                    </h4>
                     <p className="text-xs text-amber-600 leading-relaxed">
-                      O total de ingredientes é de <strong>{calculations.totalQty.toFixed(1)}kg</strong>.
-                      Ajuste as quantidades para totalizar exatamente <strong>100kg</strong> para uma formulação válida.
+                      O total de ingredientes é de <strong>{calculations.totalQty.toFixed(1)}kg</strong>.{" "}
+                      {calculations.totalQty < 100 ? (
+                        "Ajuste as quantidades para totalizar exatamente 100kg para obter uma formulação padrão."
+                      ) : (
+                        "A fórmula excede os 100kg. Os valores de proteína, NDT e custos exibidos nos painéis foram normalizados automaticamente para a base proporcional correta."
+                      )}
                     </p>
                   </div>
                 </div>
