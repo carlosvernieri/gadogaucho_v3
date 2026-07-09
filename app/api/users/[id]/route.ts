@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createClientServer } from '@/lib/supabase-server';
 import { safeJsonStringify } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 
@@ -80,7 +81,8 @@ export async function PUT(
         allowedUpdates.verified = data.verified;
     }
 
-    const { data: updatedUser, error } = await (supabaseAdmin
+    const supabase = await createClientServer();
+    const { data: updatedUser, error } = await (supabase
       .from('users') as any)
       .update(allowedUpdates)
       .eq('id', id)

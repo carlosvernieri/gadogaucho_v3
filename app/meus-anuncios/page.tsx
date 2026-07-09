@@ -943,12 +943,13 @@ export default function MeusAnunciosPage() {
                   </label>
                   <input
                     type="email"
-                    required
+                    disabled
                     value={profileForm.email}
-                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    placeholder="seu@email.com"
-                    className="w-full bg-[#F8F9FA] border border-transparent focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                    className="w-full bg-[#E9ECEF] border border-transparent rounded-xl px-4 py-3 text-sm text-[#6C757D] outline-none cursor-not-allowed"
                   />
+                  <span className="text-[9px] text-[#999] ml-2 mt-1 block">
+                    O e-mail não pode ser alterado por motivos de segurança.
+                  </span>
                 </div>
 
                 <div className="pt-2">
