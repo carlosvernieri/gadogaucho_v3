@@ -24,45 +24,41 @@ export default function RedefinirSenhaPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [pkceCode, setPkceCode] = useState<string | null>(null);
+  const [needConfirmation, setNeedConfirmation] = useState(false);
+  const [isExchanging, setIsExchanging] = useState(false);
+
   useEffect(() => {
     let isMounted = true;
     
-    // Check session on mount and let Supabase parse the recovery token from hash
     const checkAuth = async () => {
-      // 1. Verificar se há código de autenticação (PKCE) na URL
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         
         if (code) {
-          console.log('Redefinir Senha: Código PKCE encontrado na URL, obtendo sessão...');
-          try {
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchangeError) {
-              console.error('Erro ao trocar código por sessão:', exchangeError.message);
+          console.log('Redefinir Senha: Código PKCE encontrado na URL.');
+          if (isMounted) {
+            setPkceCode(code);
+            // Verificar se já temos sessão ativa antes de pedir confirmação
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              setHasSession(true);
+              setIsCheckingSession(false);
+            } else {
+              setNeedConfirmation(true);
+              setIsCheckingSession(false);
             }
-          } catch (err) {
-            console.error('Erro inesperado ao trocar código:', err);
           }
+          return;
         }
       }
 
-      // 2. Obter a sessão atual
+      // Se não há código na URL, verifica sessão direta
       const { data: { session } } = await supabase.auth.getSession();
       if (isMounted) {
-        if (session) {
-          setHasSession(true);
-          setIsCheckingSession(false);
-        } else {
-          // Retry after a short delay in case client-side token parsing is in progress
-          setTimeout(async () => {
-            const { data: { session: retrySession } } = await supabase.auth.getSession();
-            if (isMounted) {
-              setHasSession(!!retrySession);
-              setIsCheckingSession(false);
-            }
-          }, 1500);
-        }
+        setHasSession(!!session);
+        setIsCheckingSession(false);
       }
     };
 
@@ -74,6 +70,7 @@ export default function RedefinirSenhaPage() {
         console.log('Redefinir Senha auth change:', event);
         if (session) {
           setHasSession(true);
+          setNeedConfirmation(false);
           setIsCheckingSession(false);
         }
       }
@@ -84,6 +81,39 @@ export default function RedefinirSenhaPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const handleConfirmExchange = async () => {
+    if (!pkceCode) return;
+    setIsExchanging(true);
+    setError(null);
+    try {
+      console.log('Trocando código PKCE por sessão manualmente...');
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(pkceCode);
+      if (exchangeError) {
+        console.error('Erro ao trocar código:', exchangeError.message);
+        setError(`Erro no link: ${exchangeError.message}. Talvez o link já tenha sido usado ou expirou.`);
+        setNeedConfirmation(false);
+        setHasSession(false);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setHasSession(true);
+          setNeedConfirmation(false);
+        } else {
+          setError('Sessão de autenticação não encontrada após a validação do link.');
+          setNeedConfirmation(false);
+          setHasSession(false);
+        }
+      }
+    } catch (err: any) {
+      console.error('Erro inesperado no PKCE:', err);
+      setError('Erro inesperado ao validar o link de recuperação.');
+      setNeedConfirmation(false);
+      setHasSession(false);
+    } finally {
+      setIsExchanging(false);
+    }
+  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +201,38 @@ export default function RedefinirSenhaPage() {
                   Aguarde um instante enquanto validamos seu link de recuperação de senha...
                 </p>
               </motion.div>
+            ) : needConfirmation ? (
+              <motion.div
+                key="confirmation"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="text-center py-6"
+              >
+                <div className="w-16 h-16 bg-[#E9F0E8] rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2D5A27]/10">
+                  <Lock className="w-8 h-8 text-[#2D5A27]" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#333] mb-4">Redefinir Senha</h2>
+                <p className="text-[#666] text-sm leading-relaxed mb-8">
+                  Para sua segurança e para evitar que sistemas automáticos de e-mail invalidem o seu link, clique no botão abaixo para confirmar e iniciar a redefinição de sua senha.
+                </p>
+                <button
+                  onClick={handleConfirmExchange}
+                  disabled={isExchanging}
+                  className="w-full py-4 bg-[#2D5A27] text-white font-bold rounded-xl shadow-lg shadow-[#2D5A27]/20 hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isExchanging ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Validando Link...
+                    </>
+                  ) : (
+                    <>
+                      Confirmar e Iniciar <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </motion.div>
             ) : !hasSession && !success ? (
               <motion.div
                 key="no-session"
@@ -184,7 +246,7 @@ export default function RedefinirSenhaPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-[#333] mb-4">Link Expirado ou Inválido</h2>
                 <p className="text-[#666] text-sm leading-relaxed mb-8">
-                  Este link de redefinição de senha não é mais válido, já foi utilizado ou expirou. Por favor, faça uma nova solicitação no formulário de login.
+                  {error || "Este link de redefinição de senha não é mais válido, já foi utilizado ou expirou. Por favor, faça uma nova solicitação no formulário de login."}
                 </p>
                 <div className="space-y-3">
                   <button
