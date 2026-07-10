@@ -284,7 +284,7 @@ export const AdModal = () => {
       description: adForm.description,
       images: Array.isArray(adForm.images) && adForm.images.length > 0 ? adForm.images : ['https://picsum.photos/seed/newcattle/800/600'],
       videos: Array.isArray(adForm.videos) ? adForm.videos : [],
-      featured: false
+      featured: editingListing ? editingListing.featured : false
     };
 
     try {
