@@ -114,7 +114,7 @@ export async function POST(request: Request) {
           if (textUpper.includes('TERNEIRO')) category = 'Terneiros';
           else if (textUpper.includes('TERNEIRA')) category = 'Terneiras';
           else if (textUpper.includes('NOVILHO')) category = 'Novilhos';
-          else if (textUpper.includes('NOVILHA')) category = 'Novilhas';
+          else if (textUpper.includes('NOVILHA') || textUpper.includes('VAQUILHONA')) category = 'Novilhas';
           else if (textUpper.includes('VACA')) {
              if (textUpper.includes('PRENHE')) category = 'Vacas Prenhes';
              else if (textUpper.includes('CRIA')) category = 'Vacas com Cria';
@@ -186,6 +186,11 @@ export async function POST(request: Request) {
           let price = parseFloat((o.Preço || '').replace('.', '').replace(',', '.')) || 0;
           let price_kg = parseFloat((o.Média || '').replace(',', '.')) || 0;
           let avg_weight = parsed.avg_weight;
+
+          // Sanitização de limites reais para o mercado gaúcho antes da recuperação matemática
+          if (price < 400 || price > 25000) price = 0;
+          if (price_kg < 5.0 || price_kg > 45.0) price_kg = 0;
+          if (avg_weight < 70 || avg_weight > 1000) avg_weight = 0;
 
           // Camada de Recuperação Matemática: se 2 das 3 variáveis são conhecidas, calcula a 3ª
           if (avg_weight === 0 && price > 0 && price_kg > 0) {

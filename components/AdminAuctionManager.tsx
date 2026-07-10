@@ -11,6 +11,9 @@ import { RS_CITIES, CATEGORIES_LIST } from '@/lib/data';
 import { showToast } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
 import { motion } from 'motion/react';
+import dynamic from 'next/dynamic';
+
+const RSMap = dynamic(() => import('./RSMap').then(mod => mod.RSMap), { ssr: false });
 
 export function AdminAuctionManager() {
   const [plazas, setPlazas] = useState<AuctionPlaza[]>([]);
@@ -98,6 +101,13 @@ export function AdminAuctionManager() {
     } finally {
       setLoadingOffers(null);
     }
+  };
+
+  const handleOpenEditPlaza = (p: AuctionPlaza) => {
+    setEditingPlaza(p);
+    setPlazaForm({ name: p.name, city: p.city, lat: p.lat, lng: p.lng });
+    setCitySearchPlaza(p.city);
+    setShowPlazaModal(true);
   };
 
   // Plaza CRUD
@@ -286,12 +296,7 @@ export function AdminAuctionManager() {
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button 
-                      onClick={() => {
-                        setEditingPlaza(p);
-                        setPlazaForm({ name: p.name, city: p.city, lat: p.lat, lng: p.lng });
-                        setCitySearchPlaza(p.city);
-                        setShowPlazaModal(true);
-                      }}
+                      onClick={() => handleOpenEditPlaza(p)}
                       className="p-2 text-[#2D5A27] hover:bg-[#E9F0E8] rounded-lg transition-all"
                     >
                       <Pencil size={16} />
@@ -315,6 +320,9 @@ export function AdminAuctionManager() {
               </div>
             ))}
           </div>
+
+          {/* Mapa de Distribuição Geográfica */}
+          <RSMap plazas={plazas} onEditPlaza={handleOpenEditPlaza} />
         </div>
       ) : (
         <div className="space-y-4">
