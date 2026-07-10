@@ -12,7 +12,10 @@
 
   /* Prevent auto-zoom on input focus on mobile devices (iOS) except search filters inside aside */
   @media (max-width: 768px) {
-    input:not(aside input), select:not(aside select), textarea:not(aside textarea) {
+
+    input:not(aside input),
+    select:not(aside select),
+    textarea:not(aside textarea) {
       font-size: 16px !important;
     }
   }
