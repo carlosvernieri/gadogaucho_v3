@@ -121,3 +121,58 @@ export async function saveAlertBannerSettings(settings: AlertBannerSettings): Pr
     return false;
   }
 }
+
+export interface AdminEmailSettings {
+  email: string;
+}
+
+export async function getAdminEmailSettings(): Promise<AdminEmailSettings> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'admin_email_settings')
+      .maybeSingle();
+
+    const fallback: AdminEmailSettings = { email: 'admin@admin.com' };
+
+    if (error || !data || !data.value) {
+      return fallback;
+    }
+
+    const val = data.value as any;
+    return {
+      email: typeof val.email === 'string' ? val.email : 'admin@admin.com'
+    };
+  } catch (error) {
+    console.error('Error fetching admin email settings from database:', error);
+    return { email: 'admin@admin.com' };
+  }
+}
+
+export async function saveAdminEmailSettings(settings: AdminEmailSettings): Promise<boolean> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('system_settings')
+      .upsert(
+        {
+          key: 'admin_email_settings',
+          value: {
+            email: settings.email
+          },
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'key' }
+      );
+
+    if (error) {
+      console.error('Error upserting admin email settings in database:', error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error saving admin email settings in database:', error);
+    return false;
+  }
+}
+

@@ -4,6 +4,7 @@ import { createClientServer } from '@/lib/supabase-server';
 import { safeJsonStringify, parseJsonField } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 import { triggerOpportunityAlerts } from '@/lib/alerts-dispatcher';
+import { sendNewListingAdminNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,6 +232,11 @@ export async function POST(request: Request) {
     // Disparar alertas de oportunidades em segundo plano
     triggerOpportunityAlerts(newListing).catch((err) => {
       console.error('[POST Listing] Falha ao disparar alertas de oportunidades:', err);
+    });
+
+    // Enviar notificação de novo anúncio por e-mail para o administrador
+    sendNewListingAdminNotification(newListing).catch((err) => {
+      console.error('[POST Listing] Falha ao enviar notificação para o admin:', err);
     });
 
     return NextResponse.json({
