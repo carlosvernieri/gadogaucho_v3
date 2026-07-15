@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, TrendingUp, Sprout, FlaskConical, ArrowRight, ChevronRight } from 'lucide-react';
+import { Calculator, TrendingUp, Sprout, FlaskConical, ArrowRight, ChevronRight, Scale } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
@@ -39,6 +39,16 @@ const CALCULATORS = [
     color: 'bg-amber-50',
     borderColor: 'border-amber-100',
     tags: ['Nutrição', 'Custo/kg']
+  },
+  {
+    id: 'controle-peso',
+    title: 'Controle de Peso Animal',
+    description: 'Gerencie pesagens na balança, calcule peso total e médio do lote, e acompanhe o histórico e evolução de GMD de cada animal.',
+    icon: <Scale className="text-purple-600" size={32} />,
+    href: '/calculadoras/controle-peso',
+    color: 'bg-purple-50',
+    borderColor: 'border-purple-100',
+    tags: ['Manejo', 'Balança']
   }
 ];
 
@@ -83,7 +93,7 @@ export default function CalculadorasPage() {
         </div>
 
         {/* Calculators Grid */}
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 mb-16">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
           {CALCULATORS.map((calc, index) => (
             <motion.div
               key={calc.id}
