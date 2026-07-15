@@ -7,7 +7,7 @@ import {
   Plus, Trash2, ChevronDown, FlaskConical,
   Scale, Wallet, AlertTriangle, ShieldCheck,
   DollarSign, Beef, TrendingUp, Droplets, Sun, Snowflake,
-  Bookmark, Layers, BarChart as RechartsBarIcon
+  Bookmark, Layers, BarChart as RechartsBarIcon, Download
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -358,8 +358,40 @@ function ProteinadoCalculatorContent() {
     }
   };
 
+  // State for compared simulations loaded via URL
+  const [urlComparedSims, setUrlComparedSims] = useState<any[]>([]);
+
+  // Load compared simulations from URL if present on mount/search params change
+  useEffect(() => {
+    const compareDataParam = searchParams.get('compareData');
+    if (compareDataParam) {
+      try {
+        const decoded = decodeURIComponent(escape(atob(compareDataParam)));
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((item: any, idx: number) => {
+            const calcs = runProteinCalculations(item.inputs);
+            return {
+              id: `url-sim-${idx}`,
+              name: item.name,
+              inputs: item.inputs,
+              calcs
+            };
+          });
+          setUrlComparedSims(mapped);
+          setShowCompareModal(true);
+        }
+      } catch (e) {
+        console.error('Error parsing compareData from URL:', e);
+      }
+    }
+  }, [searchParams]);
+
   // Comparison Data structures
   const comparedSimsData = useMemo(() => {
+    if (urlComparedSims.length > 0) {
+      return urlComparedSims;
+    }
     return selectedSimsForCompare.map(id => {
       const sim = simulations.find(s => s.id === id);
       if (!sim) return null;
@@ -376,7 +408,42 @@ function ProteinadoCalculatorContent() {
       inputs: SavedSimulation['inputs'];
       calcs: ReturnType<typeof runProteinCalculations>;
     }>;
-  }, [selectedSimsForCompare, simulations]);
+  }, [selectedSimsForCompare, simulations, urlComparedSims]);
+
+  const handleCloseCompareModal = () => {
+    setShowCompareModal(false);
+    setUrlComparedSims([]);
+    const params = new URLSearchParams(window.location.search);
+    params.delete('compareData');
+    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState(null, '', newRelativePathQuery);
+  };
+
+  const handlePrintCompare = () => {
+    window.print();
+  };
+
+  const handleShareCompare = () => {
+    try {
+      const compareDataArray = comparedSimsData.map(s => ({
+        name: s.name,
+        inputs: s.inputs
+      }));
+      const json = JSON.stringify(compareDataArray);
+      const base64 = btoa(unescape(encodeURIComponent(json)));
+      const params = new URLSearchParams(window.location.search);
+      params.set('compareData', base64);
+      const shareLink = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+      
+      navigator.clipboard.writeText(shareLink);
+      setToastMessage('Link de comparação copiado!');
+      setShowShareToast(true);
+      setTimeout(() => setShowShareToast(false), 3000);
+    } catch (err) {
+      console.error('Error generating share link:', err);
+      alert('Erro ao gerar link de compartilhamento.');
+    }
+  };
 
   // Highlight best values
   const bestValues = useMemo(() => {
@@ -1755,36 +1822,45 @@ function ProteinadoCalculatorContent() {
       {/* Comparison Modal */}
       <AnimatePresence>
         {showCompareModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 overflow-y-auto compare-modal-overlay">
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.98 }}
-              className="bg-white rounded-[2rem] border border-[#E9ECEF] shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col"
+              className="bg-white rounded-[2rem] border border-[#E9ECEF] shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col compare-modal-content"
             >
               {/* Modal Header */}
-              <div className="p-6 border-b border-[#E9ECEF] flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="p-6 border-b border-[#E9ECEF] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white sticky top-0 z-10">
                 <div>
                   <h3 className="text-lg sm:text-xl font-black text-[#333] flex items-center gap-2">
                     <Layers className="text-[#2171B5]" size={22} /> Comparação de Formulações
                   </h3>
                   <p className="text-xs text-[#666] mt-1">Comparação detalhada lado a lado das formulações selecionadas.</p>
                 </div>
-                <button
-                  onClick={() => setShowCompareModal(false)}
-                  className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer text-xl font-bold flex items-center justify-center w-8 h-8"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2 shrink-0 no-print">
+                  <button
+                    onClick={handlePrintCompare}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2D5A27] hover:bg-[#20401C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    title="Baixar relatório em PDF"
+                  >
+                    <Download size={14} /> Baixar PDF
+                  </button>
+                  <button
+                    onClick={handleCloseCompareModal}
+                    className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer text-xl font-bold flex items-center justify-center w-8 h-8 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {comparedSimsData.length === 0 ? (
                 <div className="text-center py-12 text-[#999] italic bg-white">Nenhuma formulação selecionada.</div>
               ) : (
-                <div className="p-6 overflow-y-auto max-h-[calc(80vh-100px)] space-y-6 bg-white">
+                <div className="p-6 overflow-y-auto max-h-[calc(80vh-100px)] space-y-6 bg-white compare-modal-body">
                   {/* Chart and Metrics tabs */}
-                  <div className="bg-[#F8F9FA] p-5 rounded-2xl border border-[#E9ECEF]">
-                    <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                  <div className="bg-[#F8F9FA] p-5 rounded-2xl border border-[#E9ECEF] compare-chart-container">
+                    <div className="flex flex-wrap gap-2 mb-4 justify-center no-print">
                       {[
                         { key: 'protein', label: 'PB (%)', chartKey: 'Proteína Bruta (%)' },
                         { key: 'ndt', label: 'NDT (%)', chartKey: 'NDT (%)' },
@@ -1925,6 +2001,163 @@ function ProteinadoCalculatorContent() {
           </div>
         )}
       </AnimatePresence>
+      <style>{`
+        @media print {
+          /* Reset elements for full page width printing */
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
+            background: #fff !important;
+            color: #000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* Hide non-printable elements */
+          header, main, nav, footer, .no-print, .bottom-nav-class, .print\\:hidden, button, .compare-modal-overlay button {
+            display: none !important;
+          }
+          
+          /* Show only the modal content and override fixed/absolute positioning */
+          .compare-modal-overlay {
+            position: static !important;
+            background: #fff !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            z-index: auto !important;
+          }
+          
+          .compare-modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          
+          .compare-modal-body {
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 10px 0 !important;
+            display: block !important;
+          }
+          
+          /* Typography / Header styling for print */
+          h3 {
+            font-size: 20pt !important;
+            color: #1a3a1e !important;
+            margin-bottom: 5px !important;
+          }
+          
+          p {
+            font-size: 10pt !important;
+            color: #444 !important;
+          }
+          
+          /* Table formatting for A4 print */
+          .overflow-x-auto {
+            overflow: visible !important;
+            margin-bottom: 25px !important;
+          }
+          
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
+            margin-top: 15px !important;
+          }
+          
+          th, td {
+            border: 1px solid #dcdcdc !important;
+            padding: 8px 10px !important;
+            font-size: 9.5pt !important;
+            text-align: left !important;
+            color: #222 !important;
+          }
+          
+          th {
+            background-color: #f7f9f7 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+          }
+          
+          td {
+            text-align: center !important;
+          }
+          
+          td:first-child, th:first-child {
+            text-align: left !important;
+            font-weight: bold !important;
+            background-color: #fafafa !important;
+          }
+          
+          /* Highlight columns/best values */
+          .text-blue-600, .text-emerald-600, .bg-blue-50, .bg-emerald-50, .bg-emerald-50\\/100, .bg-blue-50\\/100 {
+            background-color: #e2ece9 !important;
+            color: #137333 !important;
+            font-weight: 900 !important;
+            border: 1.5px solid #137333 !important;
+          }
+          
+          .text-emerald-600 {
+            color: #137333 !important;
+          }
+          
+          .text-blue-600 {
+            color: #1a73e8 !important;
+          }
+          
+          /* Charts styling */
+          .compare-chart-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-top: 30px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 20px !important;
+            background: #fff !important;
+          }
+          
+          /* Fix Recharts SVG sizing on print */
+          .recharts-responsive-container {
+            width: 650px !important;
+            height: 320px !important;
+            margin: 0 auto !important;
+            display: block !important;
+          }
+          
+          .recharts-surface {
+            width: 650px !important;
+            height: 320px !important;
+          }
+          
+          /* Keep some branding info visible at the bottom of the printed page */
+          .compare-modal-content::after {
+            content: "Relatório gerado por Gado Gaúcho (gadogaucho.com.br) - Ferramenta de Análise de Pecuária" !important;
+            display: block !important;
+            text-align: center !important;
+            font-size: 8pt !important;
+            color: #888 !important;
+            margin-top: 40px !important;
+            border-top: 1px solid #eaeaea !important;
+            padding-top: 10px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

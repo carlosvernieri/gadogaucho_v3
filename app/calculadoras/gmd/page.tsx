@@ -7,7 +7,7 @@ import {
   Target, Info, Printer, ChevronLeft,
   ArrowRight, ShieldCheck, PieChart,
   Activity, Scale, Wallet, Loader2, Share2, Check,
-  Trash2, Plus, Bookmark, Layers, BarChart as RechartsBarIcon
+  Trash2, Plus, Bookmark, Layers, BarChart as RechartsBarIcon, Download
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -268,8 +268,40 @@ function GMDCalculatorContent() {
   // Performance Calculations
   const calculations = useMemo(() => runGmdCalculations(inputs), [inputs]);
 
+  // State for compared simulations loaded via URL
+  const [urlComparedSims, setUrlComparedSims] = useState<any[]>([]);
+
+  // Load compared simulations from URL if present on mount/search params change
+  useEffect(() => {
+    const compareDataParam = searchParams.get('compareData');
+    if (compareDataParam) {
+      try {
+        const decoded = decodeURIComponent(escape(atob(compareDataParam)));
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((item: any, idx: number) => {
+            const calcs = runGmdCalculations(item.inputs);
+            return {
+              id: `url-sim-${idx}`,
+              name: item.name,
+              inputs: item.inputs,
+              calcs
+            };
+          });
+          setUrlComparedSims(mapped);
+          setShowCompareModal(true);
+        }
+      } catch (e) {
+        console.error('Error parsing compareData from URL:', e);
+      }
+    }
+  }, [searchParams]);
+
   // Comparison Data and Calculations
   const comparedSimsData = useMemo(() => {
+    if (urlComparedSims.length > 0) {
+      return urlComparedSims;
+    }
     return selectedSimsForCompare.map(id => {
       const sim = simulations.find(s => s.id === id);
       if (!sim) return null;
@@ -286,7 +318,40 @@ function GMDCalculatorContent() {
       inputs: Record<string, string>;
       calcs: ReturnType<typeof runGmdCalculations>;
     }>;
-  }, [selectedSimsForCompare, simulations]);
+  }, [selectedSimsForCompare, simulations, urlComparedSims]);
+
+  const handleCloseCompareModal = () => {
+    setShowCompareModal(false);
+    setUrlComparedSims([]);
+    const params = new URLSearchParams(window.location.search);
+    params.delete('compareData');
+    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState(null, '', newRelativePathQuery);
+  };
+
+  const handlePrintCompare = () => {
+    window.print();
+  };
+
+  const handleShareCompare = () => {
+    try {
+      const compareDataArray = comparedSimsData.map(s => ({
+        name: s.name,
+        inputs: s.inputs
+      }));
+      const json = JSON.stringify(compareDataArray);
+      const base64 = btoa(unescape(encodeURIComponent(json)));
+      const params = new URLSearchParams(window.location.search);
+      params.set('compareData', base64);
+      const shareLink = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+      
+      navigator.clipboard.writeText(shareLink);
+      alert('Link de comparação copiado para a área de transferência!');
+    } catch (err) {
+      console.error('Error generating share link:', err);
+      alert('Erro ao gerar link de compartilhamento.');
+    }
+  };
 
   // Find best values to highlight
   const bestValues = useMemo(() => {
@@ -1042,31 +1107,40 @@ function GMDCalculatorContent() {
 
       <AnimatePresence>
         {showCompareModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 overflow-y-auto compare-modal-overlay">
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.98 }}
-              className="bg-white rounded-[2.5rem] border border-[#E9ECEF] shadow-2xl w-full max-w-5xl my-8 overflow-hidden flex flex-col"
+              className="bg-white rounded-[2.5rem] border border-[#E9ECEF] shadow-2xl w-full max-w-5xl my-8 overflow-hidden flex flex-col compare-modal-content"
             >
               {/* Modal Header */}
-              <div className="p-6 sm:p-8 border-b border-[#E9ECEF] flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="p-6 sm:p-8 border-b border-[#E9ECEF] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white sticky top-0 z-10">
                 <div>
                   <h3 className="text-xl sm:text-2xl font-black text-[#1A1A1A] flex items-center gap-2">
                     <Layers className="text-[#2D5A27]" size={24} /> Comparativo de Projetos
                   </h3>
                   <p className="text-xs text-[#666] mt-1">Comparação detalhada lado a lado das simulações selecionadas.</p>
                 </div>
-                <button
-                  onClick={() => setShowCompareModal(false)}
-                  className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2 shrink-0 no-print">
+                  <button
+                    onClick={handlePrintCompare}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2D5A27] hover:bg-[#20401C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    title="Baixar relatório em PDF"
+                  >
+                    <Download size={14} /> Baixar PDF
+                  </button>
+                  <button
+                    onClick={handleCloseCompareModal}
+                    className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer text-xl font-bold flex items-center justify-center w-8 h-8 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 sm:p-8 overflow-y-auto max-h-[calc(80vh-100px)] space-y-8">
+              <div className="p-6 sm:p-8 overflow-y-auto max-h-[calc(80vh-100px)] space-y-8 compare-modal-body">
                 {/* Table Container */}
                 <div className="overflow-x-auto border border-[#E9ECEF] rounded-[2rem] bg-white">
                   <table className="w-full text-left border-collapse min-w-[600px]">
@@ -1114,7 +1188,7 @@ function GMDCalculatorContent() {
                 </div>
 
                 {/* Chart Section */}
-                <div className="bg-[#F8F9FA] rounded-[2rem] p-6 border border-[#E9ECEF]">
+                <div className="bg-[#F8F9FA] rounded-[2rem] p-6 border border-[#E9ECEF] compare-chart-container">
                   <h4 className="text-sm font-bold text-[#333] mb-6 flex items-center gap-2 uppercase tracking-wider">
                     <RechartsBarIcon className="text-[#2D5A27]" size={18} /> Comparação Gráfica (ROI & Lucro)
                   </h4>
@@ -1156,9 +1230,9 @@ function GMDCalculatorContent() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-6 bg-[#F8F9FA] border-t border-[#E9ECEF] flex justify-end">
+              <div className="p-6 bg-[#F8F9FA] border-t border-[#E9ECEF] flex justify-end no-print">
                 <button
-                  onClick={() => setShowCompareModal(false)}
+                  onClick={handleCloseCompareModal}
                   className="px-8 py-3 bg-[#2D5A27] text-white hover:bg-[#20401C] rounded-xl text-sm font-bold shadow-sm transition-all cursor-pointer"
                 >
                   Fechar Comparação
@@ -1169,16 +1243,162 @@ function GMDCalculatorContent() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      <style>{`
         @media print {
-          html, body { 
-            background: white !important; 
+          /* Reset elements for full page width printing */
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
+            background: #fff !important;
+            color: #000 !important;
             margin: 0 !important;
             padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .print\\:hidden { display: none !important; }
+          
+          /* Hide non-printable elements */
+          header, main, nav, footer, .no-print, .bottom-nav-class, .print\\:hidden, button, .compare-modal-overlay button {
+            display: none !important;
+          }
+          
+          /* Show only the modal content and override fixed/absolute positioning */
+          .compare-modal-overlay {
+            position: static !important;
+            background: #fff !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            z-index: auto !important;
+          }
+          
+          .compare-modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          
+          .compare-modal-body {
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 10px 0 !important;
+            display: block !important;
+          }
+          
+          /* Typography / Header styling for print */
+          h3 {
+            font-size: 20pt !important;
+            color: #1a3a1e !important;
+            margin-bottom: 5px !important;
+          }
+          
+          p {
+            font-size: 10pt !important;
+            color: #444 !important;
+          }
+          
+          /* Table formatting for A4 print */
+          .overflow-x-auto {
+            overflow: visible !important;
+            margin-bottom: 25px !important;
+          }
+          
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
+            margin-top: 15px !important;
+          }
+          
+          th, td {
+            border: 1px solid #dcdcdc !important;
+            padding: 8px 10px !important;
+            font-size: 9.5pt !important;
+            text-align: left !important;
+            color: #222 !important;
+          }
+          
+          th {
+            background-color: #f7f9f7 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+          }
+          
+          td {
+            text-align: center !important;
+          }
+          
+          td:first-child, th:first-child {
+            text-align: left !important;
+            font-weight: bold !important;
+            background-color: #fafafa !important;
+          }
+          
+          /* Highlight columns/best values */
+          .text-blue-600, .text-emerald-600, .bg-blue-50, .bg-emerald-50, .bg-emerald-50\\/100, .bg-blue-50\\/100 {
+            background-color: #e2ece9 !important;
+            color: #137333 !important;
+            font-weight: 900 !important;
+            border: 1.5px solid #137333 !important;
+          }
+          
+          .text-emerald-600 {
+            color: #137333 !important;
+          }
+          
+          .text-blue-600 {
+            color: #1a73e8 !important;
+          }
+          
+          /* Charts styling */
+          .compare-chart-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-top: 30px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 20px !important;
+            background: #fff !important;
+          }
+          
+          /* Fix Recharts SVG sizing on print */
+          .recharts-responsive-container {
+            width: 650px !important;
+            height: 320px !important;
+            margin: 0 auto !important;
+            display: block !important;
+          }
+          
+          .recharts-surface {
+            width: 650px !important;
+            height: 320px !important;
+          }
+          
+          /* Keep some branding info visible at the bottom of the printed page */
+          .compare-modal-content::after {
+            content: "Relatório gerado por Gado Gaúcho (gadogaucho.com.br) - Ferramenta de Análise de Pecuária" !important;
+            display: block !important;
+            text-align: center !important;
+            font-size: 8pt !important;
+            color: #888 !important;
+            margin-top: 40px !important;
+            border-top: 1px solid #eaeaea !important;
+            padding-top: 10px !important;
+          }
+        }
       `}</style>
     </div>
   );
