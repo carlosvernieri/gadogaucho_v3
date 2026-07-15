@@ -76,6 +76,8 @@ export default function AdminPage() {
   const [isSavingSummary, setIsSavingSummary] = useState(false);
   const [ocrAuditRecords, setOcrAuditRecords] = useState<any[]>([]);
   const [loadingOcrAudit, setLoadingOcrAudit] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [isSavingAdminEmail, setIsSavingAdminEmail] = useState(false);
 
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -444,6 +446,7 @@ export default function AdminPage() {
         fetchData();
         fetchMarketStatus();
         fetchPromptConfig();
+        fetchAdminEmailConfig();
       }
       setLoading(false);
     }
@@ -573,6 +576,8 @@ export default function AdminPage() {
       fetchAdminAlerts();
       fetchAlertSettings();
       fetchBannerConfig();
+    } else if (adminTab === 'system') {
+      fetchAdminEmailConfig();
     }
   }, [usersPage, listingsPage, adminTab]);
 
@@ -607,6 +612,40 @@ export default function AdminPage() {
       showToast('Erro de conexão.', 'error');
     } finally {
       setIsSavingBannerConfig(false);
+    }
+  };
+
+  const fetchAdminEmailConfig = async () => {
+    try {
+      const res = await fetch('/api/admin/email-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminEmail(data.email || '');
+      }
+    } catch (error) {
+      console.error('Error fetching admin email config:', error);
+    }
+  };
+
+  const handleSaveAdminEmailConfig = async () => {
+    setIsSavingAdminEmail(true);
+    try {
+      const res = await fetch('/api/admin/email-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: adminEmail })
+      });
+      if (res.ok) {
+        showToast('E-mail do administrador atualizado com sucesso.', 'success');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Erro ao salvar e-mail do administrador.', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving admin email config:', error);
+      showToast('Erro de conexão.', 'error');
+    } finally {
+      setIsSavingAdminEmail(false);
     }
   };
 
@@ -1486,6 +1525,43 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2 mb-6">
                   <HardDrive size={20} className="text-[#2D5A27]" />
                   <h3 className="text-lg font-bold text-[#333]">Sistema e Manutenção</h3>
+                </div>
+
+                {/* E-mail do Admin para novos anúncios */}
+                <div className="bg-white rounded-2xl p-6 border border-[#E9ECEF] shadow-sm mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Settings size={18} className="text-[#2D5A27]" />
+                    <h4 className="font-bold text-[#333] text-lg">E-mail do Administrador</h4>
+                  </div>
+                  <p className="text-sm text-[#666] mb-4">
+                    Configure o endereço de e-mail que receberá notificações quando um novo anúncio for cadastrado no site.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-end gap-4 max-w-xl">
+                    <div className="flex-1 w-full">
+                      <label className="block text-[10px] font-bold text-[#999] uppercase mb-1.5 ml-2">E-mail de Destino</label>
+                      <input
+                        type="email"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] focus:border-[#2D5A27] focus:bg-white rounded-xl px-4 py-2.5 text-xs font-semibold text-[#333] outline-none transition-all"
+                        placeholder="Ex: admin@gadogaucho.com"
+                      />
+                    </div>
+                    <button
+                      onClick={handleSaveAdminEmailConfig}
+                      disabled={isSavingAdminEmail}
+                      className="px-6 py-2.5 bg-[#2D5A27] text-white font-bold rounded-xl text-xs hover:bg-[#1E3D1A] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      {isSavingAdminEmail ? (
+                        <>
+                          <Spinner size="sm" className="text-white" />
+                          Salvando...
+                        </>
+                      ) : (
+                        'Salvar E-mail'
+                      )}
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="bg-[#F8F9FA] rounded-2xl p-6 border border-[#E9ECEF] mb-6">

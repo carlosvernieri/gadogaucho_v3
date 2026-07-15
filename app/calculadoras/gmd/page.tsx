@@ -6,7 +6,8 @@ import {
   Calculator, TrendingUp, DollarSign, Clock,
   Target, Info, Printer, ChevronLeft,
   ArrowRight, ShieldCheck, PieChart,
-  Activity, Scale, Wallet, Loader2, Share2, Check
+  Activity, Scale, Wallet, Loader2, Share2, Check,
+  Trash2, Plus, Bookmark, Layers, BarChart as RechartsBarIcon, Download
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -24,7 +25,11 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Area,
-  AreaChart
+  AreaChart,
+  BarChart,
+  Bar,
+  Legend,
+  Cell
 } from 'recharts';
 
 export default function GMDCalculatorPage() {
@@ -37,6 +42,66 @@ export default function GMDCalculatorPage() {
       <GMDCalculatorContent />
     </Suspense>
   );
+}
+
+function runGmdCalculations(inputs: Record<string, string>) {
+  const numInputs = {
+    animalCount: parseFloat(inputs.animalCount) || 0,
+    initialWeight: parseFloat(inputs.initialWeight) || 0,
+    finalWeight: parseFloat(inputs.finalWeight) || 0,
+    days: parseFloat(inputs.days) || 0,
+    purchasePriceKg: parseFloat(inputs.purchasePriceKg) || 0,
+    dailyCostHead: parseFloat(inputs.dailyCostHead) || 0,
+    expectedSalePriceKg: parseFloat(inputs.expectedSalePriceKg) || 0,
+  };
+
+  const totalGain = numInputs.finalWeight - numInputs.initialWeight;
+  const gmd = numInputs.days > 0 ? totalGain / numInputs.days : 0;
+
+  const costPurchase = numInputs.initialWeight * numInputs.purchasePriceKg;
+  const costOperational = numInputs.days * numInputs.dailyCostHead;
+  const totalCostPerHead = costPurchase + costOperational;
+
+  const revenuePerHead = numInputs.finalWeight * numInputs.expectedSalePriceKg;
+  const profitPerHead = revenuePerHead - totalCostPerHead;
+
+  const profitDay = numInputs.days > 0 ? profitPerHead / numInputs.days : 0;
+  const profitMonth = profitDay * 30;
+
+  const roi = totalCostPerHead > 0 ? (profitPerHead / totalCostPerHead) * 100 : 0;
+
+  const breakEvenGmd = (numInputs.days > 0 && numInputs.expectedSalePriceKg > 0)
+    ? ((totalCostPerHead / numInputs.expectedSalePriceKg) - numInputs.initialWeight) / numInputs.days
+    : 0;
+
+  return {
+    ...numInputs,
+    totalGain,
+    gmd,
+    costPurchase,
+    costOperational,
+    totalCostPerHead,
+    revenuePerHead,
+    profitPerHead,
+    profitDay,
+    profitMonth,
+    roi,
+    monthlyProfitability: numInputs.days > 0 ? (roi / numInputs.days) * 30 : 0,
+    breakEvenGmd,
+    totalBatchProfit: profitPerHead * numInputs.animalCount,
+    totalBatchInvestment: totalCostPerHead * numInputs.animalCount,
+    totalBatchProfitMonth: profitMonth * numInputs.animalCount
+  };
+}
+
+interface SavedSimulation {
+  id: string;
+  user_id: string;
+  name: string;
+  calculator_type: string;
+  inputs: Record<string, string>;
+  created_at: string;
+  updated_at: string;
 }
 
 function GMDCalculatorContent() {
@@ -58,6 +123,15 @@ function GMDCalculatorContent() {
     dailyCostHead: '2.00',
     expectedSalePriceKg: '13.00'
   });
+
+  // State variables for saving & comparison
+  const [simulations, setSimulations] = useState<SavedSimulation[]>([]);
+  const [loadingSimulations, setLoadingSimulations] = useState(false);
+  const [savingSimulation, setSavingSimulation] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newSimulationName, setNewSimulationName] = useState('');
+  const [selectedSimsForCompare, setSelectedSimsForCompare] = useState<string[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
 
   // Load initial state from URL parameters
   useEffect(() => {
@@ -85,55 +159,312 @@ function GMDCalculatorContent() {
     }
   }, [searchParams]);
 
+  // Load simulations from DB
+  const fetchSimulations = async () => {
+    if (!user) {
+      setSimulations([]);
+      return;
+    }
+    setLoadingSimulations(true);
+    try {
+      const res = await fetch('/api/simulations?type=gmd');
+      if (res.ok) {
+        const data = await res.json();
+        setSimulations(data);
+      }
+    } catch (err) {
+      console.error('Error fetching simulations:', err);
+    } finally {
+      setLoadingSimulations(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSimulations();
+  }, [user]);
+
+  const handleSaveSimulation = async () => {
+    if (!user) {
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return;
+    }
+    if (!newSimulationName.trim()) return;
+
+    setSavingSimulation(true);
+    try {
+      const res = await fetch('/api/simulations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSimulationName,
+          calculator_type: 'gmd',
+          inputs
+        })
+      });
+
+      if (res.ok) {
+        setNewSimulationName('');
+        setShowSaveModal(false);
+        setToastMessage('Simulação salva!');
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+        fetchSimulations();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao salvar simulação');
+      }
+    } catch (err) {
+      console.error('Error saving simulation:', err);
+      alert('Erro de conexão ao salvar simulação');
+    } finally {
+      setSavingSimulation(false);
+    }
+  };
+
+  const handleDeleteSimulation = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Deseja realmente excluir esta simulação salva?')) return;
+
+    try {
+      const res = await fetch(`/api/simulations/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setToastMessage('Simulação excluída!');
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+        setSelectedSimsForCompare(prev => prev.filter(item => item !== id));
+        fetchSimulations();
+      } else {
+        alert('Erro ao excluir simulação');
+      }
+    } catch (err) {
+      console.error('Error deleting simulation:', err);
+    }
+  };
+
+  const handleLoadSimulation = (sim: SavedSimulation) => {
+    setInputs(sim.inputs);
+    setToastMessage(`Simulação "${sim.name}" carregada!`);
+    setShowShareToast(true);
+    setTimeout(() => setShowShareToast(false), 3000);
+  };
+
+  const toggleSelectForCompare = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      if (selectedSimsForCompare.length >= 4) {
+        alert('Você pode comparar no máximo 4 simulações.');
+        e.target.checked = false;
+        return;
+      }
+      setSelectedSimsForCompare(prev => [...prev, id]);
+    } else {
+      setSelectedSimsForCompare(prev => prev.filter(item => item !== id));
+    }
+  };
+
   // Performance Calculations
-  const calculations = useMemo(() => {
-    const numInputs = {
-      animalCount: parseFloat(inputs.animalCount) || 0,
-      initialWeight: parseFloat(inputs.initialWeight) || 0,
-      finalWeight: parseFloat(inputs.finalWeight) || 0,
-      days: parseFloat(inputs.days) || 0,
-      purchasePriceKg: parseFloat(inputs.purchasePriceKg) || 0,
-      dailyCostHead: parseFloat(inputs.dailyCostHead) || 0,
-      expectedSalePriceKg: parseFloat(inputs.expectedSalePriceKg) || 0,
-    };
+  const calculations = useMemo(() => runGmdCalculations(inputs), [inputs]);
 
-    const totalGain = numInputs.finalWeight - numInputs.initialWeight;
-    const gmd = numInputs.days > 0 ? totalGain / numInputs.days : 0;
+  // State for compared simulations loaded via URL
+  const [urlComparedSims, setUrlComparedSims] = useState<any[]>([]);
 
-    const costPurchase = numInputs.initialWeight * numInputs.purchasePriceKg;
-    const costOperational = numInputs.days * numInputs.dailyCostHead;
-    const totalCostPerHead = costPurchase + costOperational;
+  // Load compared simulations from URL if present on mount/search params change
+  useEffect(() => {
+    const compareDataParam = searchParams.get('compareData');
+    if (compareDataParam) {
+      try {
+        const decoded = decodeURIComponent(escape(atob(compareDataParam)));
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((item: any, idx: number) => {
+            const calcs = runGmdCalculations(item.inputs);
+            return {
+              id: `url-sim-${idx}`,
+              name: item.name,
+              inputs: item.inputs,
+              calcs
+            };
+          });
+          setUrlComparedSims(mapped);
+          setShowCompareModal(true);
+        }
+      } catch (e) {
+        console.error('Error parsing compareData from URL:', e);
+      }
+    }
+  }, [searchParams]);
 
-    const revenuePerHead = numInputs.finalWeight * numInputs.expectedSalePriceKg;
-    const profitPerHead = revenuePerHead - totalCostPerHead;
+  // Comparison Data and Calculations
+  const comparedSimsData = useMemo(() => {
+    if (urlComparedSims.length > 0) {
+      return urlComparedSims;
+    }
+    return selectedSimsForCompare.map(id => {
+      const sim = simulations.find(s => s.id === id);
+      if (!sim) return null;
+      const calcs = runGmdCalculations(sim.inputs);
+      return {
+        id: sim.id,
+        name: sim.name,
+        inputs: sim.inputs,
+        calcs
+      };
+    }).filter(Boolean) as Array<{
+      id: string;
+      name: string;
+      inputs: Record<string, string>;
+      calcs: ReturnType<typeof runGmdCalculations>;
+    }>;
+  }, [selectedSimsForCompare, simulations, urlComparedSims]);
 
-    const profitDay = numInputs.days > 0 ? profitPerHead / numInputs.days : 0;
-    const profitMonth = profitDay * 30;
+  const handleCloseCompareModal = () => {
+    setShowCompareModal(false);
+    setUrlComparedSims([]);
+    const params = new URLSearchParams(window.location.search);
+    params.delete('compareData');
+    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState(null, '', newRelativePathQuery);
+  };
 
-    const roi = totalCostPerHead > 0 ? (profitPerHead / totalCostPerHead) * 100 : 0;
+  const handlePrintCompare = () => {
+    window.print();
+  };
 
-    const breakEvenGmd = (numInputs.days > 0 && numInputs.expectedSalePriceKg > 0)
-      ? ((totalCostPerHead / numInputs.expectedSalePriceKg) - numInputs.initialWeight) / numInputs.days
-      : 0;
+  const handleShareCompare = () => {
+    try {
+      const compareDataArray = comparedSimsData.map(s => ({
+        name: s.name,
+        inputs: s.inputs
+      }));
+      const json = JSON.stringify(compareDataArray);
+      const base64 = btoa(unescape(encodeURIComponent(json)));
+      const params = new URLSearchParams(window.location.search);
+      params.set('compareData', base64);
+      const shareLink = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+      
+      navigator.clipboard.writeText(shareLink);
+      alert('Link de comparação copiado para a área de transferência!');
+    } catch (err) {
+      console.error('Error generating share link:', err);
+      alert('Erro ao gerar link de compartilhamento.');
+    }
+  };
 
+  // Find best values to highlight
+  const bestValues = useMemo(() => {
+    if (comparedSimsData.length === 0) {
+      return {
+        maxGmd: 0,
+        minBreakEven: 999999,
+        maxRoi: 0,
+        maxMonthlyProfitability: 0,
+        maxProfitPerHead: 0,
+        maxTotalBatchProfit: 0,
+        minTotalBatchInvestment: 999999999,
+      };
+    }
+    
     return {
-      totalGain,
-      gmd,
-      costPurchase,
-      costOperational,
-      totalCostPerHead,
-      revenuePerHead,
-      profitPerHead,
-      profitDay,
-      profitMonth,
-      roi,
-      monthlyProfitability: numInputs.days > 0 ? (roi / numInputs.days) * 30 : 0,
-      breakEvenGmd,
-      totalBatchProfit: profitPerHead * numInputs.animalCount,
-      totalBatchInvestment: totalCostPerHead * numInputs.animalCount,
-      totalBatchProfitMonth: profitMonth * numInputs.animalCount
+      maxGmd: Math.max(...comparedSimsData.map(s => s.calcs.gmd)),
+      minBreakEven: Math.min(...comparedSimsData.map(s => s.calcs.breakEvenGmd)),
+      maxRoi: Math.max(...comparedSimsData.map(s => s.calcs.roi)),
+      maxMonthlyProfitability: Math.max(...comparedSimsData.map(s => s.calcs.monthlyProfitability)),
+      maxProfitPerHead: Math.max(...comparedSimsData.map(s => s.calcs.profitPerHead)),
+      maxTotalBatchProfit: Math.max(...comparedSimsData.map(s => s.calcs.totalBatchProfit)),
+      minTotalBatchInvestment: Math.min(...comparedSimsData.map(s => s.calcs.totalBatchInvestment)),
     };
-  }, [inputs]);
+  }, [comparedSimsData]);
+
+  const comparisonChartData = useMemo(() => {
+    return comparedSimsData.map(s => ({
+      name: s.name,
+      'ROI (%)': parseFloat(s.calcs.roi.toFixed(1)),
+      'Lucro Total (kR$)': Math.round(s.calcs.totalBatchProfit / 1000),
+      'Investimento (kR$)': Math.round(s.calcs.totalBatchInvestment / 1000)
+    }));
+  }, [comparedSimsData]);
+
+  interface RowItem {
+    label: string;
+    format: (s: any) => string;
+    isBest?: (s: any) => boolean;
+    highlightClass?: string;
+  }
+
+  interface RowGroup {
+    category: string;
+    items: RowItem[];
+  }
+
+  const rows: RowGroup[] = [
+    {
+      category: 'Dados do Lote (Entradas)',
+      items: [
+        { label: 'Qtd de Animais', format: (s: any) => `${s.calcs.animalCount}` },
+        { label: 'Peso Entrada (kg)', format: (s: any) => `${s.calcs.initialWeight} kg` },
+        { label: 'Peso Final (kg)', format: (s: any) => `${s.calcs.finalWeight} kg` },
+        { label: 'Período (dias)', format: (s: any) => `${s.calcs.days} dias` },
+        { label: 'Preço Compra (R$/kg)', format: (s: any) => `R$ ${s.calcs.purchasePriceKg.toFixed(2)}` },
+        { label: 'Custo Diário/Cabeça', format: (s: any) => `R$ ${s.calcs.dailyCostHead.toFixed(2)}` },
+        { label: 'Preço Venda Esperado', format: (s: any) => `R$ ${s.calcs.expectedSalePriceKg.toFixed(2)}` },
+      ]
+    },
+    {
+      category: 'Indicadores Zootécnicos',
+      items: [
+        { 
+          label: 'GMD (Ganho Médio Diário)', 
+          format: (s: any) => `${s.calcs.gmd.toFixed(3)} kg/dia`,
+          isBest: (s: any) => s.calcs.gmd === bestValues.maxGmd && bestValues.maxGmd > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+        { 
+          label: 'GMD de Equilíbrio (Break-even)', 
+          format: (s: any) => `${s.calcs.breakEvenGmd.toFixed(3)} kg/dia`,
+          isBest: (s: any) => s.calcs.breakEvenGmd === bestValues.minBreakEven && bestValues.minBreakEven > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+      ]
+    },
+    {
+      category: 'Indicadores Financeiros',
+      items: [
+        { 
+          label: 'ROI (Retorno s/ Investimento)', 
+          format: (s: any) => `${s.calcs.roi.toFixed(1)}%`,
+          isBest: (s: any) => s.calcs.roi === bestValues.maxRoi && bestValues.maxRoi > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+        { 
+          label: 'Rentabilidade Mensal', 
+          format: (s: any) => `${s.calcs.monthlyProfitability.toFixed(2)}%`,
+          isBest: (s: any) => s.calcs.monthlyProfitability === bestValues.maxMonthlyProfitability && bestValues.maxMonthlyProfitability > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+        { 
+          label: 'Lucro por Cabeça', 
+          format: (s: any) => `R$ ${s.calcs.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          isBest: (s: any) => s.calcs.profitPerHead === bestValues.maxProfitPerHead && bestValues.maxProfitPerHead > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+        { 
+          label: 'Investimento Total', 
+          format: (s: any) => `R$ ${s.calcs.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          isBest: (s: any) => s.calcs.totalBatchInvestment === bestValues.minTotalBatchInvestment && bestValues.minTotalBatchInvestment > 0,
+          highlightClass: 'text-blue-600 font-black bg-blue-50 rounded-lg px-2 py-0.5'
+        },
+        { 
+          label: 'Lucro Total do Lote', 
+          format: (s: any) => `R$ ${s.calcs.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          isBest: (s: any) => s.calcs.totalBatchProfit === bestValues.maxTotalBatchProfit && bestValues.maxTotalBatchProfit > 0,
+          highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
+        },
+      ]
+    }
+  ];
 
   // Chart Data: accumulated profit per day for the full lot
   const chartData = useMemo(() => {
@@ -363,6 +694,118 @@ function GMDCalculatorContent() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Bloco Simulações Salvas */}
+            <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+              <h2 className="text-sm font-bold text-[#333] mb-6 flex items-center justify-between uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <Bookmark size={18} className="text-[#2D5A27]" /> Minhas Simulações
+                </div>
+                {user && simulations.length > 0 && (
+                  <span className="text-[10px] bg-[#2D5A27]/10 text-[#2D5A27] px-2.5 py-1 rounded-full font-black">
+                    {simulations.length} salvas
+                  </span>
+                )}
+              </h2>
+
+              <div className="space-y-4">
+                {/* Botão de Salvar Simulação Atual */}
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      setAuthMode('login');
+                      setShowAuthModal(true);
+                    } else {
+                      setShowSaveModal(true);
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#2D5A27]/5 hover:bg-[#2D5A27]/10 text-[#2D5A27] font-bold text-sm rounded-xl transition-all border border-[#2D5A27]/10 cursor-pointer"
+                >
+                  <Plus size={16} /> Salvar Simulação Atual
+                </button>
+
+                {!user ? (
+                  <div className="text-center py-6 px-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] border-dashed">
+                    <p className="text-xs text-[#666] mb-4">
+                      Entre na sua conta para salvar suas simulações e comparar múltiplos projetos.
+                    </p>
+                    <button
+                      onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                      className="px-4 py-2 bg-[#2D5A27] text-white hover:bg-[#20401C] rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+                    >
+                      Fazer Login
+                    </button>
+                  </div>
+                ) : loadingSimulations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-[#2D5A27]" size={24} />
+                  </div>
+                ) : simulations.length === 0 ? (
+                  <div className="text-center py-6 px-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF]">
+                    <p className="text-xs text-[#999] italic">Nenhuma simulação salva ainda. Configure os parâmetros acima e salve.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                    {simulations.map(sim => {
+                      const isSelected = selectedSimsForCompare.includes(sim.id);
+                      const simCalcs = runGmdCalculations(sim.inputs);
+                      return (
+                        <div
+                          key={sim.id}
+                          onClick={() => handleLoadSimulation(sim)}
+                          className="group relative flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#E9F0E8] border border-[#E9ECEF] hover:border-[#2D5A27]/20 rounded-xl cursor-pointer transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 pr-8" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => toggleSelectForCompare(sim.id, e)}
+                              className="w-4 h-4 rounded border-[#E9ECEF] text-[#2D5A27] focus:ring-[#2D5A27] cursor-pointer"
+                            />
+                            <div className="min-w-0" onClick={() => handleLoadSimulation(sim)}>
+                              <div className="font-bold text-[#333] text-xs truncate group-hover:text-[#2D5A27] transition-colors">
+                                {sim.name}
+                              </div>
+                              <div className="text-[10px] text-[#999] mt-0.5">
+                                {simCalcs.animalCount} animais · ROI: {simCalcs.roi.toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => handleDeleteSimulation(sim.id, e)}
+                            className="text-[#999] hover:text-red-500 p-1.5 transition-colors rounded-lg hover:bg-red-50 cursor-pointer"
+                            title="Excluir simulação"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Botão de Comparação de Projetos */}
+                {user && selectedSimsForCompare.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedSimsForCompare.length < 2) {
+                        alert('Selecione pelo menos 2 simulações para comparar.');
+                        return;
+                      }
+                      setShowCompareModal(true);
+                    }}
+                    disabled={selectedSimsForCompare.length < 2}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold text-sm rounded-xl transition-all shadow-sm ${
+                      selectedSimsForCompare.length >= 2
+                        ? 'bg-[#2171B5] hover:bg-[#1E62A0] text-white cursor-pointer'
+                        : 'bg-[#E9ECEF] text-[#999] cursor-not-allowed'
+                    }`}
+                  >
+                    <Layers size={16} /> Comparar Selecionadas ({selectedSimsForCompare.length})
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -624,16 +1067,338 @@ function GMDCalculatorContent() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      <AnimatePresence>
+        {showSaveModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2.5rem] p-8 max-w-md w-full border border-[#E9ECEF] shadow-2xl relative"
+            >
+              <h3 className="text-xl font-black text-[#1A1A1A] mb-4">Salvar Simulação</h3>
+              <p className="text-sm text-[#666] mb-6">Dê um nome para identificar este lote de simulação posteriormente.</p>
+              <input
+                type="text"
+                placeholder="Ex: Confinamento Inverno 2026"
+                value={newSimulationName}
+                onChange={(e) => setNewSimulationName(e.target.value)}
+                className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27] mb-6"
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowSaveModal(false)}
+                  className="px-6 py-3 border border-[#E9ECEF] text-[#666] hover:bg-[#F8F9FA] rounded-xl text-sm font-bold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveSimulation}
+                  disabled={savingSimulation || !newSimulationName.trim()}
+                  className="px-6 py-3 bg-[#2D5A27] text-white hover:bg-[#20401C] rounded-xl text-sm font-bold transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  {savingSimulation ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCompareModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 overflow-y-auto compare-modal-overlay">
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.98 }}
+              className="bg-white rounded-[2.5rem] border border-[#E9ECEF] shadow-2xl w-full max-w-5xl my-8 overflow-hidden flex flex-col compare-modal-content"
+            >
+              {/* Modal Header */}
+              <div className="p-6 sm:p-8 border-b border-[#E9ECEF] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white sticky top-0 z-10">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-[#1A1A1A] flex items-center gap-2">
+                    <Layers className="text-[#2D5A27]" size={24} /> Comparativo de Projetos
+                  </h3>
+                  <p className="text-xs text-[#666] mt-1">Comparação detalhada lado a lado das simulações selecionadas.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 no-print">
+                  <button
+                    onClick={handlePrintCompare}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2D5A27] hover:bg-[#20401C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    title="Baixar relatório em PDF"
+                  >
+                    <Download size={14} /> Baixar PDF
+                  </button>
+                  <button
+                    onClick={handleCloseCompareModal}
+                    className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer text-xl font-bold flex items-center justify-center w-8 h-8 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 sm:p-8 overflow-y-auto max-h-[calc(80vh-100px)] space-y-8 compare-modal-body">
+                {/* Table Container */}
+                <div className="overflow-x-auto border border-[#E9ECEF] rounded-[2rem] bg-white">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                      <tr className="bg-[#F8F9FA] border-b border-[#E9ECEF]">
+                        <th className="p-4 sm:p-5 text-[11px] font-black text-[#999] uppercase tracking-wider w-[250px]">Indicadores</th>
+                        {comparedSimsData.map((sim, i) => (
+                          <th key={sim.id} className="p-4 sm:p-5 text-sm font-black text-[#1A1A1A] text-center border-l border-[#E9ECEF] min-w-[120px]">
+                            <div className="truncate max-w-[150px] mx-auto text-ellipsis" title={sim.name}>
+                              {sim.name}
+                            </div>
+                            <span className="text-[10px] text-[#999] font-normal uppercase tracking-widest mt-1 block">Projeto {i + 1}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((categoryGroup, groupIdx) => (
+                        <React.Fragment key={groupIdx}>
+                          {/* Category Divider Header */}
+                          <tr className="bg-[#2D5A27]/5">
+                            <td colSpan={comparedSimsData.length + 1} className="p-3 text-[10px] font-black text-[#2D5A27] uppercase tracking-widest">
+                              {categoryGroup.category}
+                            </td>
+                          </tr>
+                          {categoryGroup.items.map((row, rowIdx) => (
+                            <tr key={rowIdx} className="border-b border-[#E9ECEF] hover:bg-[#F8F9FA] transition-colors">
+                              <td className="p-4 text-xs font-bold text-[#666]">{row.label}</td>
+                              {comparedSimsData.map(sim => {
+                                const isBest = row.isBest ? row.isBest(sim) : false;
+                                return (
+                                  <td key={sim.id} className="p-4 text-xs font-bold text-center border-l border-[#E9ECEF]">
+                                    <span className={isBest ? (row.highlightClass || '') : 'text-[#333]'}>
+                                      {row.format(sim)}
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Chart Section */}
+                <div className="bg-[#F8F9FA] rounded-[2rem] p-6 border border-[#E9ECEF] compare-chart-container">
+                  <h4 className="text-sm font-bold text-[#333] mb-6 flex items-center gap-2 uppercase tracking-wider">
+                    <RechartsBarIcon className="text-[#2D5A27]" size={18} /> Comparação Gráfica (ROI & Lucro)
+                  </h4>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={comparisonChartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E9ECEF" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#999' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{
+                            background: '#1A1A1A',
+                            border: 'none',
+                            borderRadius: '16px',
+                            padding: '12px 16px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                          }}
+                          labelStyle={{ color: '#999', fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}
+                          itemStyle={{ fontSize: 12, fontWeight: 700, color: '#fff' }}
+                        />
+                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
+                        <Bar dataKey="ROI (%)" fill="#2D5A27" radius={[8, 8, 0, 0]}>
+                          {comparisonChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry['ROI (%)'] === bestValues.maxRoi ? '#2D5A27' : '#5E9F57'} />
+                          ))}
+                        </Bar>
+                        <Bar dataKey="Lucro Total (kR$)" fill="#2171B5" radius={[8, 8, 0, 0]}>
+                          {comparisonChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry['Lucro Total (kR$)'] === Math.round(bestValues.maxTotalBatchProfit / 1000) ? '#2171B5' : '#639ECE'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-[10px] text-[#999] text-center mt-4 italic">
+                    * O lucro total está exibido em milhares de Reais (kR$). O projeto com a barra mais escura representa o de melhor desempenho na métrica correspondente.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 bg-[#F8F9FA] border-t border-[#E9ECEF] flex justify-end no-print">
+                <button
+                  onClick={handleCloseCompareModal}
+                  className="px-8 py-3 bg-[#2D5A27] text-white hover:bg-[#20401C] rounded-xl text-sm font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  Fechar Comparação
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
         @media print {
-          html, body { 
-            background: white !important; 
+          /* Reset elements for full page width printing */
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
+            background: #fff !important;
+            color: #000 !important;
             margin: 0 !important;
             padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .print\\:hidden { display: none !important; }
+          
+          /* Hide non-printable elements */
+          header, main, nav, footer, .no-print, .bottom-nav-class, .print\\:hidden, button, .compare-modal-overlay button {
+            display: none !important;
+          }
+          
+          /* Show only the modal content and override fixed/absolute positioning */
+          .compare-modal-overlay {
+            position: static !important;
+            background: #fff !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            z-index: auto !important;
+          }
+          
+          .compare-modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          
+          .compare-modal-body {
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 10px 0 !important;
+            display: block !important;
+          }
+          
+          /* Typography / Header styling for print */
+          h3 {
+            font-size: 20pt !important;
+            color: #1a3a1e !important;
+            margin-bottom: 5px !important;
+          }
+          
+          p {
+            font-size: 10pt !important;
+            color: #444 !important;
+          }
+          
+          /* Table formatting for A4 print */
+          .overflow-x-auto {
+            overflow: visible !important;
+            margin-bottom: 25px !important;
+          }
+          
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
+            margin-top: 15px !important;
+          }
+          
+          th, td {
+            border: 1px solid #dcdcdc !important;
+            padding: 8px 10px !important;
+            font-size: 9.5pt !important;
+            text-align: left !important;
+            color: #222 !important;
+          }
+          
+          th {
+            background-color: #f7f9f7 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+          }
+          
+          td {
+            text-align: center !important;
+          }
+          
+          td:first-child, th:first-child {
+            text-align: left !important;
+            font-weight: bold !important;
+            background-color: #fafafa !important;
+          }
+          
+          /* Highlight columns/best values */
+          .text-blue-600, .text-emerald-600, .bg-blue-50, .bg-emerald-50, .bg-emerald-50\\/100, .bg-blue-50\\/100 {
+            background-color: #e2ece9 !important;
+            color: #137333 !important;
+            font-weight: 900 !important;
+            border: 1.5px solid #137333 !important;
+          }
+          
+          .text-emerald-600 {
+            color: #137333 !important;
+          }
+          
+          .text-blue-600 {
+            color: #1a73e8 !important;
+          }
+          
+          /* Charts styling */
+          .compare-chart-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-top: 30px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 20px !important;
+            background: #fff !important;
+          }
+          
+          /* Fix Recharts SVG sizing on print */
+          .recharts-responsive-container {
+            width: 650px !important;
+            height: 320px !important;
+            margin: 0 auto !important;
+            display: block !important;
+          }
+          
+          .recharts-surface {
+            width: 650px !important;
+            height: 320px !important;
+          }
+          
+          /* Keep some branding info visible at the bottom of the printed page */
+          .compare-modal-content::after {
+            content: "Relatório gerado por Gado Gaúcho (gadogaucho.com.br) - Ferramenta de Análise de Pecuária" !important;
+            display: block !important;
+            text-align: center !important;
+            font-size: 8pt !important;
+            color: #888 !important;
+            margin-top: 40px !important;
+            border-top: 1px solid #eaeaea !important;
+            padding-top: 10px !important;
+          }
+        }
       `}</style>
     </div>
   );

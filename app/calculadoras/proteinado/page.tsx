@@ -6,7 +6,8 @@ import {
   Calculator, Loader2, Share2, Check, Info,
   Plus, Trash2, ChevronDown, FlaskConical,
   Scale, Wallet, AlertTriangle, ShieldCheck,
-  DollarSign, Beef, TrendingUp, Droplets, Sun, Snowflake
+  DollarSign, Beef, TrendingUp, Droplets, Sun, Snowflake,
+  Bookmark, Layers, BarChart as RechartsBarIcon, Download
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -56,6 +57,147 @@ const CHART_COLORS = [
   '#C0392B', '#E74C3C',
 ];
 
+function runProteinCalculations(inputs: {
+  ingredients: FormulationIngredient[];
+  lotData: {
+    animals: string;
+    startWeight: string;
+    consumptionRate: string;
+    sellPrice: string;
+    periodo: string;
+  };
+}) {
+  const totalQty = inputs.ingredients.reduce((sum, i) => sum + i.qtyIn100kg, 0);
+
+  const rows = inputs.ingredients.map(i => {
+    const catalog = INGREDIENT_CATALOG.find(c => c.id === i.catalogId)!;
+    const pricePerKg = i.bagKg > 0 ? i.price / i.bagKg : 0;
+    const qtyNormalized = totalQty > 0 ? (i.qtyIn100kg / totalQty) * 100 : 0;
+    const costIn100kg = pricePerKg * qtyNormalized;
+    const proteinaContrib = (catalog.proteina * qtyNormalized) / 100;
+    const ndtContrib = (catalog.ndt * qtyNormalized) / 100;
+    return {
+      ...i,
+      pricePerKg,
+      costIn100kg,
+      proteinaContrib,
+      ndtContrib,
+    };
+  });
+
+  const totalCost100kg = rows.reduce((s, r) => s + r.costIn100kg, 0);
+  const totalProteina = rows.reduce((s, r) => s + r.proteinaContrib, 0);
+  const totalNdt = rows.reduce((s, r) => s + r.ndtContrib, 0);
+
+  const costPerKg = totalCost100kg / 100;
+  const costPerBag25 = costPerKg * 25;
+
+  const animals = parseFloat(inputs.lotData.animals) || 0;
+  const startWt = parseFloat(inputs.lotData.startWeight) || 0;
+  const consumptionRate = parseFloat(inputs.lotData.consumptionRate) || 0;
+  const periodoDias = parseFloat(inputs.lotData.periodo) || 0;
+
+  const gainReference = [
+    { rate: 0.1, invernoMin: 0.10, invernoMax: 0.25, veraoMin: 0.05, veraoMax: 0.15 },
+    { rate: 0.2, invernoMin: 0.20, invernoMax: 0.40, veraoMin: 0.10, veraoMax: 0.25 },
+    { rate: 0.3, invernoMin: 0.30, invernoMax: 0.50, veraoMin: 0.20, veraoMax: 0.35 },
+    { rate: 0.4, invernoMin: 0.40, invernoMax: 0.60, veraoMin: 0.30, veraoMax: 0.45 },
+    { rate: 0.5, invernoMin: 0.50, invernoMax: 0.80, veraoMin: 0.40, veraoMax: 0.60 },
+    { rate: 1.0, invernoMin: 0.80, invernoMax: 1.20, veraoMin: 0.60, veraoMax: 0.90 },
+  ];
+
+  let bestMatch = gainReference[0];
+  let bestDist = Math.abs(consumptionRate - gainReference[0].rate);
+  for (const ref of gainReference) {
+    const dist = Math.abs(consumptionRate - ref.rate);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestMatch = ref;
+    }
+  }
+
+  const now = new Date();
+  const startMonth = now.getMonth();
+  const isWinterMonth = (monthIdx: number) => monthIdx >= 5 && monthIdx <= 8;
+
+  let pastureWeight = startWt;
+  let supplementWeight = startWt;
+
+  const totalMeses = Math.ceil(periodoDias / 30);
+  for (let i = 1; i <= totalMeses; i++) {
+    const monthIdx = (startMonth + i) % 12;
+    const winter = isWinterMonth(monthIdx);
+    const daysInMonth = (i === totalMeses && periodoDias % 30 !== 0) ? periodoDias % 30 : 30;
+
+    const pastureGMD = winter ? 0.0 : 0.45;
+    const suppGainExtra = consumptionRate <= 0
+      ? 0
+      : (winter
+        ? (bestMatch.invernoMin + bestMatch.invernoMax) / 2
+        : (bestMatch.veraoMin + bestMatch.veraoMax) / 2);
+
+    pastureWeight += pastureGMD * daysInMonth;
+    supplementWeight += (pastureGMD + suppGainExtra) * daysInMonth;
+  }
+
+  const endWeightProjected = Math.round(supplementWeight * 10) / 10;
+  const endWeightPasture = Math.round(pastureWeight * 10) / 10;
+  const avgWeight = (startWt + endWeightProjected) / 2;
+
+  const dailyConsumptionKg = (avgWeight * animals * consumptionRate) / 100;
+  const dailyCost = dailyConsumptionKg * costPerKg;
+  const monthlyCost = dailyCost * 30;
+  const costPerAnimalDay = animals > 0 ? dailyCost / animals : 0;
+  const costPerAnimalMonth = costPerAnimalDay * 30;
+  const totalPeriodCost = dailyCost * periodoDias;
+
+  const ureiaIngredients = inputs.ingredients.filter(i => {
+    const cat = INGREDIENT_CATALOG.find(c => c.id === i.catalogId)!;
+    return cat.proteina >= 200;
+  });
+  const ureiaQty = ureiaIngredients.reduce((s, i) => s + i.qtyIn100kg, 0);
+  const ureiaPercent = totalQty > 0 ? (ureiaQty / totalQty) * 100 : 0;
+
+  return {
+    totalQty,
+    totalCost100kg,
+    totalProteina,
+    totalNdt,
+    costPerKg,
+    costPerBag25,
+    dailyConsumptionKg,
+    dailyCost,
+    monthlyCost,
+    costPerAnimalDay,
+    costPerAnimalMonth,
+    totalPeriodCost,
+    endWeightProjected,
+    endWeightPasture,
+    ureiaPercent,
+    ureiaQty,
+    finalDifference: (endWeightProjected - endWeightPasture).toFixed(0)
+  };
+}
+
+interface SavedSimulation {
+  id: string;
+  user_id: string;
+  name: string;
+  calculator_type: string;
+  inputs: {
+    ingredients: FormulationIngredient[];
+    lotData: {
+      animals: string;
+      startWeight: string;
+      consumptionRate: string;
+      sellPrice: string;
+      periodo: string;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+}
+
 export default function ProteinadoCalculatorPage() {
   return (
     <Suspense fallback={
@@ -95,6 +237,332 @@ function ProteinadoCalculatorContent() {
     sellPrice: '13.00',
     periodo: '150',
   });
+
+  // State variables for saving & comparison
+  const [simulations, setSimulations] = useState<SavedSimulation[]>([]);
+  const [loadingSimulations, setLoadingSimulations] = useState(false);
+  const [savingSimulation, setSavingSimulation] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [newSimulationName, setNewSimulationName] = useState('');
+  const [selectedSimsForCompare, setSelectedSimsForCompare] = useState<string[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareMetric, setCompareMetric] = useState<'protein' | 'ndt' | 'costKg' | 'costAnimal' | 'costTotal'>('protein');
+
+  // Fetch simulations from database
+  const fetchSimulations = async () => {
+    if (!user) {
+      setSimulations([]);
+      return;
+    }
+    setLoadingSimulations(true);
+    try {
+      const res = await fetch('/api/simulations?type=proteinado');
+      if (res.ok) {
+        const data = await res.json();
+        setSimulations(data);
+      }
+    } catch (err) {
+      console.error('Error fetching simulations:', err);
+    } finally {
+      setLoadingSimulations(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSimulations();
+  }, [user]);
+
+  const handleSaveSimulation = async () => {
+    if (!user) {
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return;
+    }
+    if (!newSimulationName.trim()) return;
+
+    setSavingSimulation(true);
+    try {
+      const res = await fetch('/api/simulations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSimulationName,
+          calculator_type: 'proteinado',
+          inputs: {
+            ingredients,
+            lotData
+          }
+        })
+      });
+
+      if (res.ok) {
+        setNewSimulationName('');
+        setShowSaveModal(false);
+        setToastMessage('Formulação salva!');
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+        fetchSimulations();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao salvar formulação');
+      }
+    } catch (err) {
+      console.error('Error saving simulation:', err);
+      alert('Erro de conexão ao salvar formulação');
+    } finally {
+      setSavingSimulation(false);
+    }
+  };
+
+  const handleDeleteSimulation = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Deseja realmente excluir esta formulação salva?')) return;
+
+    try {
+      const res = await fetch(`/api/simulations/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setToastMessage('Formulação excluída!');
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+        setSelectedSimsForCompare(prev => prev.filter(item => item !== id));
+        fetchSimulations();
+      } else {
+        alert('Erro ao excluir formulação');
+      }
+    } catch (err) {
+      console.error('Error deleting simulation:', err);
+    }
+  };
+
+  const handleLoadSimulation = (sim: SavedSimulation) => {
+    setIngredients(sim.inputs.ingredients || []);
+    setLotData(sim.inputs.lotData || { animals: '50', startWeight: '200', consumptionRate: '0.2', sellPrice: '13.00', periodo: '150' });
+    setToastMessage(`Formulação "${sim.name}" carregada!`);
+    setShowShareToast(true);
+    setTimeout(() => setShowShareToast(false), 3000);
+  };
+
+  const toggleSelectForCompare = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      if (selectedSimsForCompare.length >= 4) {
+        alert('Você pode comparar no máximo 4 formulações.');
+        e.target.checked = false;
+        return;
+      }
+      setSelectedSimsForCompare(prev => [...prev, id]);
+    } else {
+      setSelectedSimsForCompare(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  // State for compared simulations loaded via URL
+  const [urlComparedSims, setUrlComparedSims] = useState<any[]>([]);
+
+  // Load compared simulations from URL if present on mount/search params change
+  useEffect(() => {
+    const compareDataParam = searchParams.get('compareData');
+    if (compareDataParam) {
+      try {
+        const decoded = decodeURIComponent(escape(atob(compareDataParam)));
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped = parsed.map((item: any, idx: number) => {
+            const calcs = runProteinCalculations(item.inputs);
+            return {
+              id: `url-sim-${idx}`,
+              name: item.name,
+              inputs: item.inputs,
+              calcs
+            };
+          });
+          setUrlComparedSims(mapped);
+          setShowCompareModal(true);
+        }
+      } catch (e) {
+        console.error('Error parsing compareData from URL:', e);
+      }
+    }
+  }, [searchParams]);
+
+  // Comparison Data structures
+  const comparedSimsData = useMemo(() => {
+    if (urlComparedSims.length > 0) {
+      return urlComparedSims;
+    }
+    return selectedSimsForCompare.map(id => {
+      const sim = simulations.find(s => s.id === id);
+      if (!sim) return null;
+      const calcs = runProteinCalculations(sim.inputs);
+      return {
+        id: sim.id,
+        name: sim.name,
+        inputs: sim.inputs,
+        calcs
+      };
+    }).filter(Boolean) as Array<{
+      id: string;
+      name: string;
+      inputs: SavedSimulation['inputs'];
+      calcs: ReturnType<typeof runProteinCalculations>;
+    }>;
+  }, [selectedSimsForCompare, simulations, urlComparedSims]);
+
+  const handleCloseCompareModal = () => {
+    setShowCompareModal(false);
+    setUrlComparedSims([]);
+    const params = new URLSearchParams(window.location.search);
+    params.delete('compareData');
+    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState(null, '', newRelativePathQuery);
+  };
+
+  const handlePrintCompare = () => {
+    window.print();
+  };
+
+  const handleShareCompare = () => {
+    try {
+      const compareDataArray = comparedSimsData.map(s => ({
+        name: s.name,
+        inputs: s.inputs
+      }));
+      const json = JSON.stringify(compareDataArray);
+      const base64 = btoa(unescape(encodeURIComponent(json)));
+      const params = new URLSearchParams(window.location.search);
+      params.set('compareData', base64);
+      const shareLink = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
+      
+      navigator.clipboard.writeText(shareLink);
+      setToastMessage('Link de comparação copiado!');
+      setShowShareToast(true);
+      setTimeout(() => setShowShareToast(false), 3000);
+    } catch (err) {
+      console.error('Error generating share link:', err);
+      alert('Erro ao gerar link de compartilhamento.');
+    }
+  };
+
+  // Highlight best values
+  const bestValues = useMemo(() => {
+    if (comparedSimsData.length === 0) {
+      return {
+        maxProtein: 0,
+        maxNdt: 0,
+        minCostPerKg: 99999999,
+        minCostPerAnimalDay: 99999999,
+        minDailyCost: 99999999,
+        minTotalPeriodCost: 99999999,
+        maxEndWeight: 0,
+        maxFinalDifference: 0
+      };
+    }
+    return {
+      maxProtein: Math.max(...comparedSimsData.map(s => s.calcs.totalProteina)),
+      maxNdt: Math.max(...comparedSimsData.map(s => s.calcs.totalNdt)),
+      minCostPerKg: Math.min(...comparedSimsData.map(s => s.calcs.costPerKg)),
+      minCostPerAnimalDay: Math.min(...comparedSimsData.map(s => s.calcs.costPerAnimalDay)),
+      minDailyCost: Math.min(...comparedSimsData.map(s => s.calcs.dailyCost)),
+      minTotalPeriodCost: Math.min(...comparedSimsData.map(s => s.calcs.totalPeriodCost)),
+      maxEndWeight: Math.max(...comparedSimsData.map(s => s.calcs.endWeightProjected)),
+      maxFinalDifference: Math.max(...comparedSimsData.map(s => parseFloat(s.calcs.finalDifference) || 0))
+    };
+  }, [comparedSimsData]);
+
+  const comparisonChartData = useMemo(() => {
+    return comparedSimsData.map(s => ({
+      name: s.name,
+      'Proteína Bruta (%)': parseFloat(s.calcs.totalProteina.toFixed(1)),
+      'NDT (%)': parseFloat(s.calcs.totalNdt.toFixed(1)),
+      'Custo por kg (R$)': parseFloat(s.calcs.costPerKg.toFixed(2)),
+      'Custo/Animal/Dia (R$)': parseFloat(s.calcs.costPerAnimalDay.toFixed(2)),
+      'Custo Total Lote (R$)': Math.round(s.calcs.totalPeriodCost)
+    }));
+  }, [comparedSimsData]);
+
+  interface RowItem {
+    label: string;
+    format: (s: any) => string;
+    isBest?: (s: any) => boolean;
+    highlightClass?: string;
+  }
+
+  interface RowGroup {
+    category: string;
+    items: RowItem[];
+  }
+
+  const rows: RowGroup[] = [
+    {
+      category: 'Dados e Parâmetros do Lote',
+      items: [
+        { label: 'Nº de Animais', format: (s: any) => `${s.inputs.lotData.animals} cab` },
+        { label: 'Peso Inicial (kg)', format: (s: any) => `${s.inputs.lotData.startWeight} kg` },
+        { label: 'Consumo (% do PV)', format: (s: any) => `${s.inputs.lotData.consumptionRate}% PV` },
+        { label: 'Período (dias)', format: (s: any) => `${s.inputs.lotData.periodo} dias` },
+      ]
+    },
+    {
+      category: 'Composição Nutricional da Mistura',
+      items: [
+        {
+          label: 'Proteína Bruta (%)',
+          format: (s: any) => `${s.calcs.totalProteina.toFixed(1)}%`,
+          isBest: (s: any) => s.calcs.totalProteina === bestValues.maxProtein && bestValues.maxProtein > 0,
+          highlightClass: 'bg-emerald-50 text-emerald-700 font-bold'
+        },
+        {
+          label: 'NDT (%)',
+          format: (s: any) => `${s.calcs.totalNdt.toFixed(1)}%`,
+          isBest: (s: any) => s.calcs.totalNdt === bestValues.maxNdt && bestValues.maxNdt > 0,
+          highlightClass: 'bg-blue-50 text-blue-700 font-bold'
+        },
+      ]
+    },
+    {
+      category: 'Indicadores Financeiros e Projeção',
+      items: [
+        {
+          label: 'Custo da Mistura (R$/kg)',
+          format: (s: any) => `R$ ${s.calcs.costPerKg.toFixed(2)}`,
+          isBest: (s: any) => s.calcs.costPerKg === bestValues.minCostPerKg && bestValues.minCostPerKg < 99999999,
+          highlightClass: 'bg-emerald-50 text-emerald-700 font-bold'
+        },
+        {
+          label: 'Custo/Animal/Dia (R$)',
+          format: (s: any) => `R$ ${s.calcs.costPerAnimalDay.toFixed(2)}`,
+          isBest: (s: any) => s.calcs.costPerAnimalDay === bestValues.minCostPerAnimalDay && bestValues.minCostPerAnimalDay < 99999999,
+          highlightClass: 'bg-emerald-50 text-emerald-700 font-bold'
+        },
+        {
+          label: 'Custo Diário Lote (R$)',
+          format: (s: any) => `R$ ${s.calcs.dailyCost.toFixed(2)}`,
+          isBest: (s: any) => s.calcs.dailyCost === bestValues.minDailyCost && bestValues.minDailyCost < 99999999,
+          highlightClass: 'bg-emerald-50 text-emerald-700 font-bold'
+        },
+        {
+          label: 'Custo Total Período (R$)',
+          format: (s: any) => `R$ ${s.calcs.totalPeriodCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`,
+          isBest: (s: any) => s.calcs.totalPeriodCost === bestValues.minTotalPeriodCost && bestValues.minTotalPeriodCost < 99999999,
+          highlightClass: 'bg-emerald-50 text-[#2D5A27] font-black'
+        },
+        {
+          label: 'Peso Final Projetado (kg)',
+          format: (s: any) => `${s.calcs.endWeightProjected} kg`,
+          isBest: (s: any) => s.calcs.endWeightProjected === bestValues.maxEndWeight && bestValues.maxEndWeight > 0,
+          highlightClass: 'bg-amber-50 text-amber-700 font-bold'
+        },
+        {
+          label: 'Ganho Peso Extra vs Pasto (kg)',
+          format: (s: any) => `+${s.calcs.finalDifference} kg`,
+          isBest: (s: any) => (parseFloat(s.calcs.finalDifference) || 0) === bestValues.maxFinalDifference && bestValues.maxFinalDifference > 0,
+          highlightClass: 'bg-amber-50 text-amber-700 font-bold'
+        },
+      ]
+    }
+  ];
 
   // Load initial state from URL parameters
   useEffect(() => {
@@ -1156,6 +1624,118 @@ function ProteinadoCalculatorContent() {
               )}
             </div>
 
+            {/* Bloco Formulações Salvas */}
+            <div className="bg-white rounded-[2rem] p-6 border border-[#E9ECEF] shadow-sm">
+              <h2 className="text-sm font-bold text-[#333] mb-6 flex items-center justify-between uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <Bookmark size={18} className="text-[#2D5A27]" /> Minhas Formulações Salvas
+                </div>
+                {user && simulations.length > 0 && (
+                  <span className="text-[10px] bg-[#2D5A27]/10 text-[#2D5A27] px-2.5 py-1 rounded-full font-black">
+                    {simulations.length} salvas
+                  </span>
+                )}
+              </h2>
+
+              <div className="space-y-4">
+                {/* Botão de Salvar Formulação Atual */}
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      setAuthMode('login');
+                      setShowAuthModal(true);
+                    } else {
+                      setShowSaveModal(true);
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#2D5A27]/5 hover:bg-[#2D5A27]/10 text-[#2D5A27] font-bold text-sm rounded-xl transition-all border border-[#2D5A27]/10 cursor-pointer"
+                >
+                  <Plus size={16} /> Salvar Formulação Atual
+                </button>
+
+                {!user ? (
+                  <div className="text-center py-6 px-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF] border-dashed">
+                    <p className="text-xs text-[#666] mb-4">
+                      Entre na sua conta para salvar suas formulações e comparar múltiplos projetos de proteinado.
+                    </p>
+                    <button
+                      onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                      className="px-4 py-2 bg-[#2D5A27] text-white hover:bg-[#20401C] rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+                    >
+                      Fazer Login
+                    </button>
+                  </div>
+                ) : loadingSimulations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-[#2D5A27]" size={24} />
+                  </div>
+                ) : simulations.length === 0 ? (
+                  <div className="text-center py-6 px-4 bg-[#F8F9FA] rounded-2xl border border-[#E9ECEF]">
+                    <p className="text-xs text-[#999] italic">Nenhuma formulação salva ainda. Crie sua mistura e salve.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                    {simulations.map(sim => {
+                      const isSelected = selectedSimsForCompare.includes(sim.id);
+                      const simCalcs = runProteinCalculations(sim.inputs);
+                      return (
+                        <div
+                          key={sim.id}
+                          onClick={() => handleLoadSimulation(sim)}
+                          className="group relative flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#E9F0E8] border border-[#E9ECEF] hover:border-[#2D5A27]/20 rounded-xl cursor-pointer transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 pr-8" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => toggleSelectForCompare(sim.id, e)}
+                              className="w-4 h-4 rounded border-[#E9ECEF] text-[#2D5A27] focus:ring-[#2D5A27] cursor-pointer"
+                            />
+                            <div className="min-w-0" onClick={() => handleLoadSimulation(sim)}>
+                              <div className="font-bold text-[#333] text-xs truncate group-hover:text-[#2D5A27] transition-colors">
+                                {sim.name}
+                              </div>
+                              <div className="text-[10px] text-[#999] mt-0.5">
+                                PB: {simCalcs.totalProteina.toFixed(1)}% · NDT: {simCalcs.totalNdt.toFixed(1)}% · R$ {simCalcs.costPerKg.toFixed(2)}/kg
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => handleDeleteSimulation(sim.id, e)}
+                            className="text-[#999] hover:text-red-500 p-1.5 transition-colors rounded-lg hover:bg-red-50 cursor-pointer"
+                            title="Excluir formulação"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Botão de Comparação de Projetos */}
+                {user && selectedSimsForCompare.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedSimsForCompare.length < 2) {
+                        alert('Selecione pelo menos 2 formulações para comparar.');
+                        return;
+                      }
+                      setShowCompareModal(true);
+                    }}
+                    disabled={selectedSimsForCompare.length < 2}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold text-sm rounded-xl transition-all shadow-sm ${
+                      selectedSimsForCompare.length >= 2
+                        ? 'bg-[#2171B5] hover:bg-[#1E62A0] text-white cursor-pointer'
+                        : 'bg-[#E9ECEF] text-[#999] cursor-not-allowed'
+                    }`}
+                  >
+                    <Layers size={16} /> Comparar Selecionados ({selectedSimsForCompare.length})
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
 
         </div>
@@ -1194,6 +1774,390 @@ function ProteinadoCalculatorContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Save Modal */}
+      <AnimatePresence>
+        {showSaveModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2rem] p-6 max-w-md w-full border border-[#E9ECEF] shadow-2xl"
+            >
+              <h3 className="text-lg font-black text-[#333] mb-2 flex items-center gap-2">
+                <Bookmark className="text-[#2D5A27]" size={20} /> Salvar Formulação
+              </h3>
+              <p className="text-xs text-[#666] mb-4">
+                Dê um nome para esta formulação para recuperá-la ou compará-la depois.
+              </p>
+              <input
+                type="text"
+                placeholder="Ex: Proteinado Inverno Lote A"
+                value={newSimulationName}
+                onChange={(e) => setNewSimulationName(e.target.value)}
+                className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27] mb-4"
+                maxLength={40}
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveModal(false)}
+                  className="flex-1 py-3 bg-[#F8F9FA] hover:bg-[#E9ECEF] text-[#666] font-bold text-xs rounded-xl transition-all border border-[#E9ECEF] cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveSimulation}
+                  disabled={savingSimulation || !newSimulationName.trim()}
+                  className="flex-1 py-3 bg-[#2D5A27] hover:bg-[#20401C] text-white font-bold text-xs rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {savingSimulation ? 'Salvando...' : 'Confirmar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Comparison Modal */}
+      <AnimatePresence>
+        {showCompareModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 overflow-y-auto compare-modal-overlay">
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.98 }}
+              className="bg-white rounded-[2rem] border border-[#E9ECEF] shadow-2xl w-full max-w-4xl my-8 overflow-hidden flex flex-col compare-modal-content"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-[#E9ECEF] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white sticky top-0 z-10">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-[#333] flex items-center gap-2">
+                    <Layers className="text-[#2171B5]" size={22} /> Comparação de Formulações
+                  </h3>
+                  <p className="text-xs text-[#666] mt-1">Comparação detalhada lado a lado das formulações selecionadas.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 no-print">
+                  <button
+                    onClick={handlePrintCompare}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2D5A27] hover:bg-[#20401C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    title="Baixar relatório em PDF"
+                  >
+                    <Download size={14} /> Baixar PDF
+                  </button>
+                  <button
+                    onClick={handleCloseCompareModal}
+                    className="p-2 hover:bg-[#F8F9FA] rounded-full text-[#999] hover:text-[#333] transition-colors cursor-pointer text-xl font-bold flex items-center justify-center w-8 h-8 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {comparedSimsData.length === 0 ? (
+                <div className="text-center py-12 text-[#999] italic bg-white">Nenhuma formulação selecionada.</div>
+              ) : (
+                <div className="p-6 overflow-y-auto max-h-[calc(80vh-100px)] space-y-6 bg-white compare-modal-body">
+                  {/* Chart and Metrics tabs */}
+                  <div className="bg-[#F8F9FA] p-5 rounded-2xl border border-[#E9ECEF] compare-chart-container">
+                    <div className="flex flex-wrap gap-2 mb-4 justify-center no-print">
+                      {[
+                        { key: 'protein', label: 'PB (%)', chartKey: 'Proteína Bruta (%)' },
+                        { key: 'ndt', label: 'NDT (%)', chartKey: 'NDT (%)' },
+                        { key: 'costKg', label: 'R$ / kg', chartKey: 'Custo por kg (R$)' },
+                        { key: 'costAnimal', label: 'R$ / animal / dia', chartKey: 'Custo/Animal/Dia (R$)' },
+                        { key: 'costTotal', label: 'Custo Total Período', chartKey: 'Custo Total Lote (R$)' },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setCompareMetric(tab.key as any)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                            compareMetric === tab.key
+                              ? 'bg-[#2171B5] border-[#2171B5] text-white'
+                              : 'bg-white border-[#E9ECEF] text-[#666] hover:bg-[#F8F9FA]'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="h-[250px] w-full mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={comparisonChartData}
+                          margin={{ top: 20, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#E9ECEF" />
+                          <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#666' }} />
+                          <YAxis tick={{ fontSize: 10, fill: '#999' }} />
+                          <Tooltip
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}
+                          />
+                          <Bar
+                            dataKey={
+                              compareMetric === 'protein'
+                                ? 'Proteína Bruta (%)'
+                                : compareMetric === 'ndt'
+                                ? 'NDT (%)'
+                                : compareMetric === 'costKg'
+                                ? 'Custo por kg (R$)'
+                                : compareMetric === 'costAnimal'
+                                ? 'Custo/Animal/Dia (R$)'
+                                : 'Custo Total Lote (R$)'
+                            }
+                            radius={[8, 8, 0, 0]}
+                            barSize={40}
+                          >
+                            {comparisonChartData.map((entry: any, index: number) => {
+                              const activeKey =
+                                compareMetric === 'protein'
+                                  ? 'Proteína Bruta (%)'
+                                  : compareMetric === 'ndt'
+                                  ? 'NDT (%)'
+                                  : compareMetric === 'costKg'
+                                  ? 'Custo por kg (R$)'
+                                  : compareMetric === 'costAnimal'
+                                  ? 'Custo/Animal/Dia (R$)'
+                                  : 'Custo Total Lote (R$)';
+                              const value = entry[activeKey];
+                              
+                              // Cor condicional se for o melhor valor (menor custo ou maior proteina/ndt/ganho)
+                              let isBest = false;
+                              if (compareMetric === 'protein') isBest = value === bestValues.maxProtein;
+                              else if (compareMetric === 'ndt') isBest = value === bestValues.maxNdt;
+                              else if (compareMetric === 'costKg') isBest = value === bestValues.minCostPerKg;
+                              else if (compareMetric === 'costAnimal') isBest = value === bestValues.minCostPerAnimalDay;
+                              else if (compareMetric === 'costTotal') isBest = value === bestValues.minTotalPeriodCost;
+
+                              return (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={isBest ? '#2D5A27' : '#9ECAE1'}
+                                />
+                              );
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Comparison Table */}
+                  <div className="overflow-x-auto border border-[#E9ECEF] rounded-2xl bg-white">
+                    <table className="w-full text-xs text-left min-w-[600px]">
+                      <thead>
+                        <tr className="bg-[#F8F9FA] border-b border-[#E9ECEF]">
+                          <th className="px-4 py-3 font-bold text-[#666]">Parâmetro</th>
+                          {comparedSimsData.map((sim, i) => (
+                            <th key={sim.id} className="px-4 py-3 font-black text-[#333] border-l border-[#E9ECEF]">
+                              Formulação {i + 1}: <span className="text-[#2171B5] font-black">{sim.name}</span>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E9ECEF]">
+                        {rows.map((group, groupIdx) => (
+                          <React.Fragment key={groupIdx}>
+                            <tr className="bg-[#F8F9FA]/60">
+                              <td
+                                colSpan={comparedSimsData.length + 1}
+                                className="px-4 py-2 font-black text-[#999] uppercase text-[10px] tracking-wider"
+                              >
+                                {group.category}
+                              </td>
+                            </tr>
+                            {group.items.map((row, rowIdx) => (
+                              <tr key={rowIdx} className="hover:bg-[#FAFAFA] transition-colors">
+                                <td className="px-4 py-3 font-medium text-[#666]">{row.label}</td>
+                                {comparedSimsData.map(sim => {
+                                  const isHighlighted = row.isBest ? row.isBest(sim) : false;
+                                  return (
+                                    <td
+                                      key={sim.id}
+                                      className={`px-4 py-3 border-l border-[#E9ECEF] ${
+                                        isHighlighted ? row.highlightClass || 'bg-emerald-50 text-[#2D5A27] font-bold' : 'text-[#333]'
+                                      }`}
+                                    >
+                                      {row.format(sim)}
+                                      {isHighlighted && (
+                                        <span className="ml-1.5 text-[9px] bg-[#2D5A27] text-white px-1.5 py-0.5 rounded-full uppercase font-black font-sans">
+                                          Melhor
+                                        </span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <style>{`
+        @media print {
+          /* Reset elements for full page width printing */
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
+            background: #fff !important;
+            color: #000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* Hide non-printable elements */
+          header, main, nav, footer, .no-print, .bottom-nav-class, .print\\:hidden, button, .compare-modal-overlay button {
+            display: none !important;
+          }
+          
+          /* Show only the modal content and override fixed/absolute positioning */
+          .compare-modal-overlay {
+            position: static !important;
+            background: #fff !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            z-index: auto !important;
+          }
+          
+          .compare-modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          
+          .compare-modal-body {
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 10px 0 !important;
+            display: block !important;
+          }
+          
+          /* Typography / Header styling for print */
+          h3 {
+            font-size: 20pt !important;
+            color: #1a3a1e !important;
+            margin-bottom: 5px !important;
+          }
+          
+          p {
+            font-size: 10pt !important;
+            color: #444 !important;
+          }
+          
+          /* Table formatting for A4 print */
+          .overflow-x-auto {
+            overflow: visible !important;
+            margin-bottom: 25px !important;
+          }
+          
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
+            margin-top: 15px !important;
+          }
+          
+          th, td {
+            border: 1px solid #dcdcdc !important;
+            padding: 8px 10px !important;
+            font-size: 9.5pt !important;
+            text-align: left !important;
+            color: #222 !important;
+          }
+          
+          th {
+            background-color: #f7f9f7 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+          }
+          
+          td {
+            text-align: center !important;
+          }
+          
+          td:first-child, th:first-child {
+            text-align: left !important;
+            font-weight: bold !important;
+            background-color: #fafafa !important;
+          }
+          
+          /* Highlight columns/best values */
+          .text-blue-600, .text-emerald-600, .bg-blue-50, .bg-emerald-50, .bg-emerald-50\\/100, .bg-blue-50\\/100 {
+            background-color: #e2ece9 !important;
+            color: #137333 !important;
+            font-weight: 900 !important;
+            border: 1.5px solid #137333 !important;
+          }
+          
+          .text-emerald-600 {
+            color: #137333 !important;
+          }
+          
+          .text-blue-600 {
+            color: #1a73e8 !important;
+          }
+          
+          /* Charts styling */
+          .compare-chart-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-top: 30px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 20px !important;
+            background: #fff !important;
+          }
+          
+          /* Fix Recharts SVG sizing on print */
+          .recharts-responsive-container {
+            width: 650px !important;
+            height: 320px !important;
+            margin: 0 auto !important;
+            display: block !important;
+          }
+          
+          .recharts-surface {
+            width: 650px !important;
+            height: 320px !important;
+          }
+          
+          /* Keep some branding info visible at the bottom of the printed page */
+          .compare-modal-content::after {
+            content: "Relatório gerado por Gado Gaúcho (gadogaucho.com.br) - Ferramenta de Análise de Pecuária" !important;
+            display: block !important;
+            text-align: center !important;
+            font-size: 8pt !important;
+            color: #888 !important;
+            margin-top: 40px !important;
+            border-top: 1px solid #eaeaea !important;
+            padding-top: 10px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
