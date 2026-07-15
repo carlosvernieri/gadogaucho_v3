@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Scale, Plus, Trash2, Calendar, ChevronLeft, Save,
   History, Search, TrendingUp, Info, User, Check, Loader2,
-  FileSpreadsheet, Edit3, ArrowUpRight, ArrowDownRight, Tag, ArrowRight
+  FileSpreadsheet, Edit3, ArrowUpRight, ArrowDownRight, Tag, ArrowRight, Cloud
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
@@ -35,6 +35,7 @@ interface WeighingSession {
   name: string;
   date: string;
   records: WeighingRecord[];
+  isDatabase?: boolean;
 }
 
 export default function WeightControlPage() {
@@ -72,8 +73,9 @@ function WeightControlClient() {
   const [suggestedDescription, setSuggestedDescription] = useState('');
   const [lastWeightInfo, setLastWeightInfo] = useState<{ weight: number; date: string } | null>(null);
 
-  // Database of Saved Sessions (stored in localStorage)
+  // Database of Saved Sessions (stored in localStorage or Supabase)
   const [savedSessions, setSavedSessions] = useState<WeighingSession[]>([]);
+  const [loadingDb, setLoadingDb] = useState(false);
 
   // Selected Session for Detail View (History Tab)
   const [selectedSession, setSelectedSession] = useState<WeighingSession | null>(null);
@@ -97,26 +99,56 @@ function WeightControlClient() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  // Set default session metadata on load
+  const fetchDbSessions = async () => {
+    if (!user) return;
+    setLoadingDb(true);
+    try {
+      const res = await fetch('/api/simulations?type=controle-peso');
+      if (res.ok) {
+        const data = await res.json();
+        const mapped: WeighingSession[] = data.map((sim: any) => ({
+          id: sim.id.toString(),
+          name: sim.name,
+          date: sim.inputs.date || sim.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          records: sim.inputs.records || [],
+          isDatabase: true
+        }));
+        setSavedSessions(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching weight sessions from DB:', err);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  // Set default session metadata on load and sync based on auth state
   useEffect(() => {
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
     const formattedTime = today.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     setSessionDate(formattedDate);
     setSessionName(`Pesagem ${today.toLocaleDateString('pt-BR')} ${formattedTime}`);
-
-    // Load data from localStorage
-    const saved = localStorage.getItem('gado_gaucho_weighing_sessions');
-    if (saved) {
-      try {
-        setSavedSessions(JSON.parse(saved));
-      } catch (err) {
-        console.error('Error loading saved sessions:', err);
-      }
-    }
   }, []);
 
-  // Save database to localStorage on update
+  useEffect(() => {
+    if (user) {
+      fetchDbSessions();
+    } else {
+      const saved = localStorage.getItem('gado_gaucho_weighing_sessions');
+      if (saved) {
+        try {
+          setSavedSessions(JSON.parse(saved));
+        } catch (err) {
+          console.error('Error loading saved sessions:', err);
+        }
+      } else {
+        setSavedSessions([]);
+      }
+    }
+  }, [user]);
+
+  // Save database to localStorage on update (guest fallback)
   const saveToLocalStorage = (sessions: WeighingSession[]) => {
     localStorage.setItem('gado_gaucho_weighing_sessions', JSON.stringify(sessions));
     setSavedSessions(sessions);
@@ -269,38 +301,106 @@ function WeightControlClient() {
   };
 
   // Save whole session
-  const handleSaveSession = () => {
+  const handleSaveSession = async () => {
     if (currentRecords.length === 0) {
       triggerToast('Adicione pelo menos um animal para salvar a pesagem.');
       return;
     }
 
-    const newSession: WeighingSession = {
-      id: Date.now().toString(),
-      name: sessionName.trim() || `Pesagem ${new Date().toLocaleDateString('pt-BR')}`,
-      date: sessionDate || new Date().toISOString().split('T')[0],
-      records: [...currentRecords].reverse() // Save chronologically
-    };
+    const name = sessionName.trim() || `Pesagem ${new Date().toLocaleDateString('pt-BR')}`;
+    const date = sessionDate || new Date().toISOString().split('T')[0];
+    const records = [...currentRecords].reverse(); // Save chronologically
 
-    const updated = [newSession, ...savedSessions];
-    saveToLocalStorage(updated);
+    if (user) {
+      setLoadingDb(true);
+      try {
+        const res = await fetch('/api/simulations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            calculator_type: 'controle-peso',
+            inputs: {
+              date,
+              records
+            }
+          })
+        });
 
-    // Reset session and generate new name
-    setCurrentRecords([]);
-    const today = new Date();
-    const formattedDate = today.toISOString().split('T')[0];
-    const formattedTime = today.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    setSessionDate(formattedDate);
-    setSessionName(`Pesagem ${today.toLocaleDateString('pt-BR')} ${formattedTime}`);
+        if (res.ok) {
+          triggerToast('Pesagem salva no banco de dados!');
+          setCurrentRecords([]);
+          const today = new Date();
+          const formattedDate = today.toISOString().split('T')[0];
+          const formattedTime = today.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          setSessionDate(formattedDate);
+          setSessionName(`Pesagem ${today.toLocaleDateString('pt-BR')} ${formattedTime}`);
+          
+          await fetchDbSessions();
+          setActiveTab('history');
+        } else {
+          const data = await res.json();
+          triggerToast(data.error || 'Erro ao salvar no banco de dados.');
+        }
+      } catch (err) {
+        console.error('Error saving session to DB:', err);
+        triggerToast('Erro de rede ao salvar no banco de dados.');
+      } finally {
+        setLoadingDb(false);
+      }
+    } else {
+      const newSession: WeighingSession = {
+        id: Date.now().toString(),
+        name,
+        date,
+        records
+      };
 
-    triggerToast('Pesagem salva com sucesso!');
-    setActiveTab('history');
-    setSelectedSession(newSession);
+      const updated = [newSession, ...savedSessions];
+      saveToLocalStorage(updated);
+
+      // Reset session and generate new name
+      setCurrentRecords([]);
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      const formattedTime = today.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      setSessionDate(formattedDate);
+      setSessionName(`Pesagem ${today.toLocaleDateString('pt-BR')} ${formattedTime}`);
+
+      triggerToast('Pesagem salva no dispositivo!');
+      setActiveTab('history');
+      setSelectedSession(newSession);
+    }
   };
 
   // Delete a saved session
-  const handleDeleteSession = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta pesagem permanentemente?')) {
+  const handleDeleteSession = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta pesagem permanentemente?')) {
+      return;
+    }
+
+    const sessionToDelete = savedSessions.find(s => s.id === id);
+    if (sessionToDelete?.isDatabase && user) {
+      setLoadingDb(true);
+      try {
+        const res = await fetch(`/api/simulations/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (res.ok) {
+          triggerToast('Pesagem excluída do banco de dados.');
+          setSelectedSession(null);
+          await fetchDbSessions();
+        } else {
+          triggerToast('Erro ao excluir do banco de dados.');
+        }
+      } catch (err) {
+        console.error('Error deleting session from DB:', err);
+        triggerToast('Erro de rede ao excluir do banco de dados.');
+      } finally {
+        setLoadingDb(false);
+      }
+    } else {
       const updated = savedSessions.filter(s => s.id !== id);
       saveToLocalStorage(updated);
       setSelectedSession(null);
@@ -748,7 +848,27 @@ function WeightControlClient() {
                   <History size={16} className="text-[#2D5A27]" /> Pesagens Salvas
                 </h2>
 
-                {savedSessions.length === 0 ? (
+                {!user && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-[11px] text-amber-800 font-semibold flex flex-col gap-1.5">
+                    <div className="flex items-start gap-1.5">
+                      <Info size={14} className="shrink-0 text-amber-600 mt-0.5" />
+                      <span>Você está no modo visitante. Seus dados estão salvos apenas no navegador deste dispositivo.</span>
+                    </div>
+                    <button
+                      onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                      className="text-left text-[#2D5A27] font-bold hover:underline"
+                    >
+                      Fazer login para salvar em nuvem →
+                    </button>
+                  </div>
+                )}
+
+                {loadingDb ? (
+                  <div className="text-center py-12 text-[#666] flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="animate-spin text-[#2D5A27]" size={24} />
+                    <p className="text-xs font-bold">Buscando pesagens da nuvem...</p>
+                  </div>
+                ) : savedSessions.length === 0 ? (
                   <div className="text-center py-12 text-[#999]">
                     <p className="text-sm font-bold">Nenhuma pesagem salva ainda.</p>
                     <p className="text-xs mt-1">
@@ -778,10 +898,21 @@ function WeightControlClient() {
                             <h3 className="text-xs font-black text-[#333] group-hover:text-[#2D5A27] transition-colors truncate">
                               {session.name}
                             </h3>
-                            <span className="text-[10px] text-[#999] font-bold shrink-0 flex items-center gap-1">
-                              <Calendar size={10} />
-                              {dateObj.toLocaleDateString('pt-BR')}
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {session.isDatabase ? (
+                                <span className="text-[9px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5" title="Salvo em nuvem">
+                                  <Cloud size={10} /> Nuvem
+                                </span>
+                              ) : (
+                                <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md font-bold" title="Salvo localmente no navegador">
+                                  Local
+                                </span>
+                              )}
+                              <span className="text-[10px] text-[#999] font-bold flex items-center gap-1">
+                                <Calendar size={10} />
+                                {dateObj.toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2 text-[10px] text-[#666] font-semibold mt-1">
