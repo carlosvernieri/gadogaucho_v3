@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify } from '@/lib/utils';
 import { RS_CITIES } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 const formatPhone = (val: string) => {
   const digits = val.replace(/\D/g, '').slice(0, 11);
@@ -143,9 +144,24 @@ export function AuthModal() {
         });
         if (res.ok) {
           const savedUser = await res.json();
-          setUser(savedUser);
+          
+          // Sincronizar o cliente Supabase no browser usando os tokens retornados pela API
+          try {
+            if (savedUser._session?.access_token && savedUser._session?.refresh_token) {
+              await supabase.auth.setSession({
+                access_token: savedUser._session.access_token,
+                refresh_token: savedUser._session.refresh_token,
+              });
+            }
+          } catch (err) {
+            console.error('Error synchronizing supabase client on register:', err);
+          }
 
-          fetch(`/api/favorites?userId=${savedUser.id}`)
+          // Remover campo interno antes de salvar no estado
+          const { _session, ...userToSave } = savedUser;
+          setUser(userToSave);
+
+          fetch(`/api/favorites?userId=${userToSave.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) setFavorites(data);
@@ -176,7 +192,22 @@ export function AuthModal() {
 
         if (res.ok) {
           const foundUser = await res.json();
-          setUser(foundUser);
+          
+          // Sincronizar o cliente Supabase no browser usando os tokens retornados pela API
+          try {
+            if (foundUser._session?.access_token && foundUser._session?.refresh_token) {
+              await supabase.auth.setSession({
+                access_token: foundUser._session.access_token,
+                refresh_token: foundUser._session.refresh_token,
+              });
+            }
+          } catch (err) {
+            console.error('Error synchronizing supabase client on login:', err);
+          }
+
+          // Remover campo interno antes de salvar no estado
+          const { _session, ...userToSave } = foundUser;
+          setUser(userToSave);
 
           fetch(`/api/favorites?userId=${foundUser.id}`)
             .then(res => res.json())

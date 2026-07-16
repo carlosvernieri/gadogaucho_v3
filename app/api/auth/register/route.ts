@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { createClientServer } from '@/lib/supabase-server';
 
@@ -16,7 +17,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
+    const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
+    const supabase = await createClientServer((name, value, options) => {
+      cookiesToSet.push({ name, value, options });
+    });
 
     // O Supabase Auth cuidará de verificar se o usuário existe e de hashear a senha.
     // Enviamos os dados extras no 'options.data' para que o Trigger SQL os pegue.
@@ -40,13 +44,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erro ao criar usuário' }, { status: 500 });
     }
 
-    // O usuário é retornado. Note que a sincronização com a tabela 'public.users' 
-    // acontecerá de forma assíncrona via Trigger no banco de dados.
-    return NextResponse.json({
+    const response = NextResponse.json({
       id: authData.user.id,
       email: authData.user.email,
-      name: authData.user.user_metadata?.name || name
+      name: authData.user.user_metadata?.name || name,
+      // Incluir tokens para o browser poder sincronizar a sessão via setSession()
+      _session: {
+        access_token: authData.session?.access_token,
+        refresh_token: authData.session?.refresh_token,
+        expires_at: authData.session?.expires_at,
+      }
     });
+
+    // Copiar cookies capturados do fluxo de autenticação para a resposta
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Registration error:', error);

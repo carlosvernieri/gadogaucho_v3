@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { createClientServer } from '@/lib/supabase-server';
 import bcrypt from 'bcryptjs';
@@ -15,7 +16,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
+    const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
+    const supabase = await createClientServer((name, value, options) => {
+      cookiesToSet.push({ name, value, options });
+    });
 
     // 1. Tentar autenticação nativa do Supabase
     let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -85,13 +89,25 @@ export async function POST(request: Request) {
 
     console.log('Login bem sucedido para:', email);
 
-    // Retornamos os dados do usuário logado de forma segura
-    return NextResponse.json({
+    const response = NextResponse.json({
       id: authData.user.id,
       email: authData.user.email,
       name: authData.user.user_metadata?.name || 'Usuário',
-      is_admin: authData.user.user_metadata?.is_admin || false
+      is_admin: authData.user.user_metadata?.is_admin || false,
+      // Incluir tokens para o browser poder sincronizar a sessão via setSession()
+      _session: {
+        access_token: authData.session?.access_token,
+        refresh_token: authData.session?.refresh_token,
+        expires_at: authData.session?.expires_at,
+      }
     });
+
+    // Copiar cookies capturados do fluxo de autenticação para a resposta
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
+
+    return response;
 
   } catch (error: any) {
     console.error('ERRO CRÍTICO NO LOGIN:', error);
