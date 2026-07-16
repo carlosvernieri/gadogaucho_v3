@@ -52,7 +52,7 @@ export default function WeightControlPage() {
 
 function WeightControlClient() {
   const router = useRouter();
-  const { user, setShowAdModal, setShowAuthModal, setAuthMode, logout } = useUser();
+  const { user, isAuthReady, setShowAdModal, setShowAuthModal, setAuthMode, logout } = useUser();
 
   // Navigation / UI States
   const [activeTab, setActiveTab] = useState<'session' | 'history' | 'animals'>('session');
@@ -132,6 +132,12 @@ function WeightControlClient() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthReady) return;
+
+    // Reset selected items when auth state changes to avoid showing stale guest/other user data
+    setSelectedSession(null);
+    setSelectedAnimalTag(null);
+
     if (user) {
       fetchDbSessions();
     } else {
@@ -146,7 +152,7 @@ function WeightControlClient() {
         setSavedSessions([]);
       }
     }
-  }, [user]);
+  }, [user, isAuthReady]);
 
   // Save database to localStorage on update (guest fallback)
   const saveToLocalStorage = (sessions: WeighingSession[]) => {

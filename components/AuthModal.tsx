@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useUser } from '@/context/UserContext';
 import { safeJsonStringify } from '@/lib/utils';
 import { RS_CITIES } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 const formatPhone = (val: string) => {
   const digits = val.replace(/\D/g, '').slice(0, 11);
@@ -143,6 +144,17 @@ export function AuthModal() {
         });
         if (res.ok) {
           const savedUser = await res.json();
+          
+          // Sincronizar o cliente do Supabase no browser
+          try {
+            await supabase.auth.signInWithPassword({
+              email: authForm.email,
+              password: authForm.password
+            });
+          } catch (err) {
+            console.error('Error synchronizing supabase client on register:', err);
+          }
+
           setUser(savedUser);
 
           fetch(`/api/favorites?userId=${savedUser.id}`)
@@ -176,6 +188,17 @@ export function AuthModal() {
 
         if (res.ok) {
           const foundUser = await res.json();
+          
+          // Sincronizar o cliente do Supabase no browser
+          try {
+            await supabase.auth.signInWithPassword({
+              email: authForm.email,
+              password: authForm.password
+            });
+          } catch (err) {
+            console.error('Error synchronizing supabase client on login:', err);
+          }
+
           setUser(foundUser);
 
           fetch(`/api/favorites?userId=${foundUser.id}`)
