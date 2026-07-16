@@ -6,7 +6,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Cliente para uso no Browser (Frontend)
 export const createClientBrowser = () => 
-  createBrowserClient(supabaseUrl, supabaseAnonKey);
+  createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      secure: process.env.NODE_ENV === 'production',
+    }
+  });
 
 // Cliente Singleton para compatibilidade com código legado que importa { supabase }
 export const supabase = createClientBrowser();

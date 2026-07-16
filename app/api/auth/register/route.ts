@@ -17,7 +17,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Telefone inválido. Utilize o formato (xx) xxxx xxxxx' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
+    const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
+    const supabase = await createClientServer((name, value, options) => {
+      cookiesToSet.push({ name, value, options });
+    });
 
     // O Supabase Auth cuidará de verificar se o usuário existe e de hashear a senha.
     // Enviamos os dados extras no 'options.data' para que o Trigger SQL os pegue.
@@ -47,11 +50,10 @@ export async function POST(request: Request) {
       name: authData.user.user_metadata?.name || name
     });
 
-    // Copiar cookies do cookieStore para a resposta para garantir que sejam enviados ao navegador
-    const cookieStore = await cookies();
-    for (const cookie of cookieStore.getAll()) {
-      response.cookies.set(cookie.name, cookie.value);
-    }
+    // Copiar cookies capturados do fluxo de autenticação para a resposta
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
 
     return response;
 

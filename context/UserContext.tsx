@@ -48,6 +48,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('UserContext: Erro ao buscar perfil (Pode ser RLS):', error.message);
+        
+        // Fallback: usar dados da sessão atual do Supabase Auth
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('UserContext: Aplicando fallback de dados do Supabase Auth para:', session.user.email);
+          const fallbackUser = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || 'Usuário',
+            is_admin: session.user.user_metadata?.is_admin || false,
+            role: session.user.user_metadata?.is_admin ? 'admin' : 'user'
+          };
+          setUserState(fallbackUser);
+          fetchFavorites(userId);
+        }
         setIsAuthReady(true);
         return;
       }

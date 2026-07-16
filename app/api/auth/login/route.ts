@@ -16,7 +16,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
     }
 
-    const supabase = await createClientServer();
+    const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
+    const supabase = await createClientServer((name, value, options) => {
+      cookiesToSet.push({ name, value, options });
+    });
 
     // 1. Tentar autenticação nativa do Supabase
     let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -93,11 +96,10 @@ export async function POST(request: Request) {
       is_admin: authData.user.user_metadata?.is_admin || false
     });
 
-    // Copiar cookies do cookieStore para a resposta para garantir que sejam enviados ao navegador
-    const cookieStore = await cookies();
-    for (const cookie of cookieStore.getAll()) {
-      response.cookies.set(cookie.name, cookie.value);
-    }
+    // Copiar cookies capturados do fluxo de autenticação para a resposta
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
 
     return response;
 
