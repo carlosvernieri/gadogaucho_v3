@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { createClientServer } from '@/lib/supabase-server';
 import bcrypt from 'bcryptjs';
@@ -85,13 +86,27 @@ export async function POST(request: Request) {
 
     console.log('Login bem sucedido para:', email);
 
-    // Retornamos os dados do usuário logado de forma segura
-    return NextResponse.json({
+    const response = NextResponse.json({
       id: authData.user.id,
       email: authData.user.email,
       name: authData.user.user_metadata?.name || 'Usuário',
       is_admin: authData.user.user_metadata?.is_admin || false
     });
+
+    // Copiar cookies do cookieStore para a resposta para garantir que sejam enviados ao navegador
+    const cookieStore = await cookies();
+    for (const cookie of cookieStore.getAll()) {
+      response.cookies.set(cookie.name, cookie.value, {
+        path: cookie.path,
+        domain: cookie.domain,
+        expires: cookie.expires,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite,
+      });
+    }
+
+    return response;
 
   } catch (error: any) {
     console.error('ERRO CRÍTICO NO LOGIN:', error);

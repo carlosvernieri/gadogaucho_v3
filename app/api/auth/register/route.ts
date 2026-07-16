@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { createClientServer } from '@/lib/supabase-server';
 
@@ -40,13 +41,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erro ao criar usuário' }, { status: 500 });
     }
 
-    // O usuário é retornado. Note que a sincronização com a tabela 'public.users' 
-    // acontecerá de forma assíncrona via Trigger no banco de dados.
-    return NextResponse.json({
+    const response = NextResponse.json({
       id: authData.user.id,
       email: authData.user.email,
       name: authData.user.user_metadata?.name || name
     });
+
+    // Copiar cookies do cookieStore para a resposta para garantir que sejam enviados ao navegador
+    const cookieStore = await cookies();
+    for (const cookie of cookieStore.getAll()) {
+      response.cookies.set(cookie.name, cookie.value, {
+        path: cookie.path,
+        domain: cookie.domain,
+        expires: cookie.expires,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite,
+      });
+    }
+
+    return response;
 
   } catch (error) {
     console.error('Registration error:', error);
