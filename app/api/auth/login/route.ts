@@ -96,14 +96,7 @@ export async function POST(request: Request) {
     // Copiar cookies do cookieStore para a resposta para garantir que sejam enviados ao navegador
     const cookieStore = await cookies();
     for (const cookie of cookieStore.getAll()) {
-      response.cookies.set(cookie.name, cookie.value, {
-        path: cookie.path,
-        domain: cookie.domain,
-        expires: cookie.expires,
-        secure: cookie.secure,
-        httpOnly: cookie.httpOnly,
-        sameSite: cookie.sameSite,
-      });
+      response.cookies.set(cookie.name, cookie.value);
     }
 
     return response;
