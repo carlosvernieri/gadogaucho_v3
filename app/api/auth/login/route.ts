@@ -93,7 +93,13 @@ export async function POST(request: Request) {
       id: authData.user.id,
       email: authData.user.email,
       name: authData.user.user_metadata?.name || 'Usuário',
-      is_admin: authData.user.user_metadata?.is_admin || false
+      is_admin: authData.user.user_metadata?.is_admin || false,
+      // Incluir tokens para o browser poder sincronizar a sessão via setSession()
+      _session: {
+        access_token: authData.session?.access_token,
+        refresh_token: authData.session?.refresh_token,
+        expires_at: authData.session?.expires_at,
+      }
     });
 
     // Copiar cookies capturados do fluxo de autenticação para a resposta
