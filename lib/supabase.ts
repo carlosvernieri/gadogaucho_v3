@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export const createClientBrowser = () => 
   createBrowserClient(supabaseUrl, supabaseAnonKey, {
     cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
     }
   });
 

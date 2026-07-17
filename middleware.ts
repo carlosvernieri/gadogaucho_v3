@@ -19,10 +19,11 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
+          const isSecure = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
           cookiesToSet.forEach(({ name, value, options }) => {
             const finalOptions = {
               ...options,
-              secure: process.env.NODE_ENV === 'production',
+              secure: isSecure,
             };
             supabaseResponse.cookies.set(name, value, finalOptions)
           })
@@ -36,34 +37,38 @@ export async function updateSession(request: NextRequest) {
   try {
     const { error } = await supabase.auth.getUser()
     if (error) {
-      // Não spamma o terminal com aviso para requisições de usuários não autenticados normais ou erros de refresh token
-      const isNormalOrTokenError = 
-        error.message === 'Auth session missing!' || 
-        error.message?.toLowerCase().includes('refresh token') || 
-        error.message?.toLowerCase().includes('refresh_token') ||
-        error.status === 400;
+      // 'Auth session missing!' é normal para usuários não autenticados — não logar, não limpar.
+      if (error.message === 'Auth session missing!') {
+        // Sem sessão, sem problema — usuário simplesmente não está logado.
+      } else {
+        // Apenas limpar cookies em caso de refresh token DEFINITIVAMENTE inválido ou já utilizado.
+        // Não limpar em erros transientes (status 400 genérico pode ser retornado durante renovação normal).
+        const isDefinitivelyInvalidToken =
+          error.message?.toLowerCase().includes('invalid refresh token') ||
+          error.message?.toLowerCase().includes('refresh token already used') ||
+          error.message?.toLowerCase().includes('token has expired');
 
-      if (!isNormalOrTokenError) {
-        console.warn('Middleware session update warning:', error.message);
-      }
-      // Se for um erro de token expirado ou inválido, limpamos os cookies para evitar loops de erro.
-      if (
-        error.message?.toLowerCase().includes('refresh token') || 
-        error.message?.toLowerCase().includes('refresh_token') || 
-        error.status === 400
-      ) {
-        clearAuthCookies(request, supabaseResponse)
+        if (isDefinitivelyInvalidToken) {
+          console.warn('Middleware: token inválido definitivo, limpando cookies:', error.message);
+          clearAuthCookies(request, supabaseResponse);
+        } else {
+          // Log de outros erros inesperados sem limpar os cookies
+          console.warn('Middleware session update warning:', error.message);
+        }
       }
     }
   } catch (error: any) {
-    const isTokenError = 
-      error.message?.toLowerCase().includes('refresh token') || 
-      error.message?.toLowerCase().includes('refresh_token');
-      
-    if (!isTokenError) {
-      console.error('Error refreshing session in middleware:', error)
+    // Em exceções inesperadas, só limpar se for definitivamente um erro de token inválido
+    const isDefinitivelyInvalidToken =
+      error.message?.toLowerCase().includes('invalid refresh token') ||
+      error.message?.toLowerCase().includes('refresh token already used') ||
+      error.message?.toLowerCase().includes('token has expired');
+
+    if (isDefinitivelyInvalidToken) {
+      clearAuthCookies(request, supabaseResponse);
+    } else {
+      console.error('Error refreshing session in middleware:', error);
     }
-    clearAuthCookies(request, supabaseResponse)
   }
 
   return supabaseResponse

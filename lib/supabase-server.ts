@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -7,6 +7,14 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // Cliente para uso exclusivo no Servidor (API Routes / Server Actions)
 export const createClientServer = async (onCookieSet?: (name: string, value: string, options: any) => void) => {
   const cookieStore = await cookies();
+  
+  let isSecure = false;
+  try {
+    const headerStore = await headers();
+    isSecure = headerStore.get('x-forwarded-proto') === 'https';
+  } catch (e) {
+    // Ignorar se não puder ler headers (ex: static generation)
+  }
   
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -18,7 +26,7 @@ export const createClientServer = async (onCookieSet?: (name: string, value: str
           cookiesToSet.forEach(({ name, value, options }) => {
             const finalOptions = {
               ...options,
-              secure: process.env.NODE_ENV === 'production',
+              secure: isSecure,
             };
             cookieStore.set(name, value, finalOptions);
             if (onCookieSet) {
