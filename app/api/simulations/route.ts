@@ -3,6 +3,8 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { logToDatabase } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     await logToDatabase('error', 'GET /api/simulations', 'Supabase is not configured');
