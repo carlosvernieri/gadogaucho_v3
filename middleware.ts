@@ -19,10 +19,11 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
+          const isSecure = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
           cookiesToSet.forEach(({ name, value, options }) => {
             const finalOptions = {
               ...options,
-              secure: process.env.NODE_ENV === 'production',
+              secure: isSecure,
             };
             supabaseResponse.cookies.set(name, value, finalOptions)
           })
