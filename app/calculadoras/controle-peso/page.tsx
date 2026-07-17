@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { BottomNav } from '@/components/BottomNav';
 import { Sidebar } from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
@@ -103,7 +104,7 @@ function WeightControlClient() {
     if (!user) return;
     setLoadingDb(true);
     try {
-      const res = await fetch('/api/simulations?type=controle-peso');
+      const res = await authenticatedFetch('/api/simulations?type=controle-peso');
       if (res.ok) {
         const data = await res.json();
         const mapped: WeighingSession[] = data.map((sim: any) => ({
@@ -320,7 +321,7 @@ function WeightControlClient() {
     if (user) {
       setLoadingDb(true);
       try {
-        const res = await fetch('/api/simulations', {
+        const res = await authenticatedFetch('/api/simulations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -389,7 +390,7 @@ function WeightControlClient() {
     if (sessionToDelete?.isDatabase && user) {
       setLoadingDb(true);
       try {
-        const res = await fetch(`/api/simulations/${id}`, {
+        const res = await authenticatedFetch(`/api/simulations/${id}`, {
           method: 'DELETE'
         });
 

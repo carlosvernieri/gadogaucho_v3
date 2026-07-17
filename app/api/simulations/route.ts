@@ -20,10 +20,6 @@ export async function GET(request: Request) {
   const type = searchParams.get('type');
 
   try {
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    console.log('[DEBUG GET /api/simulations] serviceRoleKey defined:', !!serviceRoleKey);
-    console.log('[DEBUG GET /api/simulations] supabaseUrl:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-
     let query = supabaseAdmin
       .from('saved_simulations')
       .select('*')
@@ -37,12 +33,9 @@ export async function GET(request: Request) {
     const { data: simulations, error } = await query;
 
     if (error) {
-      console.error('[DEBUG GET /api/simulations] query error:', error);
       await logToDatabase('error', 'GET /api/simulations', 'Supabase error fetching simulations', { userId, type, error });
       throw error;
     }
-
-    console.log(`[DEBUG GET /api/simulations] Query returned ${simulations?.length || 0} simulations`);
 
     await logToDatabase('info', 'GET /api/simulations', `Successfully fetched ${simulations?.length || 0} simulations for user`, { userId, type, count: simulations?.length || 0 });
     return NextResponse.json(simulations);

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { BottomNav } from '@/components/BottomNav';
 import { ShareModal } from '@/components/ShareModal';
 import { motion, AnimatePresence } from 'motion/react';
@@ -214,7 +215,7 @@ function PastagemCalculatorContent() {
     }
     setLoadingSimulations(true);
     try {
-      const res = await fetch('/api/simulations?type=pastagem');
+      const res = await authenticatedFetch('/api/simulations?type=pastagem');
       if (res.ok) {
         const data = await res.json();
         setSimulations(data);
@@ -240,7 +241,7 @@ function PastagemCalculatorContent() {
 
     setSavingSimulation(true);
     try {
-      const res = await fetch('/api/simulations', {
+      const res = await authenticatedFetch('/api/simulations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -278,7 +279,7 @@ function PastagemCalculatorContent() {
     if (!confirm('Deseja realmente excluir este orçamento salvo?')) return;
 
     try {
-      const res = await fetch(`/api/simulations/${id}`, {
+      const res = await authenticatedFetch(`/api/simulations/${id}`, {
         method: 'DELETE'
       });
 

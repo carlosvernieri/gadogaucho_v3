@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 interface UserContextType {
   user: any;
@@ -88,13 +89,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchFavorites = async (userId: string) => {
     try {
-      const { data } = await supabase
-        .from('favorites')
-        .select('listing_id')
-        .eq('user_id', userId);
-      
-      if (data) {
-        setFavorites(data.map((f: any) => f.listing_id));
+      const res = await authenticatedFetch('/api/favorites');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setFavorites(data);
+        }
       }
     } catch (err) {
       console.error('UserContext: Erro ao buscar favoritos:', err);
@@ -113,7 +113,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const method = isFavorite ? 'DELETE' : 'POST';
 
     try {
-      const res = await fetch('/api/favorites', {
+      const res = await authenticatedFetch('/api/favorites', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, listingId: listingIdNum })
@@ -136,7 +136,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await fetch('/api/messages');
+      const res = await authenticatedFetch('/api/messages');
       if (res.ok) {
         const data = await res.json();
         const count = data.filter((m: any) => !m.is_read).length;
@@ -165,21 +165,40 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('UserContext: Inicializando monitor de autenticação...');
     
-    // 1. Verificar sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        console.log('UserContext: Sessão inicial encontrada:', session.user.email);
-        fetchUserProfile(session.user.id);
-      } else {
-        console.log('UserContext: Nenhuma sessão inicial encontrada.');
+    // Fase 1: Verificar sessão via cookie do servidor (/api/auth/me).
+    // Usa authenticatedFetch para enviar o Bearer token junto (mais confiável que só cookies).
+    authenticatedFetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        return { user: null };
+      })
+      .then(({ user: serverUser }) => {
+        if (serverUser?.id) {
+          console.log('UserContext: Sessão restaurada via servidor:', serverUser.email);
+          setUserState(serverUser);
+          fetchFavorites(serverUser.id);
+          if (serverUser.role === 'admin') {
+            authenticatedFetch(`/api/draft?secret=${process.env.NEXT_PUBLIC_DRAFT_MODE_SECRET}`)
+              .then(() => console.log('UserContext: Draft Mode ativado para admin.'))
+              .catch((err) => console.warn('UserContext: Falha ao ativar Draft Mode:', err));
+          }
+        } else {
+          console.log('UserContext: Nenhuma sessão de servidor encontrada.');
+        }
+      })
+      .catch(err => {
+        console.error('UserContext: Erro ao verificar sessão do servidor:', err);
+      })
+      .finally(() => {
         setIsAuthReady(true);
-      }
-    });
+      });
 
-    // 2. Ouvir mudanças de estado (Login/Logout)
+    // Fase 2: Também ouvir eventos do cliente Supabase (Login/Logout em tempo real).
+    // Isso captura eventos que acontecem sem refresh de página (ex: login pelo modal).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('UserContext: Evento de Auth detetado:', event);
       if (event === 'SIGNED_IN' && session?.user) {
+        // Buscar perfil completo do servidor para garantir dados atualizados
         fetchUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setUserState(null);

@@ -7,6 +7,7 @@ import { useUser } from '@/context/UserContext';
 import { safeJsonStringify } from '@/lib/utils';
 import { RS_CITIES } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 
 const formatPhone = (val: string) => {
   const digits = val.replace(/\D/g, '').slice(0, 11);
@@ -161,13 +162,6 @@ export function AuthModal() {
           const { _session, ...userToSave } = savedUser;
           setUser(userToSave);
 
-          fetch(`/api/favorites?userId=${userToSave.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
-            })
-            .catch(err => console.error('Error fetching favorites:', err));
-
           setShowAuthModal(false);
         } else {
           const error = await res.json();
@@ -209,12 +203,7 @@ export function AuthModal() {
           const { _session, ...userToSave } = foundUser;
           setUser(userToSave);
 
-          fetch(`/api/favorites?userId=${foundUser.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (Array.isArray(data)) setFavorites(data);
-            })
-            .catch(err => console.error('Error fetching favorites:', err));
+          // Os favoritos são carregados automaticamente pelo UserContext via fetchUserProfile
 
           setShowAuthModal(false);
         } else {

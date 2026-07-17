@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { useUser } from '@/context/UserContext';
+import { authenticatedFetch } from '@/lib/authenticated-fetch';
 import { BottomNav } from '@/components/BottomNav';
 import { ShareModal } from '@/components/ShareModal';
 import { Sidebar } from '@/components/Sidebar';
@@ -167,7 +168,7 @@ function GMDCalculatorContent() {
     }
     setLoadingSimulations(true);
     try {
-      const res = await fetch('/api/simulations?type=gmd');
+      const res = await authenticatedFetch('/api/simulations?type=gmd');
       if (res.ok) {
         const data = await res.json();
         setSimulations(data);
@@ -193,7 +194,7 @@ function GMDCalculatorContent() {
 
     setSavingSimulation(true);
     try {
-      const res = await fetch('/api/simulations', {
+      const res = await authenticatedFetch('/api/simulations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ function GMDCalculatorContent() {
     if (!confirm('Deseja realmente excluir esta simulação salva?')) return;
 
     try {
-      const res = await fetch(`/api/simulations/${id}`, {
+      const res = await authenticatedFetch(`/api/simulations/${id}`, {
         method: 'DELETE'
       });
 
