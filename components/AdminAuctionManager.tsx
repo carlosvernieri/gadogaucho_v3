@@ -13,13 +13,15 @@ import { Spinner } from '@/components/Spinner';
 import { motion } from 'motion/react';
 import dynamic from 'next/dynamic';
 
+import { AuctionScatterChart } from './AuctionScatterChart';
+
 const RSMap = dynamic(() => import('./RSMap').then(mod => mod.RSMap), { ssr: false });
 
 export function AdminAuctionManager() {
   const [plazas, setPlazas] = useState<AuctionPlaza[]>([]);
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [innerTab, setInnerTab] = useState<'plazas' | 'auctions'>('plazas');
+  const [innerTab, setInnerTab] = useState<'plazas' | 'auctions' | 'analytics'>('plazas');
 
   // Modal States
   const [showPlazaModal, setShowPlazaModal] = useState(false);
@@ -255,18 +257,24 @@ export function AdminAuctionManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 border-b border-[#E9ECEF] pb-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 border-b border-[#E9ECEF] pb-4">
         <button
           onClick={() => setInnerTab('plazas')}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${innerTab === 'plazas' ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${innerTab === 'plazas' ? 'bg-[#2D5A27] text-white shadow-sm' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
         >
           Praças de Leilão
         </button>
         <button
           onClick={() => setInnerTab('auctions')}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${innerTab === 'auctions' ? 'bg-[#2D5A27] text-white' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${innerTab === 'auctions' ? 'bg-[#2D5A27] text-white shadow-sm' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
         >
           Calendário de Leilões
+        </button>
+        <button
+          onClick={() => setInnerTab('analytics')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${innerTab === 'analytics' ? 'bg-[#2D5A27] text-white shadow-sm' : 'text-[#666] hover:bg-[#F8F9FA]'}`}
+        >
+          <TrendingUp size={16} /> Gráfico de Ofertas (Preço x Peso)
         </button>
       </div>
 
@@ -324,7 +332,7 @@ export function AdminAuctionManager() {
           {/* Mapa de Distribuição Geográfica */}
           <RSMap plazas={plazas} onEditPlaza={handleOpenEditPlaza} />
         </div>
-      ) : (
+      ) : innerTab === 'auctions' ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-[#333]">Gestão de Leilões</h3>
@@ -533,6 +541,8 @@ export function AdminAuctionManager() {
             ))}
           </div>
         </div>
+      ) : (
+        <AuctionScatterChart />
       )}
 
       {/* --- MODALS --- */}
