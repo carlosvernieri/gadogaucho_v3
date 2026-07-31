@@ -33,6 +33,11 @@ import {
   Cell 
 } from 'recharts';
 
+import { 
+  FinanciamentoInput, 
+  calcularFinanciamento 
+} from '@/lib/financiamento-calculator';
+
 interface Lancamento {
   id: string;
   data_pagamento: string;
@@ -73,6 +78,7 @@ interface RelatoriosTabProps {
   lancamentos: Lancamento[];
   fazendas: Fazenda[];
   produtos: ProdutoInsumo[];
+  financiamentos?: FinanciamentoInput[];
 }
 
 const COLORS = ['#2D5A27', '#E63946', '#3B82F6', '#F59E0B', '#8B5CF6', '#10B981', '#64748B'];
@@ -81,6 +87,7 @@ export const RelatoriosTab: React.FC<RelatoriosTabProps> = ({
   lancamentos,
   fazendas,
   produtos,
+  financiamentos = [],
 }) => {
   const [selectedMonth, setSelectedMonth] = useState<string>('TODOS');
   const [isMounted, setIsMounted] = useState(false);
@@ -126,12 +133,34 @@ export const RelatoriosTab: React.FC<RelatoriosTabProps> = ({
       .reduce((acc, l) => acc + (parseFloat(l.valor as any) || 0), 0);
   }, [filteredLancamentos]);
 
-  const totalDespesas = useMemo(() => {
+  const despesasOperacionais = useMemo(() => {
     return filteredLancamentos
       .filter(l => (l.tipo_movimentacao || l.tipo_movimento) === 'DESPESA')
       .reduce((acc, l) => acc + (parseFloat(l.valor as any) || 0), 0);
   }, [filteredLancamentos]);
 
+  // Custo de Capital (Juros de Financiamentos) do período
+  const custoCapitalPeriodo = useMemo(() => {
+    if (!financiamentos || financiamentos.length === 0) return 0;
+
+    return financiamentos.reduce((acc, f) => {
+      const res = calcularFinanciamento(f);
+      if (selectedMonth === 'TODOS') {
+        // Custo mensal médio acumulado
+        return acc + res.custo_capital_mensal_medio;
+      } else {
+        // Busca juros específicos do mês selecionado (YYYY-MM)
+        const parcelaMes = res.cronograma.find(p => p.data_vencimento.startsWith(selectedMonth));
+        if (parcelaMes) {
+          return acc + parcelaMes.juros;
+        } else {
+          return acc + res.custo_capital_mensal_medio;
+        }
+      }
+    }, 0);
+  }, [financiamentos, selectedMonth]);
+
+  const totalDespesas = despesasOperacionais + custoCapitalPeriodo;
   const resultadoLiquido = totalReceitas - totalDespesas;
 
   // Return Rates & Profitability Indicators
@@ -141,7 +170,7 @@ export const RelatoriosTab: React.FC<RelatoriosTabProps> = ({
   const custoPorHectare = totalAreaHectares > 0 ? totalDespesas / totalAreaHectares : 0;
   const receitaPorHectare = totalAreaHectares > 0 ? totalReceitas / totalAreaHectares : 0;
 
-  // Costs by Category (Purchases / Expenses)
+  // Costs by Category (Purchases / Expenses + Custo de Capital)
   const despesasPorCategoria = useMemo(() => {
     const catMap: Record<string, number> = {};
     filteredLancamentos
@@ -151,12 +180,16 @@ export const RelatoriosTab: React.FC<RelatoriosTabProps> = ({
         catMap[cat] = (catMap[cat] || 0) + (parseFloat(l.valor as any) || 0);
       });
 
+    if (custoCapitalPeriodo > 0) {
+      catMap['Custo de Capital (Financiamentos)'] = (catMap['Custo de Capital (Financiamentos)'] || 0) + custoCapitalPeriodo;
+    }
+
     return Object.keys(catMap).map(cat => ({
       categoria: cat,
       valor: catMap[cat],
       percentual: totalDespesas > 0 ? (catMap[cat] / totalDespesas) * 100 : 0,
     })).sort((a, b) => b.valor - a.valor);
-  }, [filteredLancamentos, totalDespesas]);
+  }, [filteredLancamentos, custoCapitalPeriodo, totalDespesas]);
 
   // Stock Outflows / Baixas
   const baixasEstoque = useMemo(() => {
@@ -368,32 +401,40 @@ export const RelatoriosTab: React.FC<RelatoriosTabProps> = ({
           </div>
         </div>
 
-        {/* Financial Summary Card */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+        {/* Financial Summary Card (DRE Breakdown) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
           <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold text-emerald-800 uppercase block">Receita Total Entradas</span>
-              <span className="text-lg font-black text-emerald-700">{formatCurrency(totalReceitas)}</span>
+              <span className="text-[10px] font-bold text-emerald-800 uppercase block">Receita Operacional</span>
+              <span className="text-base font-black text-emerald-700">{formatCurrency(totalReceitas)}</span>
             </div>
-            <ArrowUpRight size={24} className="text-emerald-600" />
+            <ArrowUpRight size={22} className="text-emerald-600" />
           </div>
 
           <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold text-rose-800 uppercase block">Despesas Total Custos</span>
-              <span className="text-lg font-black text-rose-700">{formatCurrency(totalDespesas)}</span>
+              <span className="text-[10px] font-bold text-rose-800 uppercase block">Despesas Operacionais</span>
+              <span className="text-base font-black text-rose-700">{formatCurrency(despesasOperacionais)}</span>
             </div>
-            <ArrowDownRight size={24} className="text-rose-600" />
+            <ArrowDownRight size={22} className="text-rose-600" />
+          </div>
+
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-amber-900 uppercase block">Custo de Capital (Juros)</span>
+              <span className="text-base font-black text-amber-700">{formatCurrency(custoCapitalPeriodo)}</span>
+            </div>
+            <Percent size={20} className="text-amber-600" />
           </div>
 
           <div className={`p-4 rounded-xl border flex items-center justify-between ${resultadoLiquido >= 0 ? 'bg-emerald-100/50 border-emerald-200' : 'bg-rose-100/50 border-rose-200'}`}>
             <div>
-              <span className="text-xs font-bold text-[#1A1A1A] uppercase block">Resultado Líquido</span>
-              <span className={`text-lg font-black ${resultadoLiquido >= 0 ? 'text-[#2D5A27]' : 'text-rose-700'}`}>
+              <span className="text-[10px] font-bold text-[#1A1A1A] uppercase block">Resultado Líquido DRE</span>
+              <span className={`text-base font-black ${resultadoLiquido >= 0 ? 'text-[#2D5A27]' : 'text-rose-700'}`}>
                 {formatCurrency(resultadoLiquido)}
               </span>
             </div>
-            <DollarSign size={24} className={resultadoLiquido >= 0 ? 'text-[#2D5A27]' : 'text-rose-700'} />
+            <DollarSign size={22} className={resultadoLiquido >= 0 ? 'text-[#2D5A27]' : 'text-rose-700'} />
           </div>
         </div>
       </div>

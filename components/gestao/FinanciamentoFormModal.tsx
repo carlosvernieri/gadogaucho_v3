@@ -156,9 +156,18 @@ export const FinanciamentoFormModal: React.FC<FinanciamentoFormModalProps> = ({
                   className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl text-xs focus:ring-2 focus:ring-[#2D5A27] focus:bg-white transition-all font-medium appearance-none"
                 >
                   <option value="">Nenhuma / Não especificada</option>
-                  {contas.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome_banco} ({c.descricao})</option>
-                  ))}
+                  {contas.map((c) => {
+                    const banco = c.banco_nome || c.nome_banco || c.banco || 'Conta Bancária';
+                    const ag = c.agencia ? `Ag: ${c.agencia}` : '';
+                    const cc = c.conta_numero ? `CC: ${c.conta_numero}` : '';
+                    const desc = c.descricao ? `(${c.descricao})` : '';
+                    const extra = [ag, cc, desc].filter(Boolean).join(' ');
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {banco} {extra ? `- ${extra}` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
                 <Wallet size={16} className="absolute right-3 top-3 text-[#888] pointer-events-none" />
               </div>

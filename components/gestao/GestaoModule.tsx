@@ -689,7 +689,7 @@ export const GestaoModule: React.FC = () => {
               activeTab === 'relatorios' ? 'bg-[#2D5A27] text-white shadow-md' : 'text-[#666] hover:bg-[#F8F9FA] hover:text-[#333]'
             }`}
           >
-            <BarChart3 size={16} /> Relatórios & Rentabilidade
+            <BarChart3 size={16} /> Relatórios
           </button>
 
           <button
@@ -698,7 +698,7 @@ export const GestaoModule: React.FC = () => {
               activeTab === 'financiamentos' ? 'bg-[#2D5A27] text-white shadow-md' : 'text-[#666] hover:bg-[#F8F9FA] hover:text-[#333]'
             }`}
           >
-            <Landmark size={16} /> Financiamentos & Custo de Capital
+            <Landmark size={16} /> Financiamentos
           </button>
         </div>
 
@@ -776,6 +776,7 @@ export const GestaoModule: React.FC = () => {
             lancamentos={lancamentos}
             fazendas={fazendas}
             produtos={produtos}
+            financiamentos={financiamentos}
           />
         )}
 
