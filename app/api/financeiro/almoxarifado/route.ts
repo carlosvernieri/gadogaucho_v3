@@ -52,15 +52,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Quantidade deve ser maior que zero' }, { status: 400 });
       }
 
-      // Fetch current product quantity
+      // Fetch current product quantity (ensure it belongs to the user)
       const { data: currentProd, error: fetchErr } = await (supabaseAdmin
         .from('almoxarifado_produtos') as any)
         .select('*')
         .eq('id', produto_id)
+        .eq('user_id', session.id)
         .single();
 
       if (fetchErr || !currentProd) {
-        return NextResponse.json({ error: 'Produto não encontrado' }, { status: 44 });
+        return NextResponse.json({ error: 'Produto não encontrado ou não pertence ao usuário' }, { status: 403 });
       }
 
       const currentQtd = parseFloat(currentProd.quantidade_atual || 0);
