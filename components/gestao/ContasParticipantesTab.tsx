@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Wallet, Users, Plus, Trash2, Edit2, X, AlertCircle, CreditCard, UserCheck, ShieldCheck } from 'lucide-react';
+import { Wallet, Users, Plus, Trash2, Edit2, X, AlertCircle, CreditCard, UserCheck, ShieldCheck, Tag, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface Conta {
   id: string;
@@ -18,26 +18,41 @@ interface Participante {
   inscricao_estadual?: string;
 }
 
+interface CategoriaContabil {
+  id: string;
+  nome: string;
+  tipo: 'RECEITA' | 'DESPESA' | 'AMBOS';
+  ordem?: number;
+}
+
 interface ContasParticipantesTabProps {
   contas: Conta[];
   participantes: Participante[];
+  categorias: CategoriaContabil[];
   onAddConta: (data: any) => Promise<boolean>;
   onEditConta: (data: any) => Promise<boolean>;
   onDeleteConta: (id: string) => Promise<boolean>;
   onAddParticipante: (data: any) => Promise<boolean>;
   onEditParticipante: (data: any) => Promise<boolean>;
   onDeleteParticipante: (id: string) => Promise<boolean>;
+  onAddCategoria: (data: any) => Promise<boolean>;
+  onEditCategoria: (data: any) => Promise<boolean>;
+  onDeleteCategoria: (id: string) => Promise<boolean>;
 }
 
 export const ContasParticipantesTab: React.FC<ContasParticipantesTabProps> = ({
   contas,
   participantes,
+  categorias,
   onAddConta,
   onEditConta,
   onDeleteConta,
   onAddParticipante,
   onEditParticipante,
   onDeleteParticipante,
+  onAddCategoria,
+  onEditCategoria,
+  onDeleteCategoria,
 }) => {
   // Modal Conta
   const [showContaModal, setShowContaModal] = useState(false);
@@ -56,6 +71,12 @@ export const ContasParticipantesTab: React.FC<ContasParticipantesTabProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Modal Categoria
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catNome, setCatNome] = useState('');
+  const [catTipo, setCatTipo] = useState<'RECEITA' | 'DESPESA' | 'AMBOS'>('DESPESA');
 
   const handleOpenNewConta = () => {
     setEditingContaId(null);
@@ -143,6 +164,43 @@ export const ContasParticipantesTab: React.FC<ContasParticipantesTabProps> = ({
     }
   };
 
+  const handleOpenNewCat = () => {
+    setEditingCatId(null);
+    setCatNome('');
+    setCatTipo('DESPESA');
+    setErrorMessage('');
+    setShowCatModal(true);
+  };
+
+  const handleOpenEditCat = (c: CategoriaContabil) => {
+    setEditingCatId(c.id);
+    setCatNome(c.nome);
+    setCatTipo(c.tipo);
+    setErrorMessage('');
+    setShowCatModal(true);
+  };
+
+  const handleSubmitCategoria = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catNome.trim()) {
+      setErrorMessage('Preencha o nome da categoria.');
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    const payload = { id: editingCatId, nome: catNome.trim(), tipo: catTipo, ordem: 50 };
+    const ok = editingCatId ? await onEditCategoria(payload) : await onAddCategoria(payload);
+    setIsSubmitting(false);
+
+    if (ok) {
+      setShowCatModal(false);
+      setEditingCatId(null);
+      setCatNome('');
+    } else {
+      setErrorMessage('Erro ao salvar categoria. Verifique se o nome já existe.');
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -272,6 +330,76 @@ export const ContasParticipantesTab: React.FC<ContasParticipantesTabProps> = ({
         </div>
       </div>
 
+      {/* SECTION 3: CATEGORIAS CONTÁBEIS */}
+      <div className="space-y-4 lg:col-span-2">
+        <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-[#E9ECEF] shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <Tag size={22} />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-[#1A1A1A]">Categorias Contábeis</h2>
+              <p className="text-xs text-[#888]">Personalize as classificações de receitas e despesas</p>
+            </div>
+          </div>
+          <button
+            onClick={handleOpenNewCat}
+            className="px-3.5 py-2 bg-[#2D5A27] text-white font-bold text-xs rounded-xl hover:bg-[#1E3D1A] transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <Plus size={16} /> Nova Categoria
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {categorias.map((c) => (
+            <div key={c.id} className="bg-white p-4 rounded-2xl border border-[#E9ECEF] shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${
+                  c.tipo === 'RECEITA' ? 'bg-emerald-50 text-emerald-600' :
+                  c.tipo === 'DESPESA' ? 'bg-rose-50 text-rose-600' :
+                  'bg-blue-50 text-blue-600'
+                }`}>
+                  {c.tipo === 'RECEITA' ? <ArrowUpRight size={18} /> :
+                   c.tipo === 'DESPESA' ? <ArrowDownRight size={18} /> :
+                   <Tag size={18} />}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-[#1A1A1A]">{c.nome}</h4>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    c.tipo === 'RECEITA' ? 'bg-emerald-100 text-emerald-700' :
+                    c.tipo === 'DESPESA' ? 'bg-rose-100 text-rose-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>{c.tipo}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleOpenEditCat(c)}
+                  className="p-1.5 text-slate-400 hover:text-[#2D5A27] rounded-lg hover:bg-emerald-50 cursor-pointer transition-all"
+                  title="Editar Categoria"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button
+                  onClick={() => onDeleteCategoria(c.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer transition-all"
+                  title="Excluir Categoria"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {categorias.length === 0 && (
+            <div className="bg-white p-8 rounded-2xl border border-[#E9ECEF] text-center text-[#999] text-xs sm:col-span-2 lg:col-span-3">
+              <Tag size={32} className="mx-auto mb-2 opacity-40 text-amber-500" />
+              Nenhuma categoria cadastrada. As categorias padrão serão criadas automaticamente.
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Modal Nova Conta */}
       {showContaModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -392,6 +520,80 @@ export const ContasParticipantesTab: React.FC<ContasParticipantesTabProps> = ({
                 </button>
                 <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-[#2D5A27] text-white text-xs font-bold rounded-xl cursor-pointer">
                   {isSubmitting ? 'Salvando...' : (editingPartId ? 'Salvar Alterações' : 'Salvar Participante')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nova/Editar Categoria */}
+      {showCatModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E9ECEF] pb-3">
+              <h3 className="text-base font-extrabold text-[#1A1A1A]">
+                {editingCatId ? 'Editar Categoria' : 'Nova Categoria Contábil'}
+              </h3>
+              <button onClick={() => setShowCatModal(false)} className="text-[#999] hover:text-[#333] cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            {errorMessage && <p className="text-xs text-rose-600 font-bold">{errorMessage}</p>}
+
+            <form onSubmit={handleSubmitCategoria} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[#444] mb-1">Nome da Categoria *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Frete de Gado, Arrendamento, Sementes"
+                  value={catNome}
+                  onChange={(e) => setCatNome(e.target.value)}
+                  className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl p-2.5 text-xs outline-none"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#444] mb-1">Tipo *</label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#F8F9FA] rounded-xl border border-[#E9ECEF]">
+                  <button
+                    type="button"
+                    onClick={() => setCatTipo('DESPESA')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      catTipo === 'DESPESA' ? 'bg-rose-600 text-white shadow-sm' : 'text-[#666]'
+                    }`}
+                  >
+                    Despesa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatTipo('RECEITA')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      catTipo === 'RECEITA' ? 'bg-emerald-600 text-white shadow-sm' : 'text-[#666]'
+                    }`}
+                  >
+                    Receita
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatTipo('AMBOS')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      catTipo === 'AMBOS' ? 'bg-blue-600 text-white shadow-sm' : 'text-[#666]'
+                    }`}
+                  >
+                    Ambos
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button type="button" onClick={() => setShowCatModal(false)} className="px-4 py-2 text-xs font-bold text-[#666] cursor-pointer">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-[#2D5A27] text-white text-xs font-bold rounded-xl cursor-pointer">
+                  {isSubmitting ? 'Salvando...' : (editingCatId ? 'Salvar Alterações' : 'Criar Categoria')}
                 </button>
               </div>
             </form>

@@ -18,7 +18,8 @@ import {
   Building2,
   Wallet,
   Users,
-  Pencil
+  Pencil,
+  Tag
 } from 'lucide-react';
 
 interface Fazenda {
@@ -49,6 +50,13 @@ interface LancamentoItem {
   classificacao_item?: string;
 }
 
+interface CategoriaContabil {
+  id: string;
+  nome: string;
+  tipo: 'RECEITA' | 'DESPESA' | 'AMBOS';
+  ordem?: number;
+}
+
 interface Lancamento {
   id: string;
   fazenda_id: string;
@@ -71,10 +79,12 @@ interface LancamentosTabProps {
   fazendas: Fazenda[];
   contas: Conta[];
   participantes: Participante[];
+  categorias: CategoriaContabil[];
   onAddLancamento: (data: any) => Promise<boolean>;
   onEditLancamento?: (id: string, data: any) => Promise<boolean>;
   onDeleteLancamento: (id: string) => Promise<boolean>;
   onImportXml: (fileOrKey: File | string) => Promise<any>;
+  onAddCategoria: (data: any) => Promise<boolean>;
 }
 
 export const LancamentosTab: React.FC<LancamentosTabProps> = ({
@@ -82,10 +92,12 @@ export const LancamentosTab: React.FC<LancamentosTabProps> = ({
   fazendas,
   contas,
   participantes,
+  categorias,
   onAddLancamento,
   onEditLancamento,
   onDeleteLancamento,
   onImportXml,
+  onAddCategoria,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFazenda, setFilterFazenda] = useState('');
@@ -115,6 +127,10 @@ export const LancamentosTab: React.FC<LancamentosTabProps> = ({
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [xmlParsedData, setXmlParsedData] = useState<any>(null);
   const [isXmlLoading, setIsXmlLoading] = useState(false);
+
+  // Inline new category creation
+  const [showNewCatInput, setShowNewCatInput] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
 
   const handleChaveInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Format 44-digit string cleanly with spaces every 4 characters
@@ -563,20 +579,67 @@ export const LancamentosTab: React.FC<LancamentosTabProps> = ({
                 {/* Categoria */}
                 <div>
                   <label className="block text-xs font-bold text-[#444] mb-1">Categoria Contábil *</label>
-                  <select
-                    value={classificacao}
-                    onChange={(e) => setClassificacao(e.target.value)}
-                    className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl p-2.5 text-xs outline-none focus:border-[#2D5A27]"
-                  >
-                    <option value="Venda de Rebanho">Venda de Rebanho (Bovinos)</option>
-                    <option value="Insumos">Insumos (Sal, Ração, Proteínado)</option>
-                    <option value="Sanidade e Vacinas">Sanidade & Vacinas</option>
-                    <option value="Combustíveis e Máquinas">Combustíveis & Frotas</option>
-                    <option value="Manutenção e Pastagem">Manutenção de Piquetes / Cercas</option>
-                    <option value="Mão de Obra">Mão de Obra / Pessoal</option>
-                    <option value="Outras Receitas">Outras Receitas</option>
-                    <option value="Outras Despesas">Outras Despesas</option>
-                  </select>
+                  {!showNewCatInput ? (
+                    <div className="flex gap-1.5">
+                      <select
+                        value={classificacao}
+                        onChange={(e) => {
+                          if (e.target.value === '__NEW__') {
+                            setShowNewCatInput(true);
+                            setNewCatName('');
+                          } else {
+                            setClassificacao(e.target.value);
+                          }
+                        }}
+                        className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl p-2.5 text-xs outline-none focus:border-[#2D5A27]"
+                      >
+                        {categorias
+                          .filter(c => c.tipo === 'AMBOS' || c.tipo === tipoMovimento)
+                          .map(c => (
+                            <option key={c.id} value={c.nome}>{c.nome}</option>
+                          ))}
+                        <option disabled>──────────</option>
+                        <option value="__NEW__">＋ Criar Nova Categoria...</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="Nome da nova categoria..."
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        className="flex-1 bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl p-2.5 text-xs outline-none focus:border-[#2D5A27]"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newCatName.trim()) return;
+                          const ok = await onAddCategoria({
+                            nome: newCatName.trim(),
+                            tipo: tipoMovimento,
+                            ordem: 50,
+                          });
+                          if (ok) {
+                            setClassificacao(newCatName.trim());
+                            setShowNewCatInput(false);
+                            setNewCatName('');
+                          }
+                        }}
+                        className="px-3 py-2 bg-[#2D5A27] text-white text-xs font-bold rounded-xl hover:bg-[#1E3D1A] transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Criar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCatInput(false)}
+                        className="px-2 py-2 text-[#999] hover:text-[#333] text-xs rounded-xl cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Participante */}

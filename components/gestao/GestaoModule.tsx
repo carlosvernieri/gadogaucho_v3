@@ -44,6 +44,7 @@ export const GestaoModule: React.FC = () => {
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
   const [financiamentos, setFinanciamentos] = useState<FinanciamentoInput[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,13 +52,14 @@ export const GestaoModule: React.FC = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [resFazendas, resContas, resPart, resLanc, resProdutos, resFinanc] = await Promise.all([
+      const [resFazendas, resContas, resPart, resLanc, resProdutos, resFinanc, resCategorias] = await Promise.all([
         authenticatedFetch('/api/financeiro/fazendas'),
         authenticatedFetch('/api/financeiro/contas'),
         authenticatedFetch('/api/financeiro/participantes'),
         authenticatedFetch('/api/financeiro/lancamentos'),
         authenticatedFetch('/api/financeiro/almoxarifado'),
-        authenticatedFetch('/api/financeiro/financiamentos')
+        authenticatedFetch('/api/financeiro/financiamentos'),
+        authenticatedFetch('/api/financeiro/categorias')
       ]);
 
       if (resFazendas.ok) {
@@ -96,6 +98,10 @@ export const GestaoModule: React.FC = () => {
       if (resFinanc && resFinanc.ok) {
         const data = await resFinanc.json();
         setFinanciamentos(Array.isArray(data) ? data : []);
+      }
+      if (resCategorias && resCategorias.ok) {
+        const data = await resCategorias.json();
+        setCategorias(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase:', err);
@@ -403,6 +409,62 @@ export const GestaoModule: React.FC = () => {
     return true;
   };
 
+
+  const handleAddCategoria = async (payload: any): Promise<boolean> => {
+    try {
+      const res = await authenticatedFetch('/api/financeiro/categorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const newCat = await res.json();
+        setCategorias(prev => [...prev, newCat].sort((a, b) => (a.ordem || 50) - (b.ordem || 50)));
+        return true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error) alert(errData.error);
+        return false;
+      }
+    } catch (e) {
+      console.warn('Erro ao adicionar categoria:', e);
+    }
+    const newCat = { id: 'cat-' + Date.now(), ...payload };
+    setCategorias(prev => [...prev, newCat]);
+    return true;
+  };
+
+  const handleEditCategoria = async (payload: any): Promise<boolean> => {
+    try {
+      const res = await authenticatedFetch('/api/financeiro/categorias', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        await loadData();
+        return true;
+      }
+    } catch (e) {
+      console.warn('Erro ao editar categoria:', e);
+    }
+    setCategorias(prev => prev.map(c => c.id === payload.id ? { ...c, ...payload } : c));
+    return true;
+  };
+
+  const handleDeleteCategoria = async (id: string): Promise<boolean> => {
+    try {
+      const res = await authenticatedFetch(`/api/financeiro/categorias?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCategorias(prev => prev.filter(c => c.id !== id));
+        return true;
+      }
+    } catch (e) {
+      console.warn('Erro ao deletar categoria:', e);
+    }
+    setCategorias(prev => prev.filter(c => c.id !== id));
+    return true;
+  };
 
   const handleDeleteParticipante = async (id: string): Promise<boolean> => {
     try {
@@ -728,10 +790,12 @@ export const GestaoModule: React.FC = () => {
             fazendas={fazendas}
             contas={contas}
             participantes={participantes}
+            categorias={categorias}
             onAddLancamento={handleAddLancamento}
             onEditLancamento={handleEditLancamento}
             onDeleteLancamento={handleDeleteLancamento}
             onImportXml={handleImportXml}
+            onAddCategoria={handleAddCategoria}
           />
         )}
 
@@ -748,12 +812,16 @@ export const GestaoModule: React.FC = () => {
           <ContasParticipantesTab
             contas={contas}
             participantes={participantes}
+            categorias={categorias}
             onAddConta={handleAddConta}
             onEditConta={handleEditConta}
             onDeleteConta={handleDeleteConta}
             onAddParticipante={handleAddParticipante}
             onEditParticipante={handleEditParticipante}
             onDeleteParticipante={handleDeleteParticipante}
+            onAddCategoria={handleAddCategoria}
+            onEditCategoria={handleEditCategoria}
+            onDeleteCategoria={handleDeleteCategoria}
           />
         )}
 
