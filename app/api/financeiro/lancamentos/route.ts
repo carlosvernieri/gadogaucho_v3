@@ -123,26 +123,35 @@ export async function POST(request: Request) {
           const itemCat = item.classificacao_item || 'Geral';
 
           // Search existing product by name & user_id
-          const { data: existingProd } = await (supabaseAdmin
+          const { data: existingProd, error: searchErr } = await (supabaseAdmin
             .from('almoxarifado_produtos') as any)
             .select('id, quantidade_atual, custo_medio')
             .eq('user_id', session.id)
             .ilike('nome', item.descricao.trim())
             .maybeSingle();
 
+          if (searchErr) {
+            console.error(`[Almoxarifado Sync] Erro ao buscar produto "${item.descricao}":`, searchErr.message);
+            continue;
+          }
+
           let prodId = existingProd?.id;
 
           if (existingProd) {
             const newQtd = (existingProd.quantidade_atual || 0) + itemQtd;
-            await (supabaseAdmin
+            const { error: updateErr } = await (supabaseAdmin
               .from('almoxarifado_produtos') as any)
               .update({
                 quantidade_atual: newQtd,
                 custo_medio: itemValorUnit || existingProd.custo_medio || 0
               })
               .eq('id', existingProd.id);
+
+            if (updateErr) {
+              console.error(`[Almoxarifado Sync] Erro ao atualizar produto "${item.descricao}":`, updateErr.message);
+            }
           } else {
-            const { data: newProd } = await (supabaseAdmin
+            const { data: newProd, error: insertErr } = await (supabaseAdmin
               .from('almoxarifado_produtos') as any)
               .insert([{
                 user_id: session.id,
@@ -154,12 +163,17 @@ export async function POST(request: Request) {
               }])
               .select()
               .single();
+
+            if (insertErr) {
+              console.error(`[Almoxarifado Sync] Erro ao criar produto "${item.descricao}":`, insertErr.message);
+              continue;
+            }
               
             prodId = newProd?.id;
           }
 
           if (prodId) {
-            await (supabaseAdmin
+            const { error: movErr } = await (supabaseAdmin
               .from('almoxarifado_movimentacoes') as any)
               .insert([{
                 produto_id: prodId,
@@ -167,9 +181,13 @@ export async function POST(request: Request) {
                 quantidade: itemQtd,
                 observacoes: `Entrada Automática via NF-e Doc: ${numero_documento}`
               }]);
+
+            if (movErr) {
+              console.error(`[Almoxarifado Sync] Erro ao registrar movimentação para "${item.descricao}":`, movErr.message);
+            }
           }
-        } catch (syncErr) {
-          console.warn('Erro ao sincronizar item no almoxarifado:', syncErr);
+        } catch (syncErr: any) {
+          console.error(`[Almoxarifado Sync] Exceção ao sincronizar "${item.descricao}":`, syncErr?.message || syncErr);
         }
       }
     }
