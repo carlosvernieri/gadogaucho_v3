@@ -138,8 +138,10 @@ export const GestaoModule: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (user) {
+      loadData();
+    }
+  }, [loadData, user]);
 
   // Handlers for Add/Delete
   const syncItensToAlmoxarifado = (payload: any) => {

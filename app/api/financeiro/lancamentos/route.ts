@@ -122,11 +122,11 @@ export async function POST(request: Request) {
           const itemValorUnit = item.valor_unitario;
           const itemCat = item.classificacao_item || 'Geral';
 
-          // Search existing product by name & fazenda_id
+          // Search existing product by name & user_id
           const { data: existingProd } = await (supabaseAdmin
             .from('almoxarifado_produtos') as any)
             .select('id, quantidade_atual, custo_medio')
-            .eq('fazenda_id', fazenda_id)
+            .eq('user_id', session.id)
             .ilike('nome', item.descricao.trim())
             .maybeSingle();
 
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
             const { data: newProd } = await (supabaseAdmin
               .from('almoxarifado_produtos') as any)
               .insert([{
-                fazenda_id,
+                user_id: session.id,
                 nome: item.descricao,
                 categoria: itemCat,
                 quantidade_atual: itemQtd,
@@ -281,6 +281,18 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     if (!id) {
       return NextResponse.json({ error: 'ID do lançamento não fornecido' }, { status: 400 });
+    }
+
+    // Verify the lancamento belongs to a fazenda owned by the user
+    const { data: lancamento, error: fetchError } = await (supabaseAdmin
+      .from('lancamentos') as any)
+      .select('id, fazenda_id, fazendas!inner(user_id)')
+      .eq('id', id)
+      .eq('fazendas.user_id', session.id)
+      .single();
+
+    if (fetchError || !lancamento) {
+      return NextResponse.json({ error: 'Lançamento não encontrado ou não pertence ao usuário' }, { status: 403 });
     }
 
     const { error } = await (supabaseAdmin
