@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3, Calculator, User } from 'lucide-react';
+import { LayoutGrid, Megaphone, Bell, ShieldCheck, LogOut, Menu, Heart, MessageSquare, TrendingUp, BarChart3, Calculator, User, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -84,6 +84,17 @@ export const Header = ({
             <TrendingUp size={20} />
             <span className="hidden sm:inline">Cotações</span>
           </button>
+
+          {user && (
+            <button
+              onClick={() => router.push('/gestao')}
+              className="p-2 text-[#666] hover:bg-[#F8F9FA] hover:text-[#2D5A27] rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-sm font-medium"
+              title="Módulo de Gestão Financeira & Rural"
+            >
+              <Building2 size={20} />
+              <span className="hidden sm:inline">Gestão</span>
+            </button>
+          )}
 
           { /* user?.is_admin && (
             <button

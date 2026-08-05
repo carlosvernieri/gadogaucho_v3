@@ -75,6 +75,10 @@ function runGmdCalculations(inputs: Record<string, string>) {
     ? ((totalCostPerHead / numInputs.expectedSalePriceKg) - numInputs.initialWeight) / numInputs.days
     : 0;
 
+  const dailyCostHeadMonthly = numInputs.dailyCostHead * 30;
+  const dailyCostTotalBatch = numInputs.dailyCostHead * numInputs.animalCount;
+  const dailyCostTotalBatchMonthly = dailyCostHeadMonthly * numInputs.animalCount;
+
   return {
     ...numInputs,
     totalGain,
@@ -89,6 +93,9 @@ function runGmdCalculations(inputs: Record<string, string>) {
     roi,
     monthlyProfitability: numInputs.days > 0 ? (roi / numInputs.days) * 30 : 0,
     breakEvenGmd,
+    dailyCostHeadMonthly,
+    dailyCostTotalBatch,
+    dailyCostTotalBatchMonthly,
     totalBatchProfit: profitPerHead * numInputs.animalCount,
     totalBatchInvestment: totalCostPerHead * numInputs.animalCount,
     totalBatchProfitMonth: profitMonth * numInputs.animalCount
@@ -345,7 +352,7 @@ function GMDCalculatorContent() {
       const params = new URLSearchParams(window.location.search);
       params.set('compareData', base64);
       const shareLink = `${window.location.protocol}//${window.location.host}${window.location.pathname}?${params.toString()}`;
-      
+
       navigator.clipboard.writeText(shareLink);
       alert('Link de comparação copiado para a área de transferência!');
     } catch (err) {
@@ -367,7 +374,7 @@ function GMDCalculatorContent() {
         minTotalBatchInvestment: 999999999,
       };
     }
-    
+
     return {
       maxGmd: Math.max(...comparedSimsData.map(s => s.calcs.gmd)),
       minBreakEven: Math.min(...comparedSimsData.map(s => s.calcs.breakEvenGmd)),
@@ -416,14 +423,14 @@ function GMDCalculatorContent() {
     {
       category: 'Indicadores Zootécnicos',
       items: [
-        { 
-          label: 'GMD (Ganho Médio Diário)', 
+        {
+          label: 'GMD (Ganho Médio Diário)',
           format: (s: any) => `${s.calcs.gmd.toFixed(3)} kg/dia`,
           isBest: (s: any) => s.calcs.gmd === bestValues.maxGmd && bestValues.maxGmd > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
         },
-        { 
-          label: 'GMD de Equilíbrio (Break-even)', 
+        {
+          label: 'GMD de Equilíbrio (Break-even)',
           format: (s: any) => `${s.calcs.breakEvenGmd.toFixed(3)} kg/dia`,
           isBest: (s: any) => s.calcs.breakEvenGmd === bestValues.minBreakEven && bestValues.minBreakEven > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
@@ -433,32 +440,32 @@ function GMDCalculatorContent() {
     {
       category: 'Indicadores Financeiros',
       items: [
-        { 
-          label: 'ROI (Retorno s/ Investimento)', 
+        {
+          label: 'ROI (Retorno s/ Investimento)',
           format: (s: any) => `${s.calcs.roi.toFixed(1)}%`,
           isBest: (s: any) => s.calcs.roi === bestValues.maxRoi && bestValues.maxRoi > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
         },
-        { 
-          label: 'Rentabilidade Mensal', 
+        {
+          label: 'Rentabilidade Mensal',
           format: (s: any) => `${s.calcs.monthlyProfitability.toFixed(2)}%`,
           isBest: (s: any) => s.calcs.monthlyProfitability === bestValues.maxMonthlyProfitability && bestValues.maxMonthlyProfitability > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
         },
-        { 
-          label: 'Lucro por Cabeça', 
+        {
+          label: 'Lucro por Cabeça',
           format: (s: any) => `R$ ${s.calcs.profitPerHead.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           isBest: (s: any) => s.calcs.profitPerHead === bestValues.maxProfitPerHead && bestValues.maxProfitPerHead > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
         },
-        { 
-          label: 'Investimento Total', 
+        {
+          label: 'Investimento Total',
           format: (s: any) => `R$ ${s.calcs.totalBatchInvestment.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
           isBest: (s: any) => s.calcs.totalBatchInvestment === bestValues.minTotalBatchInvestment && bestValues.minTotalBatchInvestment > 0,
           highlightClass: 'text-blue-600 font-black bg-blue-50 rounded-lg px-2 py-0.5'
         },
-        { 
-          label: 'Lucro Total do Lote', 
+        {
+          label: 'Lucro Total do Lote',
           format: (s: any) => `R$ ${s.calcs.totalBatchProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
           isBest: (s: any) => s.calcs.totalBatchProfit === bestValues.maxTotalBatchProfit && bestValues.maxTotalBatchProfit > 0,
           highlightClass: 'text-emerald-600 font-black bg-emerald-50 rounded-lg px-2 py-0.5'
@@ -536,40 +543,40 @@ function GMDCalculatorContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col pb-24 lg:pb-0">
-        <Header
-          user={user}
-          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
-          onAdClick={() => router.push('/?ad=new')}
-          onAdminClick={() => router.push('/admin')}
-          onLogout={() => { logout(); router.push('/'); }}
-          onHomeClick={() => router.push('/')}
-          onFavoritesClick={() => router.push('/favoritos')}
-        />
-        
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          selectedCategory={null}
-          onSelectCategory={(cat) => {
-            if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
-            else router.push('/');
-          }}
-          searchQuery=""
-          onSearchChange={() => { }}
-          listingsCount={0}
-          getCategoryCount={() => 0}
-          citySearch=""
-          onCitySearchChange={() => { }}
-          maxDistance={100}
-          onMaxDistanceChange={() => { }}
-          onUseMyLocation={() => { }}
-          citySuggestions={[]}
-          onSelectCity={() => { }}
-          showSuggestions={false}
-          setShowSuggestions={() => { }}
-          isDesktopHidden={true}
-        />
+      <Header
+        user={user}
+        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        onAuthClick={(mode) => { setAuthMode(mode); setShowAuthModal(true); }}
+        onAdClick={() => router.push('/?ad=new')}
+        onAdminClick={() => router.push('/admin')}
+        onLogout={() => { logout(); router.push('/'); }}
+        onHomeClick={() => router.push('/')}
+        onFavoritesClick={() => router.push('/favoritos')}
+      />
+
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        selectedCategory={null}
+        onSelectCategory={(cat) => {
+          if (cat) router.push(`/?category=${encodeURIComponent(cat)}`);
+          else router.push('/');
+        }}
+        searchQuery=""
+        onSearchChange={() => { }}
+        listingsCount={0}
+        getCategoryCount={() => 0}
+        citySearch=""
+        onCitySearchChange={() => { }}
+        maxDistance={100}
+        onMaxDistanceChange={() => { }}
+        onUseMyLocation={() => { }}
+        citySuggestions={[]}
+        onSelectCity={() => { }}
+        showSuggestions={false}
+        setShowSuggestions={() => { }}
+        isDesktopHidden={true}
+      />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 lg:px-8 py-8">
 
@@ -680,7 +687,10 @@ function GMDCalculatorContent() {
                     onChange={(e) => handleInputChange('dailyCostHead', e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#E9ECEF] rounded-xl px-4 py-3 text-sm font-bold text-[#333] outline-none focus:border-[#2D5A27]"
                   />
-                  <p className="text-[10px] text-[#999] mt-2 italic">Inclui ração, manejo e sanidade.</p>
+                  <div className="mt-2 text-[10px] bg-[#2171B5]/5 border border-[#2171B5]/10 rounded-lg p-2 flex items-center justify-between font-bold text-[#2171B5]">
+                    <span>Custo Mensal/Cabeça:</span>
+                    <span>{calculations.dailyCostHeadMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês</span>
+                  </div>
                 </div>
                 <div className="pt-4 border-t border-[#F8F9FA]">
                   <label className="block text-[11px] font-bold text-[#999] uppercase mb-2">Preço Venda Esperado (R$/kg)</label>
@@ -798,11 +808,10 @@ function GMDCalculatorContent() {
                       setShowCompareModal(true);
                     }}
                     disabled={selectedSimsForCompare.length < 2}
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold text-sm rounded-xl transition-all shadow-sm ${
-                      selectedSimsForCompare.length >= 2
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold text-sm rounded-xl transition-all shadow-sm ${selectedSimsForCompare.length >= 2
                         ? 'bg-[#2171B5] hover:bg-[#1E62A0] text-white cursor-pointer'
                         : 'bg-[#E9ECEF] text-[#999] cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <Layers size={16} /> Comparar Selecionadas ({selectedSimsForCompare.length})
                   </button>
@@ -815,33 +824,50 @@ function GMDCalculatorContent() {
           <div className="lg:col-span-8 space-y-6">
 
             {/* Cards de Desempenho Principal */}
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-3 gap-6">
 
-              <div className="bg-[#2D5A27] rounded-[2.5rem] p-8 text-white shadow-xl shadow-[#2D5A27]/20 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
+              <div className="bg-[#2D5A27] rounded-[2.5rem] p-6 lg:p-8 text-white shadow-xl shadow-[#2D5A27]/20 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-28 h-28 bg-white/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                 <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4 opacity-70">
-                    <Activity size={18} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Ganho Médio Diário</span>
+                  <div className="flex items-center gap-2 mb-3 opacity-70">
+                    <Activity size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Ganho Médio (GMD)</span>
                   </div>
-                  <div className="text-5xl font-black mb-1">
-                    {calculations.gmd.toFixed(3)} <span className="text-xl opacity-60">kg/dia</span>
+                  <div className="text-3xl lg:text-4xl font-black mb-1">
+                    {calculations.gmd.toFixed(3)} <span className="text-base opacity-60">kg/dia</span>
                   </div>
-                  <p className="text-xs text-white/60 font-medium">Total de {calculations.totalGain}kg ganhos em {inputs.days} dias.</p>
+                  <p className="text-[11px] text-white/60 font-medium">{calculations.totalGain}kg ganhos em {inputs.days}d</p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#2D5A27]/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
+              <div className="bg-white rounded-[2.5rem] p-6 lg:p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-28 h-28 bg-[#2D5A27]/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                 <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4 text-[#999]">
-                    <Target size={18} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Ponto de Equilíbrio (GMD)</span>
+                  <div className="flex items-center gap-2 mb-3 text-[#999]">
+                    <Target size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Break-Even GMD</span>
                   </div>
-                  <div className="text-5xl font-black mb-1 text-[#333]">
-                    {calculations.breakEvenGmd.toFixed(3)} <span className="text-xl text-[#999]">kg/dia</span>
+                  <div className="text-3xl lg:text-4xl font-black mb-1 text-[#333]">
+                    {calculations.breakEvenGmd.toFixed(3)} <span className="text-base text-[#999]">kg/dia</span>
                   </div>
-                  <p className="text-xs text-[#666] font-medium leading-tight">Ganho necessário para cobrir os custos e o ágio da compra.</p>
+                  <p className="text-[11px] text-[#666] font-medium leading-tight">Mínimo para cobrir custo + ágio</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[2.5rem] p-6 lg:p-8 border border-[#E9ECEF] shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-28 h-28 bg-[#2171B5]/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3 text-[#2171B5]">
+                    <Clock size={16} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Custo Mensalizado</span>
+                  </div>
+                  <div className="text-3xl lg:text-4xl font-black mb-1 text-[#2171B5]">
+                    R$ {calculations.dailyCostHeadMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="text-xs text-[#999] font-medium"> /cab/mês</span>
+                  </div>
+                  <p className="text-[11px] text-[#666] font-medium leading-tight">
+                    R$ {calculations.dailyCostTotalBatchMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mês total do lote
+                  </p>
                 </div>
               </div>
 
@@ -1035,13 +1061,13 @@ function GMDCalculatorContent() {
 
       </main>
 
-        {user && (
-          <BottomNav
-            user={user}
-            onAdClick={() => router.push('/?ad=new')}
-            onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-          />
-        )}
+      {user && (
+        <BottomNav
+          user={user}
+          onAdClick={() => router.push('/?ad=new')}
+          onAuthClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+        />
+      )}
 
       <ShareModal
         isOpen={showShareModal}
@@ -1071,7 +1097,7 @@ function GMDCalculatorContent() {
       <AnimatePresence>
         {showSaveModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
